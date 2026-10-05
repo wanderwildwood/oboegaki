@@ -73,7 +73,7 @@ class NextcloudRemote(private val account: Account, folder: String) : Remote {
         call(request(url(path)).get().build()) { response ->
             if (response.code == 404) throw Moved("$path is gone")
             check(response, path)
-            Fetched(response.body!!.string(), response.header("ETag"))
+            Fetched(response.body!!.string(), response.header("ETag"), response.headers.getDate("Last-Modified")?.time)
         }
 
     override fun put(path: String, text: String, expect: Expect): String? {

@@ -26,7 +26,8 @@ interface Remote {
     fun delete(path: String, etag: String)
 }
 
-data class Fetched(val text: String, val etag: String?)
+/** A note as read from the server, and when the server says it last changed, if it says. */
+data class Fetched(val text: String, val etag: String?, val modified: Long? = null)
 
 /** What the server must still hold for a write to go ahead. */
 sealed interface Expect {

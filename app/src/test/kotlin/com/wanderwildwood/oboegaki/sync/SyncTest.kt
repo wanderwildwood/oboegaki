@@ -12,6 +12,7 @@ import java.io.File
 /** A server folder in memory, with etags that move on every write, as Nextcloud's do. */
 private class FakeRemote : Remote {
     val files = mutableMapOf<String, Pair<String, String>>()
+    val dated = mutableMapOf<String, Long>()
     private var counter = 0
 
     fun set(path: String, text: String) {
@@ -22,7 +23,7 @@ private class FakeRemote : Remote {
 
     override fun get(path: String): Fetched {
         val (text, etag) = files[path] ?: throw Moved("gone")
-        return Fetched(text, etag)
+        return Fetched(text, etag, dated[path])
     }
 
     override fun put(path: String, text: String, expect: Expect): String? {
@@ -197,5 +198,14 @@ class SyncTest {
         assertEquals("ideas/kiln (this phone).md", besideName("ideas/kiln.md"))
         assertEquals("kiln (this phone 2).md", besideName("kiln.md", 2))
         assertEquals("README (this phone)", besideName("README"))
+    }
+
+    @Test
+    fun aReceivedNoteKeepsTheServersDate() {
+        val his = phone("his")
+        server.set("old.md", "written long ago")
+        server.dated["old.md"] = 1_600_000_000_000L
+        his.sync.run(server)
+        assertEquals(1_600_000_000_000L, File(his.notes, "old.md").lastModified())
     }
 }

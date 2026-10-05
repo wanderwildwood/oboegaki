@@ -147,6 +147,9 @@ class Sync(
         guard {
             if (read(notes, path) == seen) {
                 write(notes, path, fetched.text)
+                // Dated as the server dates it, not as the moment it arrived, so a first sync
+                // of a whole folder does not make every note look as if it was written just now.
+                fetched.modified?.let { File(notes, path).setLastModified(it) }
                 took = true
             }
         }
