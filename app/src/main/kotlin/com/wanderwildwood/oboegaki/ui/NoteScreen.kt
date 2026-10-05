@@ -284,8 +284,10 @@ private fun Reading(
                             .padding(start = (line.indent.length * 8).dp, top = 2.dp, bottom = 2.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        // Drawn only; the row takes the press, so the whole line is the target.
-                        CheckboxMMD(checked = line.done, onCheckedChange = null)
+                        // The box takes its own press as well as the row: MMD's checkbox hands its
+                        // click handler a lambda even when given null, so a null here swallowed every
+                        // tap on the box itself and only the words ticked anything.
+                        CheckboxMMD(checked = line.done, onCheckedChange = { onToggle(line.index) })
                         Spacer(Modifier.width(8.dp))
                         TextMMD(text = line.text, style = MaterialTheme.typography.bodyLarge)
                     }
