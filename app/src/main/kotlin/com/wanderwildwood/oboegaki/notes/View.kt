@@ -5,6 +5,8 @@ object Showing {
     const val ALL = ""
     const val SHARED = "shared"
     const val LISTS = "lists"
+    const val VOICE = "voice"
+    const val SCANS = "scans"
     fun folder(path: String) = "folder:$path"
     fun folderOf(showing: String): String? = showing.removePrefix("folder:").takeIf { showing.startsWith("folder:") }
 }
@@ -31,6 +33,8 @@ fun arrange(
                 folder != null -> note.folder == folder || note.folder.startsWith("$folder/")
                 showing == Showing.SHARED -> note.path in shared
                 showing == Showing.LISTS -> hasTasks(note.text)
+                showing == Showing.VOICE -> embeds(note.text).any(::isSound)
+                showing == Showing.SCANS -> embeds(note.text).any { it.lowercase().endsWith(".pdf") }
                 else -> true
             }
         }

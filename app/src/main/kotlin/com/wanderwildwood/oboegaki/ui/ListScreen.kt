@@ -188,6 +188,8 @@ private fun viewLabel(showing: String, order: Order): String {
         when (showing) {
             Showing.SHARED -> R.string.view_shared
             Showing.LISTS -> R.string.view_lists
+            Showing.VOICE -> R.string.view_voice
+            Showing.SCANS -> R.string.view_scans
             else -> R.string.view_all
         },
     )
@@ -213,6 +215,8 @@ private fun ViewDialog(
             item { DialogHeading(stringResource(R.string.view_show)) }
             item { Choice(stringResource(R.string.view_all), showing == Showing.ALL) { onChoose(Showing.ALL, order) } }
             item { Choice(stringResource(R.string.view_lists), showing == Showing.LISTS) { onChoose(Showing.LISTS, order) } }
+            item { Choice(stringResource(R.string.view_voice), showing == Showing.VOICE) { onChoose(Showing.VOICE, order) } }
+            item { Choice(stringResource(R.string.view_scans), showing == Showing.SCANS) { onChoose(Showing.SCANS, order) } }
             if (canShare) {
                 item { Choice(stringResource(R.string.view_shared), showing == Showing.SHARED) { onChoose(Showing.SHARED, order) } }
             }

@@ -10,6 +10,8 @@ class ViewTest {
         Note("ideas/kiln.md", "kiln", "", modified = 100, text = "wood fired, two chambers"),
         Note("ideas/glaze/ash.md", "ash", "", modified = 200, text = "wood ash glaze"),
         Note("reading-highlights/Braiding Sweetgrass.md", "Braiding Sweetgrass", "", modified = 50, text = "gift"),
+        Note("Voice 0214.md", "Voice 0214", "", modified = 40, text = "![[Voice 0214.m4a]]\n\nkiln wood"),
+        Note("Scan 0236.md", "Scan 0236", "", modified = 30, text = "![[Scan 0236.pdf]]\n"),
     )
 
     private fun titles(list: List<Note>) = list.map { it.title }
@@ -17,7 +19,7 @@ class ViewTest {
     @Test
     fun newestFirstAcrossEveryFolder() {
         assertEquals(
-            listOf("Groceries", "ash", "kiln", "Braiding Sweetgrass"),
+            listOf("Groceries", "ash", "kiln", "Braiding Sweetgrass", "Voice 0214", "Scan 0236"),
             titles(arrange(notes, emptySet(), Showing.ALL, Order.CHANGED, "")),
         )
     }
@@ -25,7 +27,7 @@ class ViewTest {
     @Test
     fun byTitleIgnoresCase() {
         assertEquals(
-            listOf("ash", "Braiding Sweetgrass", "Groceries", "kiln"),
+            listOf("ash", "Braiding Sweetgrass", "Groceries", "kiln", "Scan 0236", "Voice 0214"),
             titles(arrange(notes, emptySet(), Showing.ALL, Order.TITLE, "")),
         )
     }
@@ -44,7 +46,7 @@ class ViewTest {
 
     @Test
     fun searchNeedsEveryWordInTitleOrText() {
-        assertEquals(listOf("ash", "kiln"), titles(arrange(notes, emptySet(), Showing.ALL, Order.CHANGED, "WOOD")))
+        assertEquals(listOf("ash", "kiln", "Voice 0214"), titles(arrange(notes, emptySet(), Showing.ALL, Order.CHANGED, "WOOD")))
         assertEquals(listOf("ash"), titles(arrange(notes, emptySet(), Showing.ALL, Order.CHANGED, "glaze wood")))
         assertEquals(listOf("Groceries"), titles(arrange(notes, emptySet(), Showing.ALL, Order.CHANGED, "groc")))
         assertEquals(emptyList<String>(), titles(arrange(notes, emptySet(), Showing.ALL, Order.CHANGED, "wood milk")))
@@ -53,5 +55,11 @@ class ViewTest {
     @Test
     fun foldersListsNestedOnesToo() {
         assertEquals(listOf("ideas", "ideas/glaze", "reading-highlights"), folders(notes))
+    }
+
+    @Test
+    fun voiceAndScans() {
+        assertEquals(listOf("Voice 0214"), titles(arrange(notes, emptySet(), Showing.VOICE, Order.CHANGED, "")))
+        assertEquals(listOf("Scan 0236"), titles(arrange(notes, emptySet(), Showing.SCANS, Order.CHANGED, "")))
     }
 }
