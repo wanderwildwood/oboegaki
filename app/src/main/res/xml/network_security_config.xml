@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    A Nextcloud at home is often reached by plain http: an address on the home network, or a
+    Tailscale one, where there is no certificate to be had and Tailscale already encrypts the
+    traffic itself. Android has refused cleartext by default since API 28, so without this a
+    request to such a server fails before it leaves the phone.
+
+    The cost, plainly: over http on an ordinary network, the notes and the app password are
+    readable by anyone else on it. A server reachable over https should be given as https.
+    Permitting cleartext does not weaken https; it only stops refusing http.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
