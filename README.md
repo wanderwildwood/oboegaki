@@ -19,9 +19,7 @@ Not a fork. Written from scratch in Kotlin and Jetpack Compose, using Mudita's o
 
 Version 0.1.0, not yet released. On a Kompakt: notes and lists syncing through Nextcloud
 between two phones, a list shared between them and ticked on one while added to on the other,
-a voice note heard and written down, a page photographed and handed to the scanner. The
-scanner's straightening has so far been tried on photographs made for the purpose more than on
-real paper on real tables.
+a voice note heard and written down, a page photographed and handed to the scanner.
 
 ## What it does
 
