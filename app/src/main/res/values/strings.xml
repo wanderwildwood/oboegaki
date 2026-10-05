@@ -147,6 +147,7 @@
     <string name="scan_ink">Black and white</string>
     <string name="scan_grey">Greys</string>
     <string name="scan_keep">Keep this page</string>
+    <string name="cd_rotate">Turn a quarter clockwise</string>
     <string name="scan_working">Straightening…</string>
     <string name="scan_unreadable">That picture could not be read.</string>
     <string name="scan_no_camera">No camera app on this phone takes a photo for another app. Use a picture already taken instead.</string>

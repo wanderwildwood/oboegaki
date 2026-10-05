@@ -196,6 +196,34 @@ fun inkOnPaper(grey: IntArray, width: Int, height: Int): IntArray {
     return IntArray(grey.size) { i -> if (grey[i] < mean[i] * 0.86) 0 else 255 }
 }
 
+/** [grey], a [width] by [height] picture, turned a quarter clockwise: [height] wide now. */
+fun turnClockwise(grey: IntArray, width: Int, height: Int): IntArray {
+    val out = IntArray(grey.size)
+    for (y in 0 until height) for (x in 0 until width) {
+        // (x, y) lands at (height - 1 - y, x) in a picture [height] wide.
+        out[x * height + (height - 1 - y)] = grey[y * width + x]
+    }
+    return out
+}
+
+/**
+ * The same corners on a picture turned a quarter clockwise, named afresh by where they now
+ * sit, because the corner called top left is the one the flat page is drawn from: carried
+ * over from before the turn, a page straightened on screen would come out on its side.
+ */
+fun Quad.turnedClockwise(height: Int): Quad =
+    byPosition(points.map { Point(height - 1 - it.y, it.x) })
+
+/** Four points named by position: the top left nearest the origin, and so round. */
+fun byPosition(points: List<Point>): Quad {
+    val tl = points.minBy { it.x + it.y }
+    val br = points.maxBy { it.x + it.y }
+    val rest = points.filter { it !== tl && it !== br }.ifEmpty { points }
+    val tr = rest.maxBy { it.x - it.y }
+    val bl = rest.minBy { it.x - it.y }
+    return Quad(tl, tr, br, bl)
+}
+
 /**
  * White along every edge, [band] pixels deep. Whatever is that close to the edge of a page
  * after straightening is the table it was lying on, not anything written on it.

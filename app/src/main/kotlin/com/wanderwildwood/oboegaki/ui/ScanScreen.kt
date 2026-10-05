@@ -16,6 +16,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,6 +27,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -176,24 +179,43 @@ fun ScanScreen(onDone: (pdf: ByteArray) -> Unit, onCancel: () -> Unit) {
                 )
                 Spacer(Modifier.height(10.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedButtonMMD(onClick = { ink = !ink }, modifier = Modifier.weight(1f).height(52.dp)) {
-                        TextMMD(text = stringResource(if (ink) R.string.scan_ink else R.string.scan_grey))
-                    }
-                    ButtonMMD(
+                    // A quarter turn clockwise, photograph and corners together, so a page
+                    // photographed sideways or upside down can be stood up before it is kept.
+                    OutlinedButtonMMD(
                         enabled = !busy,
                         onClick = {
                             busy = true
                             scope.launch {
-                                val page = withContext(Dispatchers.Default) { runCatching { Scanner.page(p, q, ink) }.getOrNull() }
-                                if (page != null) pages += page else problem = context.getString(R.string.scan_unreadable)
-                                photo = null
-                                quad = null
+                                val (tp, tq) = withContext(Dispatchers.Default) { Scanner.turned(p, q) }
+                                photo = tp
+                                quad = tq
                                 busy = false
                             }
                         },
-                        modifier = Modifier.weight(1f).height(52.dp),
-                    ) { TextMMD(text = stringResource(R.string.scan_keep)) }
+                        modifier = Modifier.size(52.dp),
+                        contentPadding = PaddingValues(0.dp),
+                    ) {
+                        Icon(Icons.Rotate, contentDescription = stringResource(R.string.cd_rotate), modifier = Modifier.size(26.dp))
+                    }
+                    OutlinedButtonMMD(onClick = { ink = !ink }, modifier = Modifier.weight(1f).height(52.dp)) {
+                        TextMMD(text = stringResource(if (ink) R.string.scan_ink else R.string.scan_grey))
+                    }
                 }
+                Spacer(Modifier.height(10.dp))
+                ButtonMMD(
+                    enabled = !busy,
+                    onClick = {
+                        busy = true
+                        scope.launch {
+                            val page = withContext(Dispatchers.Default) { runCatching { Scanner.page(p, q, ink) }.getOrNull() }
+                            if (page != null) pages += page else problem = context.getString(R.string.scan_unreadable)
+                            photo = null
+                            quad = null
+                            busy = false
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                ) { TextMMD(text = stringResource(R.string.scan_keep)) }
             } else {
                 if (pages.isNotEmpty()) {
                     Image(

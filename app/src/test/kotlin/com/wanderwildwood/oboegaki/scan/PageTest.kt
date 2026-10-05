@@ -118,4 +118,27 @@ class PageTest {
         for (i in 0 until 200) for (row in listOf(2, 147)) assertEquals("table at x=$i row $row", 255, bw[row * 200 + i])
         for (i in 0 until 150) for (col in listOf(2, 197)) assertEquals("table at y=$i col $col", 255, bw[i * 200 + col])
     }
+
+    @Test
+    fun turningMovesEveryPixelAQuarterClockwise() {
+        // 3 wide, 2 high:  1 2 3 / 4 5 6  becomes 2 wide, 3 high:  4 1 / 5 2 / 6 3
+        val turned = turnClockwise(intArrayOf(1, 2, 3, 4, 5, 6), 3, 2)
+        assertEquals(listOf(4, 1, 5, 2, 6, 3), turned.toList())
+        // Four turns are no turn at all.
+        var g = intArrayOf(1, 2, 3, 4, 5, 6); var w = 3; var h = 2
+        repeat(4) { g = turnClockwise(g, w, h); val t = w; w = h; h = t }
+        assertEquals(listOf(1, 2, 3, 4, 5, 6), g.toList())
+    }
+
+    @Test
+    fun turnedCornersStillStartAtTheTopLeft() {
+        // A page lying sideways in a 400x300 picture, its top edge down the right side.
+        val q = Quad(Point(300f, 50f), Point(300f, 250f), Point(100f, 250f), Point(100f, 50f))
+        val t = q.turnedClockwise(300)
+        // In the turned picture (300 wide) its top left must be the corner nearest the origin.
+        val nearest = t.points.minBy { it.x + it.y }
+        assertEquals(t.topLeft, nearest)
+        val farthest = t.points.maxBy { it.x + it.y }
+        assertEquals(t.bottomRight, farthest)
+    }
 }

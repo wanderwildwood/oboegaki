@@ -66,6 +66,16 @@ object Scanner {
         return Photo(grey, work.width, work.height, preview)
     }
 
+    /** The photograph a quarter turn clockwise, and the corners on it with it. */
+    fun turned(photo: Photo, quad: Quad): Pair<Photo, Quad> {
+        val grey = turnClockwise(photo.grey, photo.width, photo.height)
+        val preview = Bitmap.createBitmap(
+            photo.preview, 0, 0, photo.preview.width, photo.preview.height,
+            Matrix().apply { postRotate(90f) }, true,
+        )
+        return Photo(grey, photo.height, photo.width, preview) to quad.turnedClockwise(photo.preview.height)
+    }
+
     /** Where the page is, in the preview's coordinates. */
     fun guess(photo: Photo): Quad {
         val w = photo.preview.width
