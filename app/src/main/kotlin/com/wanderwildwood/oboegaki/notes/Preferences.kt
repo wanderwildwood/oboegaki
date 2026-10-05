@@ -57,6 +57,11 @@ class Preferences(context: Context) {
         get() = store.getString(SHOWING, null) ?: ""
         set(value) = store.edit().putString(SHOWING, value).apply()
 
+    /** The camera app scans are taken with, by package, once one has been chosen. */
+    var camera: String?
+        get() = store.getString(CAMERA, null)
+        set(value) = store.edit().putString(CAMERA, value).apply()
+
     var lastSync: Long
         get() = store.getLong(LAST_SYNC, 0L)
         set(value) = store.edit().putLong(LAST_SYNC, value).apply()
@@ -71,5 +76,6 @@ class Preferences(context: Context) {
         const val LAST_SYNC = "last_sync"
         const val ORDER = "order"
         const val SHOWING = "showing"
+        const val CAMERA = "camera"
     }
 }

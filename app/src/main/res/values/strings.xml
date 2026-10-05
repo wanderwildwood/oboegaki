@@ -149,7 +149,11 @@
     <string name="scan_keep">Keep this page</string>
     <string name="scan_working">Straightening…</string>
     <string name="scan_unreadable">That picture could not be read.</string>
-    <string name="scan_no_camera">There is no camera app on this phone to take the photo with.</string>
+    <string name="scan_no_camera">No camera app on this phone takes a photo for another app. Use a picture already taken instead.</string>
+    <string name="scan_which_camera">Take scans with</string>
+    <!-- %1$s is a camera app's name; tapping it chooses another -->
+    <string name="scan_camera">Camera: %1$s</string>
+    <string name="scan_camera_unchosen">not chosen yet</string>
     <string name="pages_missing">The scan is not here yet.</string>
     <string name="pages_drawing">Drawing the pages…</string>
     <!-- %1$s is the PDF's file name -->

@@ -1,12 +1,18 @@
 package com.wanderwildwood.oboegaki.ui
 
+import android.app.Activity
+import android.content.ClipData
+import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
+import android.provider.MediaStore
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,6 +54,7 @@ import com.mudita.mmd.components.buttons.OutlinedButtonMMD
 import com.mudita.mmd.components.text.TextMMD
 import com.mudita.mmd.components.top_app_bar.TopAppBarMMD
 import com.wanderwildwood.oboegaki.R
+import com.wanderwildwood.oboegaki.notes.Notes
 import com.wanderwildwood.oboegaki.scan.Photo
 import com.wanderwildwood.oboegaki.scan.Point
 import com.wanderwildwood.oboegaki.scan.Quad
@@ -61,7 +68,7 @@ import kotlin.math.hypot
 /**
  * Scanning paper into a note.
  *
- * The phone's own camera app takes the picture, so this app holds no camera permission, and
+ * A camera app takes the picture, so this app holds no camera permission, and
  * nothing here pretends to be a viewfinder: a live preview on E Ink is a smear. On the still
  * photograph the page's corners are guessed and drawn, and the reader drags any that are
  * wrong. Each kept page is straightened and turned to black ink on white; Done writes them
@@ -97,14 +104,34 @@ fun ScanScreen(onDone: (pdf: ByteArray) -> Unit, onCancel: () -> Unit) {
         }
     }
 
-    val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { taken ->
-        if (taken) load(shotUri)
+    val cameras = remember { cameraApps(context) }
+    var choosingCamera by remember { mutableStateOf(false) }
+    val camera = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK && shot.length() > 0) load(shotUri)
     }
     val choose = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) load(uri)
     }
+
+    fun shoot(app: CameraApp) {
+        shot.delete()
+        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+            .setPackage(app.packageName)
+            .putExtra(MediaStore.EXTRA_OUTPUT, shotUri)
+            .addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        // The grant travels with the clip as well as the flag, for camera apps that read it there.
+        intent.clipData = ClipData.newRawUri("", shotUri)
+        runCatching { camera.launch(intent) }.onFailure { problem = context.getString(R.string.scan_no_camera) }
+    }
+
     fun takePhoto() {
-        runCatching { camera.launch(shotUri) }.onFailure { problem = context.getString(R.string.scan_no_camera) }
+        val remembered = cameras.firstOrNull { it.packageName == Notes.preferences.camera }
+        when {
+            cameras.isEmpty() -> problem = context.getString(R.string.scan_no_camera)
+            remembered != null -> shoot(remembered)
+            cameras.size == 1 -> shoot(cameras.single())
+            else -> choosingCamera = true
+        }
     }
 
     // Straight to the camera on opening: that is what the button was pressed for.
@@ -188,6 +215,14 @@ fun ScanScreen(onDone: (pdf: ByteArray) -> Unit, onCancel: () -> Unit) {
                 OutlinedButtonMMD(onClick = { choose.launch("image/*") }, enabled = !busy, modifier = Modifier.fillMaxWidth().height(52.dp)) {
                     TextMMD(text = stringResource(R.string.scan_choose))
                 }
+                if (cameras.size > 1) {
+                    val name = cameras.firstOrNull { it.packageName == Notes.preferences.camera }?.label
+                    TextMMD(
+                        text = stringResource(R.string.scan_camera, name ?: stringResource(R.string.scan_camera_unchosen)),
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.fillMaxWidth().clickable { choosingCamera = true }.padding(vertical = 12.dp),
+                    )
+                }
                 if (pages.isNotEmpty()) {
                     Spacer(Modifier.height(8.dp))
                     ButtonMMD(
@@ -205,6 +240,48 @@ fun ScanScreen(onDone: (pdf: ByteArray) -> Unit, onCancel: () -> Unit) {
             }
         }
     }
+
+    if (choosingCamera) {
+        EInkDialog(onDismiss = { choosingCamera = false }) {
+            TextMMD(text = stringResource(R.string.scan_which_camera), style = MaterialTheme.typography.bodyLarge)
+            Spacer(Modifier.height(8.dp))
+            for (app in cameras) {
+                TextMMD(
+                    text = app.label,
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            Notes.preferences.camera = app.packageName
+                            choosingCamera = false
+                            shoot(app)
+                        }
+                        .padding(vertical = 12.dp),
+                )
+            }
+        }
+    }
+}
+
+/** A camera app that takes a photograph when another app asks it to. */
+data class CameraApp(val packageName: String, val label: String)
+
+/**
+ * Every installed camera app that takes a photo on request. Asked package by package, because
+ * Android 11 answers an unaddressed request only with the camera the phone came with, and the
+ * Kompakt's own camera takes none.
+ */
+fun cameraApps(context: Context): List<CameraApp> {
+    val pm = context.packageManager
+    @Suppress("DEPRECATION")
+    return pm.getInstalledPackages(0)
+        .mapNotNull { info ->
+            @Suppress("DEPRECATION")
+            pm.queryIntentActivities(Intent(MediaStore.ACTION_IMAGE_CAPTURE).setPackage(info.packageName), 0)
+                .firstOrNull()
+                ?.let { CameraApp(info.packageName, it.loadLabel(pm).toString()) }
+        }
+        .sortedBy { it.label.lowercase() }
 }
 
 /**

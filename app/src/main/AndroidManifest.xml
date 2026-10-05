@@ -19,6 +19,12 @@
             <action android:name="android.intent.action.PROCESS_TEXT" />
             <data android:mimeType="text/plain" />
         </intent>
+        <!-- The camera apps that take a photo when asked. Android 11 sends an unaddressed
+             request only to the camera the phone came with, and the Kompakt's takes none,
+             so scanning has to find the others and ask one by name. -->
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE" />
+        </intent>
     </queries>
 
     <application
