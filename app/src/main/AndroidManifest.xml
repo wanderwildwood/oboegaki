@@ -5,6 +5,15 @@
          leaves the phone. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Lets the text-selection menu see other apps' text actions, such as Define from the
+         Dictionary, beside Copy. Without it Android 11+ hides them from this app. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.PROCESS_TEXT" />
+            <data android:mimeType="text/plain" />
+        </intent>
+    </queries>
+
     <application
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
