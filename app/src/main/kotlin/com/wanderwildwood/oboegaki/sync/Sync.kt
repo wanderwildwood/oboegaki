@@ -35,7 +35,7 @@ class Sync(
     fun run(remote: Remote): Result {
         val state = readState().toMutableMap()
         val everything = remote.list()
-        val there = everything.filterKeys { isNote(it.substringAfterLast('/')) }
+        val there = everything.filterKeys { syncsAsText(it) }
         val here = localPaths()
         var sent = 0
         var received = 0
@@ -385,8 +385,10 @@ class Sync(
         guard {
             notes.walkTopDown()
                 .onEnter { it == notes || !it.name.startsWith(".") }
-                .filter { it.isFile && isNote(it.name) }
-                .forEach { out += it.relativeTo(notes).invariantSeparatorsPath }
+                .filter { it.isFile }
+                .map { it.relativeTo(notes).invariantSeparatorsPath }
+                .filter(::syncsAsText)
+                .forEach { out += it }
         }
         return out
     }
@@ -439,6 +441,15 @@ fun isAttachment(name: String): Boolean {
 }
 
 private val ATTACHMENTS = listOf("m4a", "mp3", "wav", "ogg", "opus", "aac", "pdf", "jpg", "jpeg", "png")
+
+/**
+ * The one hidden file that syncs: the list of pinned notes, one path to a line, at the top of
+ * the notes folder. It is the reader's own, so it goes wherever their notes go and no further.
+ */
+const val PINS = ".pinned"
+
+/** Whether [path] syncs as text, merged line by line: every note, and the list of pins. */
+fun syncsAsText(path: String): Boolean = path == PINS || isNote(path.substringAfterLast('/'))
 
 /** Whether a file is something this app treats as a note. */
 fun isNote(name: String): Boolean {

@@ -31,6 +31,7 @@ fun arrange(
     showing: String,
     order: Order,
     query: String,
+    pinned: Set<String> = emptySet(),
 ): List<Note> {
     val folder = Showing.folderOf(showing)
     val words = query.lowercase().split(' ', '\t', '\n').filter { it.isNotBlank() }
@@ -64,6 +65,12 @@ fun arrange(
                 Order.OLDEST -> kept.sortedBy { it.modified }
                 Order.TITLE -> kept.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.title })
             }
+        }
+        // Pinned notes above the rest, each group in the order chosen. Not in the archive,
+        // where nothing is kept to hand.
+        .let { sorted ->
+            if (showing == Showing.ARCHIVE || pinned.isEmpty()) sorted
+            else sorted.filter { it.path in pinned } + sorted.filter { it.path !in pinned }
         }
 }
 

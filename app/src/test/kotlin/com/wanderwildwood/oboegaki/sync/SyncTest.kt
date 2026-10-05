@@ -338,4 +338,33 @@ class SyncTest {
         his.sync.run(server)
         assertEquals("a and b", his.read("list.md"))
     }
+
+    @Test
+    fun pinsSyncAndMergeLikeANote() {
+        val phone = phone("phone")
+        val computer = phone("computer")
+        phone.write(".pinned", "Groceries.md\n")
+        phone.sync.run(server)
+        computer.sync.run(server)
+        assertEquals("Groceries.md\n", computer.read(".pinned"))
+        // Pinned on each at once: both pins kept.
+        phone.write(".pinned", "Groceries.md\nideas/kiln.md\n")
+        computer.write(".pinned", "Groceries.md\nWords.md\n")
+        phone.sync.run(server)
+        computer.sync.run(server)
+        // Which of the two comes first depends on who synced first; that both are there does not.
+        assertEquals(
+            setOf("Groceries.md", "ideas/kiln.md", "Words.md"),
+            computer.read(".pinned")!!.lines().filter { it.isNotBlank() }.toSet(),
+        )
+    }
+
+    @Test
+    fun otherHiddenFilesStillStayHome() {
+        val his = phone("his")
+        his.write(".obsidian.md", "x")
+        his.write("ideas/.pinned", "x")
+        his.sync.run(server)
+        assertTrue(server.files.isEmpty())
+    }
 }

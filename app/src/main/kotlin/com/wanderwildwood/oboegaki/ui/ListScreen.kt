@@ -56,6 +56,7 @@ import com.wanderwildwood.oboegaki.notes.folders
 fun ListScreen(
     notes: List<Note>,
     shared: Set<String>,
+    pinned: Set<String>,
     canShare: Boolean,
     sync: SyncState,
     showing: String,
@@ -71,7 +72,7 @@ fun ListScreen(
     var searching by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     var choosing by remember { mutableStateOf(false) }
-    val shown = arrange(notes, shared, showing, order, if (searching) query else "")
+    val shown = arrange(notes, shared, showing, order, if (searching) query else "", pinned)
     val allFolders = folders(notes)
 
     if (searching) {
@@ -156,7 +157,7 @@ fun ListScreen(
                 LazyColumnMMD(modifier = Modifier.fillMaxSize()) {
                     for (note in shown) {
                         item(key = note.path) {
-                            NoteRow(note, note.path in shared, showFolder = Showing.folderOf(showing) == null) { onOpen(note) }
+                            NoteRow(note, note.path in shared, note.path in pinned, showFolder = Showing.folderOf(showing) == null) { onOpen(note) }
                         }
                     }
                     // Room under the last row for the buttons that float over it.
@@ -275,7 +276,7 @@ private fun syncLine(sync: SyncState): String? = when (sync) {
 }
 
 @Composable
-private fun NoteRow(note: Note, isShared: Boolean, showFolder: Boolean, onClick: () -> Unit) {
+private fun NoteRow(note: Note, isShared: Boolean, isPinned: Boolean, showFolder: Boolean, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -289,7 +290,9 @@ private fun NoteRow(note: Note, isShared: Boolean, showFolder: Boolean, onClick:
             overflow = TextOverflow.Ellipsis,
         )
         val sharedWord = stringResource(R.string.list_shared)
+        val pinnedWord = stringResource(R.string.list_pinned)
         val line = listOfNotNull(
+            pinnedWord.takeIf { isPinned },
             note.folder.substringAfterLast('/').takeIf { showFolder && it.isNotEmpty() },
             sharedWord.takeIf { isShared },
             note.preview.takeIf { it.isNotEmpty() },

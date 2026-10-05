@@ -90,6 +90,7 @@ fun NoteScreen(
     var deleted by remember { mutableStateOf(false) }
     val changed by Notes.changed.collectAsStateWithLifecycle()
     val hearing by Voice.hearing.collectAsStateWithLifecycle()
+    val pins by Notes.pins.collectAsStateWithLifecycle()
 
     fun save() {
         if (deleted) return
@@ -191,6 +192,16 @@ fun NoteScreen(
                             BarButton(Icons.Share, stringResource(R.string.cd_share)) {
                                 save()
                                 onShare(at, title.ifBlank { at.substringAfterLast('/').substringBeforeLast('.') })
+                            }
+                        }
+                        if (!isArchived(at) && (!fresh || body.text.isNotBlank())) {
+                            val isPinned = at in pins
+                            BarButton(
+                                if (isPinned) Icons.Pinned else Icons.Pin,
+                                stringResource(if (isPinned) R.string.cd_unpin else R.string.cd_pin),
+                            ) {
+                                save()
+                                Notes.togglePin(at)
                             }
                         }
                         // Out of the way, not gone: archived, or brought back if it already is.

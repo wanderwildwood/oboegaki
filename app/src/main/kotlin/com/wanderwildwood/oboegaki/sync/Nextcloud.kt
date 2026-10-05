@@ -58,10 +58,10 @@ class NextcloudRemote(private val account: Account, folder: String) : Remote {
                 val relative = entry.path.removePrefix(rootPath)
                 if (relative.trimEnd('/') == dir.trimEnd('/')) continue
                 val name = relative.trimEnd('/').substringAfterLast('/')
-                if (name.startsWith(".")) continue
+                if (name.startsWith(".") && relative != PINS) continue
                 if (entry.isFolder) {
                     pending += relative
-                } else if ((isNote(name) || isAttachment(name)) && entry.etag != null) {
+                } else if ((syncsAsText(relative) || isAttachment(name)) && entry.etag != null) {
                     out[relative] = entry.etag
                 }
             }

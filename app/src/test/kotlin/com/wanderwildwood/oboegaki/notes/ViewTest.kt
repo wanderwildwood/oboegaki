@@ -83,4 +83,18 @@ class ViewTest {
             titles(arrange(notes, emptySet(), Showing.ALL, Order.OLDEST, "")),
         )
     }
+
+    @Test
+    fun pinnedNotesComeFirstInTheirOwnOrder() {
+        val pinned = setOf("Scan 0236.md", "ideas/kiln.md")
+        assertEquals(
+            listOf("kiln", "Scan 0236", "Groceries", "ash", "Braiding Sweetgrass", "Voice 0214"),
+            titles(arrange(notes, emptySet(), Showing.ALL, Order.CHANGED, "", pinned)),
+        )
+        // By title, ash would lead; pinned, kiln does.
+        assertEquals(
+            listOf("kiln", "ash"),
+            titles(arrange(notes, emptySet(), Showing.folder("ideas"), Order.TITLE, "", setOf("ideas/kiln.md"))),
+        )
+    }
 }

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.core.content.FileProvider
 import com.wanderwildwood.oboegaki.sync.NextcloudRemote
 import com.wanderwildwood.oboegaki.sync.Refused
+import com.wanderwildwood.oboegaki.sync.PINS
 import com.wanderwildwood.oboegaki.sync.Sharing
 import com.wanderwildwood.oboegaki.sync.isNote
 import com.wanderwildwood.oboegaki.sync.Sync
@@ -80,9 +81,46 @@ object Notes {
         scope.launch { reload() }
     }
 
+    private val _pins = MutableStateFlow<Set<String>>(emptySet())
+    /** The notes pinned to the top of the list, by path. */
+    val pins: StateFlow<Set<String>> = _pins
+
     private fun reload() {
-        _list.value = runCatching { shelf()?.list() }.getOrNull().orEmpty()
+        val shelf = shelf()
+        _list.value = runCatching { shelf?.list() }.getOrNull().orEmpty()
             .sortedByDescending { it.modified }
+        _pins.value = runCatching { readPins(shelf) }.getOrDefault(emptySet())
+    }
+
+    private fun readPins(shelf: Shelf?): Set<String> =
+        shelf?.read(PINS)?.lines()?.map { it.trim() }?.filter { it.isNotEmpty() }?.toSet().orEmpty()
+
+    /**
+     * Change the pins, in the file that holds them. Kept as a list, one path to a line, so a pin
+     * made here and one made on another device merge like any two edits to a note.
+     */
+    private fun editPins(change: (MutableSet<String>) -> Unit) {
+        val shelf = shelf() ?: return
+        synchronized(notesLock) {
+            val before = runCatching { shelf.read(PINS) }.getOrNull().orEmpty()
+            val pins = before.lines().map { it.trim() }.filter { it.isNotEmpty() }.toMutableList()
+            val set = pins.toMutableSet()
+            change(set)
+            val after = pins.filter { it in set } + set.filter { it !in pins }
+            val text = after.joinToString("") { "$it\n" }
+            if (text != before) shelf.write(PINS, text)
+            _pins.value = after.toSet()
+        }
+    }
+
+    fun togglePin(path: String) {
+        editPins { if (!it.remove(path)) it.add(path) }
+        afterEdit()
+    }
+
+    private fun repin(from: String, to: String?) {
+        if (from !in _pins.value) return
+        editPins { it.remove(from); if (to != null) it.add(to) }
     }
 
     private val _shared = MutableStateFlow<Set<String>>(emptySet())
@@ -270,6 +308,7 @@ object Notes {
                 at = target
             }
             if (onDisk == null || now != onDisk || at != path) shelf.write(at, now)
+            if (at != path) repin(path, at)
             return Saved(at, now, merged)
         }
     }
@@ -306,6 +345,8 @@ object Notes {
             }
             shelf.move(path, moved)
         }
+        // A note put away is not one to keep at the top; brought back, it is pinned again by hand.
+        repin(path, null)
         afterEdit()
         return moved
     }
@@ -357,6 +398,7 @@ object Notes {
         val prefix = if (folder.isEmpty()) "" else "$folder/"
         val held = embeds(text).map { prefix + it }
         shelf.delete(path)
+        repin(path, null)
         val others = _list.value.filter { it.path != path }
         for (attachment in held) {
             val linkedElsewhere = others.any { note -> embeds(note.text).any { prefix + it == attachment || it == attachment } }

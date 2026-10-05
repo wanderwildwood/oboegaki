@@ -117,6 +117,10 @@
     <string name="share_nobody">There is nobody else on this Nextcloud to share with.</string>
     <!-- Before a note's preview in the list, when it is shared -->
     <string name="list_shared">Shared</string>
+    <!-- Before a note's preview in the list, when it is pinned to the top -->
+    <string name="list_pinned">Pinned</string>
+    <string name="cd_pin">Pin to the top</string>
+    <string name="cd_unpin">Unpin</string>
 
     <!-- ============================================================ -->
     <!-- Voice notes -->

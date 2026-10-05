@@ -109,6 +109,7 @@ private fun App(capture: MutableState<Capture?>) {
     val notes by Notes.list.collectAsStateWithLifecycle()
     val sync by Notes.sync.collectAsStateWithLifecycle()
     val shared by Notes.shared.collectAsStateWithLifecycle()
+    val pinned by Notes.pins.collectAsStateWithLifecycle()
     var screen by remember { mutableStateOf<Screen>(Screen.List) }
     var showing by remember { mutableStateOf(Notes.preferences.showing) }
     var order by remember { mutableStateOf(Notes.preferences.order) }
@@ -178,6 +179,7 @@ private fun App(capture: MutableState<Capture?>) {
             Screen.List -> ListScreen(
                 notes = notes,
                 shared = shared,
+                pinned = pinned,
                 canShare = keeping == Keeping.NEXTCLOUD,
                 sync = sync,
                 showing = showing,
