@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Notes</string>
-    <!-- Second home-screen entry: opens straight into a blank note -->
+    <!-- Shortcut on a long press of the icon: opens straight into a blank note -->
     <string name="new_note_label">New note</string>
     <!-- In other apps' share menus and selected-text menus, beside Copy and Define: one word, as they are -->
     <string name="share_label">Note</string>
@@ -116,7 +116,7 @@
     <!-- ============================================================ -->
     <!-- Voice notes -->
 
-    <!-- Third home-screen entry: straight into a recording -->
+    <!-- Shortcut on a long press of the icon: straight into a recording -->
     <string name="record_label">Record</string>
     <string name="cd_record">Record a voice note</string>
     <string name="record_title">Recording</string>

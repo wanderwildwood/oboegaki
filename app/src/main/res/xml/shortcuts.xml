@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="new_note"
+        android:enabled="true"
+        android:shortcutShortLabel="@string/new_note_label">
+        <intent
+            android:action="com.wanderwildwood.oboegaki.NEW_NOTE"
+            android:targetPackage="com.wanderwildwood.oboegaki"
+            android:targetClass="com.wanderwildwood.oboegaki.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="record"
+        android:enabled="true"
+        android:shortcutShortLabel="@string/record_label">
+        <intent
+            android:action="com.wanderwildwood.oboegaki.RECORD"
+            android:targetPackage="com.wanderwildwood.oboegaki"
+            android:targetClass="com.wanderwildwood.oboegaki.MainActivity" />
+    </shortcut>
+</shortcuts>

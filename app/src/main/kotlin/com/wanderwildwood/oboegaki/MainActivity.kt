@@ -48,6 +48,10 @@ private sealed interface Screen {
     data object Scan : Screen
 }
 
+/** The actions of the New note and Record shortcuts (res/xml/shortcuts.xml). */
+private const val NEW_NOTE = "com.wanderwildwood.oboegaki.NEW_NOTE"
+private const val RECORD = "com.wanderwildwood.oboegaki.RECORD"
+
 class MainActivity : ComponentActivity() {
 
     private val capture: MutableState<Capture?> = mutableStateOf(null)
@@ -78,14 +82,14 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * What the app was opened to take down, if anything: the "New note" entry on the home
-     * screen, text shared from another app, or text selected in one and sent here.
+     * What the app was opened to take down, if anything: the New note or Record shortcut on
+     * the icon, text shared from another app, or text selected in one and sent here.
      */
     private fun captureFrom(intent: Intent?): Capture? {
         intent ?: return null
         return when {
-            intent.component?.className?.endsWith(".NewNote") == true -> Capture("", "")
-            intent.component?.className?.endsWith(".Record") == true -> Capture("", "", record = true)
+            intent.action == NEW_NOTE -> Capture("", "")
+            intent.action == RECORD -> Capture("", "", record = true)
             intent.action == Intent.ACTION_SEND -> {
                 val text = intent.getStringExtra(Intent.EXTRA_TEXT) ?: return null
                 Capture(intent.getStringExtra(Intent.EXTRA_SUBJECT).orEmpty(), text)
