@@ -97,3 +97,12 @@ fun scanOn(line: String): String? =
     embeds(line.trim()).singleOrNull()?.takeIf {
         line.trim().startsWith("![[") && line.trim().endsWith("]]") && it.lowercase().endsWith(".pdf")
     }
+
+/** Whether a line is only a link to a picture. */
+fun pictureOn(line: String): String? =
+    embeds(line.trim()).singleOrNull()?.takeIf {
+        line.trim().startsWith("![[") && line.trim().endsWith("]]") && isPicture(it)
+    }
+
+fun isPicture(name: String): Boolean =
+    listOf("jpg", "jpeg", "png", "webp").any { name.lowercase().endsWith(".$it") }

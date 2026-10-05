@@ -68,6 +68,9 @@ class ChecklistTest {
         assertEquals("BRAIDING SWEETGRASS", plain("> > BRAIDING SWEETGRASS"))
         assertEquals("a bold word", plain("- a **bold** word"))
         assertEquals("snake_case_name stays", plain("snake_case_name stays"))
+        assertEquals("Moss Gardens", plain("[Moss Gardens](https://example.org/moss)"))
+        assertEquals("see Tide Tables today", plain("see [Tide Tables](https://example.org/t) today"))
+        assertEquals("![[a.png]]", plain("![[a.png]]"))
         assertEquals("milk · bread", preview("# Shop\n- [ ] milk\n- [x] bread\n"))
         assertEquals("ask not", preview("![[Voice 0200.m4a]]\n\nask not\n"))
     }

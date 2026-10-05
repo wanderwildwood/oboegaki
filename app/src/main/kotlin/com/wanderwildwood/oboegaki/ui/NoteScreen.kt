@@ -1,5 +1,8 @@
 package com.wanderwildwood.oboegaki.ui
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.provider.CalendarContract
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -29,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
@@ -56,6 +60,9 @@ import com.wanderwildwood.oboegaki.notes.toggle
 import com.wanderwildwood.oboegaki.notes.toggleTaskLine
 import com.wanderwildwood.oboegaki.notes.recordingOn
 import com.wanderwildwood.oboegaki.notes.scanOn
+import com.wanderwildwood.oboegaki.notes.pictureOn
+import com.wanderwildwood.oboegaki.notes.reminderText
+import com.mudita.mmd.components.buttons.OutlinedButtonMMD
 import com.wanderwildwood.oboegaki.notes.embeds
 import com.wanderwildwood.oboegaki.notes.isArchived
 import com.wanderwildwood.oboegaki.hearing.Voice
@@ -156,6 +163,24 @@ fun NoteScreen(
     BackHandler(onBack = close)
 
     val armed = rememberArmed()
+    var menuOpen by remember { mutableStateOf(false) }
+    var noCalendar by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    // A calendar app's new event, with the note's title and words already in it. Which app,
+    // and when, are the reader's to choose there.
+    fun remind() {
+        save()
+        val name = title.ifBlank { at.substringAfterLast('/').substringBeforeLast('.') }
+        val intent = Intent(Intent.ACTION_INSERT, CalendarContract.Events.CONTENT_URI)
+            .putExtra(CalendarContract.Events.TITLE, name)
+            .putExtra(CalendarContract.Events.DESCRIPTION, reminderText(body.text))
+        try {
+            context.startActivity(intent)
+        } catch (_: ActivityNotFoundException) {
+            noCalendar = true
+        }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface,
@@ -204,20 +229,10 @@ fun NoteScreen(
                                 Notes.togglePin(at)
                             }
                         }
-                        // Out of the way, not gone: archived, or brought back if it already is.
-                        if (!fresh || body.text.isNotBlank()) {
-                            val archived = isArchived(at)
-                            BarButton(
-                                if (archived) Icons.Unarchive else Icons.Archive,
-                                stringResource(if (archived) R.string.cd_unarchive else R.string.cd_archive),
-                            ) {
-                                save()
-                                deleted = true
-                                if (archived) Notes.unarchive(at) else Notes.archive(at)
-                                onClose()
-                            }
-                        }
                         BarButton(Icons.Delete, stringResource(R.string.cd_delete)) { armed.value = true }
+                        // Remind me and Archive, behind three dots: with Share, seven icons do
+                        // not fit across the bar.
+                        BarButton(Icons.More, stringResource(R.string.cd_more)) { menuOpen = true }
                     }
                 },
             )
@@ -244,6 +259,46 @@ fun NoteScreen(
             }
         }
     }
+
+    if (menuOpen) {
+        EInkDialog(onDismiss = { menuOpen = false }) {
+            MenuRow(stringResource(R.string.note_remind)) {
+                menuOpen = false
+                remind()
+            }
+            // Out of the way, not gone: archived, or brought back if it already is.
+            if (!fresh || body.text.isNotBlank()) {
+                val archived = isArchived(at)
+                MenuRow(stringResource(if (archived) R.string.cd_unarchive else R.string.cd_archive)) {
+                    menuOpen = false
+                    save()
+                    deleted = true
+                    if (archived) Notes.unarchive(at) else Notes.archive(at)
+                    onClose()
+                }
+            }
+        }
+    }
+
+    if (noCalendar) {
+        EInkDialog(onDismiss = { noCalendar = false }) {
+            TextMMD(text = stringResource(R.string.note_remind_none), style = MaterialTheme.typography.bodyLarge)
+            Spacer(Modifier.height(16.dp))
+            OutlinedButtonMMD(
+                onClick = { noCalendar = false },
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+            ) { TextMMD(text = stringResource(R.string.about_close), style = MaterialTheme.typography.bodySmall) }
+        }
+    }
+}
+
+@Composable
+private fun MenuRow(text: String, onClick: () -> Unit) {
+    TextMMD(
+        text = text,
+        style = MaterialTheme.typography.bodyLarge,
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 12.dp),
+    )
 }
 
 @Composable
@@ -337,6 +392,10 @@ private fun Reading(
                         val name = scanOn(line.text)!!
                         val path = if (folder.isEmpty()) name else "$folder/$name"
                         Pages(uri = Notes.shelf()?.uriOf(path), name = name)
+                    } else if (pictureOn(line.text) != null) {
+                        val name = pictureOn(line.text)!!
+                        val path = if (folder.isEmpty()) name else "$folder/$name"
+                        Picture(uri = Notes.shelf()?.uriOf(path))
                     } else if (recordingOn(line.text) != null) {
                         val name = recordingOn(line.text)!!
                         val path = if (folder.isEmpty()) name else "$folder/$name"

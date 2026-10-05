@@ -43,8 +43,14 @@ a voice note heard and written down, a page photographed and handed to the scann
 - **Pinned** notes stay at the top. **Archived** notes move to an `Archive` folder, out of every
   view but their own, and a search still finds them.
 - **From anywhere**: text shared from another app, or selected and sent with *Note*, becomes a
-  note; New note and Record are shortcuts on the icon; a Markdown or text file opened from
-  Files is shown, and kept as a note if you want it.
+  note; an article or page shared with its name becomes a note called that, holding a Markdown
+  link to it. New note and Record are shortcuts on the icon; a Markdown or text file opened
+  from Files is shown, and kept as a note if you want it.
+- **Pictures** shared from a gallery, a camera app or Files become a note that shows them, in
+  greys at the width of the screen, with the pictures beside it (`![[Picture 2026-10-05
+  1412.jpg]]`); or they are scanned, each one a page of the same PDF.
+- **Remind me**, in the note's menu, opens a calendar app's new event with the note's title and
+  words already in it; the day and the time are chosen there.
 - **On the lock screen**, through [Glance](https://github.com/wanderwildwood/hitome), the pinned
   notes, and how much of each list is left to do.
 
@@ -68,6 +74,26 @@ app; if another app syncs that folder, the notes go wherever it takes them.
 On Nextcloud, a note can be shared with anyone else on the same server, to read or to change.
 It is the server's own sharing, so both people's phones sync the one file. A note shared with
 you is moved into your notes folder and marked as shared.
+
+## For other apps
+
+Other apps can write notes in through a content provider, `com.wanderwildwood.oboegaki.capture`.
+Everything is a `ContentResolver.call(uri, method, arg, extras)` that returns a Bundle with
+`ok`, and when `ok` is false a `reason`:
+
+| method | arg | extras | does |
+|---|---|---|---|
+| `ready` | | | `ok` if there is somewhere to keep notes, else `not_set_up` |
+| `put` | a path such as `Dreams/2026-10-05 0712.md` | `text` | makes that note, or replaces its text; folders are made as needed, and it syncs like any edit |
+| `remove` | the same kind of path | | deletes that note and nothing else; `ok` if it was already gone |
+
+A path is relative to the notes folder, ends in `.md`, and has no `..`, no leading `/` and no
+hidden names; anything else is `bad_path`. A failure is `failed`, with a `message`.
+
+Only apps on a list in `capture/CaptureProvider.kt` get an answer, each known by its package name
+and the SHA-256 of the certificate it is signed with; any other caller is `refused`. Dream Log
+(`com.wanderwildwood.yumecho`) is the first. An app on the list should also name
+`com.wanderwildwood.oboegaki` in its manifest's `<queries>`, so Android lets it see this one.
 
 ## Permissions
 

@@ -25,6 +25,14 @@
         <intent>
             <action android:name="android.media.action.IMAGE_CAPTURE" />
         </intent>
+        <!-- Remind me: a calendar app that makes a new event from a title and a description. -->
+        <intent>
+            <action android:name="android.intent.action.INSERT" />
+            <data android:mimeType="vnd.android.cursor.dir/event" />
+        </intent>
+        <!-- The apps allowed to write notes in through the capture provider, whose signing
+             certificates it checks. -->
+        <package android:name="com.wanderwildwood.yumecho" />
     </queries>
 
     <application
@@ -60,6 +68,15 @@
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
+            </intent-filter>
+
+            <!-- Pictures shared from the gallery, the camera or Files: a note that shows them,
+                 or a scan. -->
+            <intent-filter android:label="@string/share_label">
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
             </intent-filter>
 
             <!-- A Markdown or text file opened from another app, Files most of all. -->
@@ -99,6 +116,14 @@
         <provider
             android:name=".glance.PinnedOnLockScreen"
             android:authorities="com.wanderwildwood.oboegaki.glance"
+            android:exported="true" />
+
+        <!-- Notes written in by this shop's other apps, Dream Log first. Exported with no
+             permission because it checks each caller's package and signing certificate itself;
+             see capture/CaptureProvider.kt and "For other apps" in the README. -->
+        <provider
+            android:name=".capture.CaptureProvider"
+            android:authorities="com.wanderwildwood.oboegaki.capture"
             android:exported="true" />
 
         <service

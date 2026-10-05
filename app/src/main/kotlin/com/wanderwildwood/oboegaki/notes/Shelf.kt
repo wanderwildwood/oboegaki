@@ -370,13 +370,16 @@ fun preview(text: String): String {
 
 /**
  * A line with Markdown's marks taken off: list and task marks, a quote's ">", and the stars and
- * underscores of emphasis, so "> *Robin Wall Kimmerer*" previews as the name.
+ * underscores of emphasis, so "> *Robin Wall Kimmerer*" previews as the name, and a link's
+ * address.
  */
 fun plain(line: String): String {
     var s = line.trim()
     while (s.startsWith(">")) s = s.removePrefix(">").trimStart()
     s = s.removePrefix("- [ ] ").removePrefix("- [x] ").removePrefix("- [X] ")
         .removePrefix("- ").removePrefix("* ").removePrefix("+ ")
+    // A link reads as its words, "[Moss Gardens](https://…)" as "Moss Gardens".
+    s = s.replace(Regex("""(?<!!)\[([^\]]+)]\([^)\s]*\)"""), "$1")
     return s.replace(Regex("""(?<![\w*_`])(\*\*|__|\*|_|`)(\S(?:.*?\S)?)\1(?![\w*_`])"""), "$2").trim()
 }
 

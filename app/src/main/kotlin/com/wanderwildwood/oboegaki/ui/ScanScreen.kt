@@ -31,6 +31,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -71,7 +72,8 @@ import kotlin.math.hypot
 /**
  * Scanning paper into a note.
  *
- * It opens on a choice: take a photo, or use one already taken.
+ * It opens on a choice: take a photo, or use one already taken. Pictures shared in from
+ * another app skip the choice and open straight at their corners.
  *
  * A camera app takes the picture, so this app holds no camera permission, and
  * nothing here pretends to be a viewfinder: a live preview on E Ink is a smear. On the still
@@ -81,7 +83,7 @@ import kotlin.math.hypot
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ScanScreen(onDone: (pdf: ByteArray) -> Unit, onCancel: () -> Unit) {
+fun ScanScreen(pictures: List<Uri> = emptyList(), onDone: (pdf: ByteArray) -> Unit, onCancel: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val pages = remember { mutableStateListOf<Bitmap>() }
@@ -108,6 +110,14 @@ fun ScanScreen(onDone: (pdf: ByteArray) -> Unit, onCancel: () -> Unit) {
             busy = false
         }
     }
+
+    // Pictures shared in to be scanned wait here, and come up one after another, each kept
+    // page making way for the next, in the order they were shared.
+    val waiting = remember { pictures.toMutableList() }
+    fun next() {
+        if (waiting.isNotEmpty()) load(waiting.removeAt(0))
+    }
+    LaunchedEffect(Unit) { next() }
 
     val cameras = remember { cameraApps(context) }
     var choosingCamera by remember { mutableStateOf(false) }
@@ -147,6 +157,7 @@ fun ScanScreen(onDone: (pdf: ByteArray) -> Unit, onCancel: () -> Unit) {
         if (photo != null) {
             photo = null
             quad = null
+            next()
         } else {
             onCancel()
         }
@@ -225,6 +236,7 @@ fun ScanScreen(onDone: (pdf: ByteArray) -> Unit, onCancel: () -> Unit) {
                             photo = null
                             quad = null
                             busy = false
+                            next()
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(52.dp),

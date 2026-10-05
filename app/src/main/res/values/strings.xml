@@ -54,6 +54,11 @@
     <!-- At the foot of a list: type here and press done to add a task -->
     <string name="note_add_item">Add an item</string>
     <string name="note_delete_confirm">Delete — tap again</string>
+    <!-- The three dots on a note, which open a short menu -->
+    <string name="cd_more">More</string>
+    <!-- In that menu: opens a calendar app's new event with the note's title and words -->
+    <string name="note_remind">Remind me</string>
+    <string name="note_remind_none">No calendar app on this phone took it.</string>
 
     <!-- ============================================================ -->
     <!-- First run -->
@@ -171,6 +176,25 @@
     <string name="pages_drawing">Drawing the pages…</string>
     <!-- %1$s is the PDF's file name -->
     <string name="pages_open">Open %1$s</string>
+
+    <!-- ============================================================ -->
+    <!-- Pictures -->
+
+    <!-- Heading of the choice offered when pictures are shared in -->
+    <plurals name="pictures_heading">
+        <item quantity="one">A picture</item>
+        <item quantity="other">%d pictures</item>
+    </plurals>
+    <plurals name="pictures_new_note">
+        <item quantity="one">New note with the picture</item>
+        <item quantity="other">New note with the pictures</item>
+    </plurals>
+    <plurals name="pictures_scan">
+        <item quantity="one">Scan it</item>
+        <item quantity="other">Scan them, as the pages of one PDF</item>
+    </plurals>
+    <string name="picture_missing">The picture is not here yet.</string>
+    <string name="picture_unreadable">That picture could not be read.</string>
 
     <!-- ============================================================ -->
     <!-- On the lock screen, through the Glance app -->

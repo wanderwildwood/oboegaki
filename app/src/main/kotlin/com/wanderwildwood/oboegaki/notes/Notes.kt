@@ -1,6 +1,9 @@
 package com.wanderwildwood.oboegaki.notes
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
 import androidx.core.content.FileProvider
 import com.wanderwildwood.oboegaki.sync.NextcloudRemote
 import com.wanderwildwood.oboegaki.sync.Refused
@@ -20,6 +23,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -372,6 +376,74 @@ object Notes {
         shelf.write(notePath, "![[$stem.pdf]]\n")
         afterEdit()
         return notePath
+    }
+
+    /**
+     * Keep pictures shared in from another app: each copied beside a new note that shows them,
+     * named for the moment the way scans and recordings are, and return the note's path. A
+     * picture in a form other than JPEG, PNG or WebP is kept as a JPEG. Null when there is
+     * nowhere to keep them, or none of them could be read.
+     */
+    fun savePictures(uris: List<Uri>): String? {
+        val shelf = shelf() ?: return null
+        val stamp = SimpleDateFormat("yyyy-MM-dd HHmm", Locale.ROOT).format(Date())
+        val notePath = newPath("", "Picture $stamp")
+        val stem = notePath.substringAfterLast('/').substringBeforeLast('.')
+        val names = mutableListOf<String>()
+        for (uri in uris) {
+            val (bytes, ext) = runCatching { pictureBytes(uri) }.getOrNull() ?: continue
+            var name = if (names.isEmpty()) "$stem.$ext" else "$stem ${names.size + 1}.$ext"
+            var n = names.size + 2
+            while (shelf.exists(name)) name = "$stem ${n++}.$ext"
+            shelf.writeBytes(name, bytes, if (ext == "jpg") "image/jpeg" else "image/$ext")
+            names += name
+        }
+        if (names.isEmpty()) return null
+        shelf.write(notePath, names.joinToString("\n\n", postfix = "\n") { "![[$it]]" })
+        afterEdit()
+        return notePath
+    }
+
+    private fun pictureBytes(uri: Uri): Pair<ByteArray, String> {
+        val resolver = appContext.contentResolver
+        val bytes = resolver.openInputStream(uri)!!.use { it.readBytes() }
+        val ext = when (resolver.getType(uri)?.lowercase()) {
+            "image/jpeg", "image/jpg" -> "jpg"
+            "image/png" -> "png"
+            "image/webp" -> "webp"
+            else -> null
+        }
+        if (ext != null) return bytes to ext
+        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: error("not a picture")
+        val out = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+        return out.toByteArray() to "jpg"
+    }
+
+    /** Whether there is somewhere to keep notes yet: a Nextcloud signed in to, or a folder. */
+    fun isSetUp(): Boolean = shelf() != null
+
+    /**
+     * Another app's note, [path] already checked by [com.wanderwildwood.oboegaki.capture.capturePath]:
+     * made, or its text replaced, folders and all. It is an edit like any other here, so it is
+     * synced, and merged on the server's side with anything changed there.
+     */
+    fun put(path: String, text: String) {
+        val shelf = shelf() ?: error("Notes has nowhere to keep notes.")
+        synchronized(notesLock) {
+            if (shelf.read(path) != text) shelf.write(path, text)
+        }
+        afterEdit()
+    }
+
+    /** Another app's note taken away: that file, and nothing beside it. */
+    fun remove(path: String) {
+        val shelf = shelf() ?: error("Notes has nowhere to keep notes.")
+        synchronized(notesLock) {
+            if (shelf.exists(path)) shelf.delete(path)
+        }
+        repin(path, null)
+        afterEdit()
     }
 
     /**

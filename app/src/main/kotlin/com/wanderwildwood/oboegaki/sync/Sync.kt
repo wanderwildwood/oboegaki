@@ -440,7 +440,7 @@ fun isAttachment(name: String): Boolean {
     return ATTACHMENTS.any { lower.endsWith(".$it") }
 }
 
-private val ATTACHMENTS = listOf("m4a", "mp3", "wav", "ogg", "opus", "aac", "pdf", "jpg", "jpeg", "png")
+private val ATTACHMENTS = listOf("m4a", "mp3", "wav", "ogg", "opus", "aac", "pdf", "jpg", "jpeg", "png", "webp")
 
 /**
  * The one hidden file that syncs: the list of pinned notes, one path to a line, at the top of
