@@ -140,6 +140,21 @@ fun straighten(grey: IntArray, width: Int, height: Int, quad: Quad, outWidth: In
     return out
 }
 
+/**
+ * As [straighten], for a picture in colour: [argb] packed as Android packs it, each of red,
+ * green and blue read between pixels on its own. Outside the photograph is white.
+ */
+fun straightenColour(argb: IntArray, width: Int, height: Int, quad: Quad, outWidth: Int, outHeight: Int): IntArray {
+    val channels = (0 until 3).map { c ->
+        val shift = 16 - c * 8
+        IntArray(argb.size) { (argb[it] shr shift) and 0xff }
+    }
+    val flat = channels.map { straighten(it, width, height, quad, outWidth, outHeight) }
+    return IntArray(outWidth * outHeight) { i ->
+        (0xff shl 24) or (flat[0][i] shl 16) or (flat[1][i] shl 8) or flat[2][i]
+    }
+}
+
 private fun sample(grey: IntArray, width: Int, height: Int, x: Double, y: Double): Int {
     if (x < 0 || y < 0 || x > width - 1 || y > height - 1) return 255
     val x0 = x.toInt().coerceAtMost(width - 2)

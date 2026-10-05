@@ -13,8 +13,14 @@ import java.io.ByteArrayOutputStream
 import kotlin.math.max
 import kotlin.math.roundToInt
 
-/** A photograph, read for scanning: its grey at working size, and a small copy to show. */
-class Photo(val grey: IntArray, val width: Int, val height: Int, val preview: Bitmap)
+/**
+ * A photograph, read for scanning: its colour and its grey at working size, and a small copy
+ * to show.
+ */
+class Photo(val colour: IntArray, val grey: IntArray, val width: Int, val height: Int, val preview: Bitmap)
+
+/** How a kept page is drawn. */
+enum class Look { INK, GREYS, COLOUR }
 
 /**
  * The Android half of scanning: reading the camera's photograph, and writing pages as a PDF.
@@ -63,17 +69,18 @@ object Scanner {
         }
         val p = PREVIEW.toFloat() / max(work.width, work.height)
         val preview = Bitmap.createScaledBitmap(work, (work.width * p).roundToInt(), (work.height * p).roundToInt(), true)
-        return Photo(grey, work.width, work.height, preview)
+        return Photo(pixels, grey, work.width, work.height, preview)
     }
 
     /** The photograph a quarter turn clockwise, and the corners on it with it. */
     fun turned(photo: Photo, quad: Quad): Pair<Photo, Quad> {
         val grey = turnClockwise(photo.grey, photo.width, photo.height)
+        val colour = turnClockwise(photo.colour, photo.width, photo.height)
         val preview = Bitmap.createBitmap(
             photo.preview, 0, 0, photo.preview.width, photo.preview.height,
             Matrix().apply { postRotate(90f) }, true,
         )
-        return Photo(grey, photo.height, photo.width, preview) to quad.turnedClockwise(photo.preview.height)
+        return Photo(colour, grey, photo.height, photo.width, preview) to quad.turnedClockwise(photo.preview.height)
     }
 
     /** Where the page is, in the preview's coordinates. */
@@ -102,16 +109,22 @@ object Scanner {
     }
 
     /**
-     * The page flat, in black ink on white, from [quad] in the preview's coordinates. [ink]
-     * false keeps the greys, for a photograph or a drawing rather than writing.
+     * The page flat, from [quad] in the preview's coordinates: black ink on white for writing,
+     * greys for a drawing or a photograph, or its own colours for anything that will be looked
+     * at on a screen in colour later.
      */
-    fun page(photo: Photo, quad: Quad, ink: Boolean): Bitmap {
+    fun page(photo: Photo, quad: Quad, look: Look): Bitmap {
         val toWork = photo.width.toFloat() / photo.preview.width
         val q = quad.scaled(toWork).shrunk(0.035f)
         val (w, h) = q.size()
-        val flat = straighten(photo.grey, photo.width, photo.height, q, w, h)
-        val out = if (ink) clearEdges(inkOnPaper(flat, w, h), w, h, max(2, minOf(w, h) / 100)) else flat
-        val pixels = IntArray(out.size) { i -> val g = out[i]; Color.rgb(g, g, g) }
+        val pixels = when (look) {
+            Look.COLOUR -> straightenColour(photo.colour, photo.width, photo.height, q, w, h)
+            else -> {
+                val flat = straighten(photo.grey, photo.width, photo.height, q, w, h)
+                val out = if (look == Look.INK) clearEdges(inkOnPaper(flat, w, h), w, h, max(2, minOf(w, h) / 100)) else flat
+                IntArray(out.size) { i -> val g = out[i]; Color.rgb(g, g, g) }
+            }
+        }
         return Bitmap.createBitmap(pixels, w, h, Bitmap.Config.ARGB_8888)
     }
 

@@ -143,9 +143,10 @@
     <string name="scan_choose">Use a picture already taken</string>
     <string name="scan_done">Done</string>
     <string name="scan_corners">Drag the corners onto the page\'s corners.</string>
-    <!-- The toggle between the two ways a page is kept; it names the one now chosen -->
+    <!-- The button that steps through the three ways a page is kept; it names the one chosen -->
     <string name="scan_ink">Black and white</string>
     <string name="scan_grey">Greys</string>
+    <string name="scan_colour">Color</string>
     <string name="scan_keep">Keep this page</string>
     <string name="cd_rotate">Turn a quarter clockwise</string>
     <string name="scan_working">Straightening…</string>

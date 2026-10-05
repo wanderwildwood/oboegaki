@@ -141,4 +141,19 @@ class PageTest {
         val farthest = t.points.maxBy { it.x + it.y }
         assertEquals(t.bottomRight, farthest)
     }
+
+    @Test
+    fun colourSurvivesStraightening() {
+        // A red page on a blue table.
+        val w = 400; val h = 300
+        val page = Quad(Point(60f, 40f), Point(330f, 55f), Point(310f, 260f), Point(45f, 250f))
+        val red = (0xff shl 24) or (220 shl 16) or (30 shl 8) or 30
+        val blue = (0xff shl 24) or (20 shl 16) or (30 shl 8) or 160
+        val argb = IntArray(w * h) { i -> if (inside(page, (i % w).toFloat(), (i / w).toFloat())) red else blue }
+        val flat = straightenColour(argb, w, h, page.shrunk(0.035f), 100, 80)
+        val middle = flat[40 * 100 + 50]
+        assertEquals(220, (middle shr 16) and 0xff)
+        assertEquals(30, (middle shr 8) and 0xff)
+        assertEquals(30, middle and 0xff)
+    }
 }

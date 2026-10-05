@@ -57,6 +57,7 @@ import com.mudita.mmd.components.text.TextMMD
 import com.mudita.mmd.components.top_app_bar.TopAppBarMMD
 import com.wanderwildwood.oboegaki.R
 import com.wanderwildwood.oboegaki.notes.Notes
+import com.wanderwildwood.oboegaki.scan.Look
 import com.wanderwildwood.oboegaki.scan.Photo
 import com.wanderwildwood.oboegaki.scan.Point
 import com.wanderwildwood.oboegaki.scan.Quad
@@ -75,7 +76,7 @@ import kotlin.math.hypot
  * A camera app takes the picture, so this app holds no camera permission, and
  * nothing here pretends to be a viewfinder: a live preview on E Ink is a smear. On the still
  * photograph the page's corners are guessed and drawn, and the reader drags any that are
- * wrong. Each kept page is straightened and turned to black ink on white; Done writes them
+ * wrong. Each kept page is straightened, and kept as black ink on white, in greys or in its own colours; Done writes them
  * all as one PDF beside a new note that shows them.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -86,7 +87,7 @@ fun ScanScreen(onDone: (pdf: ByteArray) -> Unit, onCancel: () -> Unit) {
     val pages = remember { mutableStateListOf<Bitmap>() }
     var photo by remember { mutableStateOf<Photo?>(null) }
     var quad by remember { mutableStateOf<Quad?>(null) }
-    var ink by remember { mutableStateOf(true) }
+    var look by remember { mutableStateOf(Look.INK) }
     var busy by remember { mutableStateOf(false) }
     var problem by remember { mutableStateOf<String?>(null) }
 
@@ -197,8 +198,20 @@ fun ScanScreen(onDone: (pdf: ByteArray) -> Unit, onCancel: () -> Unit) {
                     ) {
                         Icon(Icons.Rotate, contentDescription = stringResource(R.string.cd_rotate), modifier = Modifier.size(26.dp))
                     }
-                    OutlinedButtonMMD(onClick = { ink = !ink }, modifier = Modifier.weight(1f).height(52.dp)) {
-                        TextMMD(text = stringResource(if (ink) R.string.scan_ink else R.string.scan_grey))
+                    // Steps through the three looks; it names the one chosen.
+                    OutlinedButtonMMD(
+                        onClick = { look = Look.entries[(look.ordinal + 1) % Look.entries.size] },
+                        modifier = Modifier.weight(1f).height(52.dp),
+                    ) {
+                        TextMMD(
+                            text = stringResource(
+                                when (look) {
+                                    Look.INK -> R.string.scan_ink
+                                    Look.GREYS -> R.string.scan_grey
+                                    Look.COLOUR -> R.string.scan_colour
+                                },
+                            ),
+                        )
                     }
                 }
                 Spacer(Modifier.height(10.dp))
@@ -207,7 +220,7 @@ fun ScanScreen(onDone: (pdf: ByteArray) -> Unit, onCancel: () -> Unit) {
                     onClick = {
                         busy = true
                         scope.launch {
-                            val page = withContext(Dispatchers.Default) { runCatching { Scanner.page(p, q, ink) }.getOrNull() }
+                            val page = withContext(Dispatchers.Default) { runCatching { Scanner.page(p, q, look) }.getOrNull() }
                             if (page != null) pages += page else problem = context.getString(R.string.scan_unreadable)
                             photo = null
                             quad = null
