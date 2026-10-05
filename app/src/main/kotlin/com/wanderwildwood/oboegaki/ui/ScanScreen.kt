@@ -28,7 +28,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -67,6 +66,8 @@ import kotlin.math.hypot
 
 /**
  * Scanning paper into a note.
+ *
+ * It opens on a choice: take a photo, or use one already taken.
  *
  * A camera app takes the picture, so this app holds no camera permission, and
  * nothing here pretends to be a viewfinder: a live preview on E Ink is a smear. On the still
@@ -134,8 +135,9 @@ fun ScanScreen(onDone: (pdf: ByteArray) -> Unit, onCancel: () -> Unit) {
         }
     }
 
-    // Straight to the camera on opening: that is what the button was pressed for.
-    LaunchedEffect(Unit) { takePhoto() }
+    // The screen opens on its two choices, a new photo or one already taken, and waits. It
+    // used to go straight to the camera, which flashed the choices past on the panel and
+    // took the other one away.
 
     BackHandler {
         if (photo != null) {
