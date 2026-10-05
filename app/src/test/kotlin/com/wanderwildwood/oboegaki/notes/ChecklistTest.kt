@@ -69,5 +69,14 @@ class ChecklistTest {
         assertEquals("a bold word", plain("- a **bold** word"))
         assertEquals("snake_case_name stays", plain("snake_case_name stays"))
         assertEquals("milk · bread", preview("# Shop\n- [ ] milk\n- [x] bread\n"))
+        assertEquals("ask not", preview("![[Voice 0200.m4a]]\n\nask not\n"))
+    }
+
+    @Test
+    fun embedsAndRecordings() {
+        assertEquals(listOf("Voice 0200.m4a", "scan.pdf"), embeds("![[Voice 0200.m4a]]\ntext ![[scan.pdf|a page]]"))
+        assertEquals("Voice 0200.m4a", recordingOn("  ![[Voice 0200.m4a]] "))
+        assertEquals(null, recordingOn("![[scan.pdf]]"))
+        assertEquals(null, recordingOn("see ![[Voice 0200.m4a]] here"))
     }
 }

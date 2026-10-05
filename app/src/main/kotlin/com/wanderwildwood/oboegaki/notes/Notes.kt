@@ -273,8 +273,43 @@ object Notes {
         }
     }
 
+    /**
+     * Put [text] as a paragraph under the line [after] in the note at [path], if the note is
+     * still there and the line still in it. Used for a recording's words, which arrive long after
+     * the note was made and perhaps after it was edited, so it goes under the recording wherever
+     * that now is rather than at a remembered position.
+     */
+    fun addUnder(path: String, after: String, text: String) {
+        val shelf = shelf() ?: return
+        synchronized(notesLock) {
+            val now = shelf.read(path) ?: return
+            if (text in now) return
+            val lines = now.split('\n').toMutableList()
+            val at = lines.indexOfFirst { it.trim() == after }
+            if (at < 0) return
+            lines.add(at + 1, "")
+            lines.add(at + 2, text)
+            shelf.write(path, lines.joinToString("\n"))
+        }
+        _changed.value++
+    }
+
+    /**
+     * Delete a note, and the recordings and scans it holds that sit beside it: `![[name]]` links
+     * to files in the same folder. Anything another note also links stays.
+     */
     fun delete(path: String) {
-        shelf()?.delete(path)
+        val shelf = shelf() ?: return
+        val text = shelf.read(path).orEmpty()
+        val folder = path.substringBeforeLast('/', "")
+        val prefix = if (folder.isEmpty()) "" else "$folder/"
+        val held = embeds(text).map { prefix + it }
+        shelf.delete(path)
+        val others = _list.value.filter { it.path != path }
+        for (attachment in held) {
+            val linkedElsewhere = others.any { note -> embeds(note.text).any { prefix + it == attachment || it == attachment } }
+            if (!linkedElsewhere) runCatching { shelf.delete(attachment) }
+        }
         reload()
     }
 

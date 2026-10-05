@@ -1,6 +1,8 @@
 package com.wanderwildwood.oboegaki
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -9,6 +11,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -24,12 +27,15 @@ import com.wanderwildwood.oboegaki.ui.ListScreen
 import com.wanderwildwood.oboegaki.ui.NoteScreen
 import com.wanderwildwood.oboegaki.ui.SettingsScreen
 import com.wanderwildwood.oboegaki.ui.ShareScreen
+import com.wanderwildwood.oboegaki.ui.RecordScreen
+import com.wanderwildwood.oboegaki.hearing.RecordService
+import com.wanderwildwood.oboegaki.hearing.Voice
 import com.wanderwildwood.oboegaki.ui.SetupScreen
 import com.wanderwildwood.oboegaki.ui.SignInScreen
 import com.wanderwildwood.oboegaki.ui.monochrome
 
 /** Something to be written down the moment the app opens: from "New note", or shared in. */
-data class Capture(val title: String, val text: String)
+data class Capture(val title: String, val text: String, val record: Boolean = false)
 
 private sealed interface Screen {
     data object List : Screen
@@ -37,6 +43,7 @@ private sealed interface Screen {
     data class Share(val path: String, val title: String) : Screen
     data object Settings : Screen
     data object SignIn : Screen
+    data object Recording : Screen
 }
 
 class MainActivity : ComponentActivity() {
@@ -46,6 +53,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Notes.init(this)
+        Voice.init(this)
         if (savedInstanceState == null) capture.value = captureFrom(intent)
         setContent {
             ThemeMMD(colorScheme = monochrome) {
@@ -63,6 +71,8 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         Notes.refresh()
         Notes.syncNow()
+        // Anything left unheard because the app was closed partway is picked up on opening.
+        Voice.catchUp(this)
     }
 
     /**
@@ -73,6 +83,7 @@ class MainActivity : ComponentActivity() {
         intent ?: return null
         return when {
             intent.component?.className?.endsWith(".NewNote") == true -> Capture("", "")
+            intent.component?.className?.endsWith(".Record") == true -> Capture("", "", record = true)
             intent.action == Intent.ACTION_SEND -> {
                 val text = intent.getStringExtra(Intent.EXTRA_TEXT) ?: return null
                 Capture(intent.getStringExtra(Intent.EXTRA_SUBJECT).orEmpty(), text)
@@ -97,6 +108,30 @@ private fun App(capture: MutableState<Capture?>) {
     var order by remember { mutableStateOf(Notes.preferences.order) }
     var aboutOpen by remember { mutableStateOf(false) }
     var keeping by remember { mutableStateOf(Notes.preferences.keeping) }
+    val recordingSeconds by Voice.recording.collectAsStateWithLifecycle()
+    val made by Voice.made.collectAsStateWithLifecycle()
+
+    fun record() {
+        RecordService.start(context)
+        screen = Screen.Recording
+    }
+    val askMic = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) record()
+    }
+    fun recordAsking() {
+        if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            record()
+        } else {
+            askMic.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
+
+    // A recording just kept opens as its note.
+    LaunchedEffect(made) {
+        val path = made ?: return@LaunchedEffect
+        Voice.opened()
+        screen = Screen.Note(path, Notes.read(path).orEmpty(), fresh = false)
+    }
 
     val chooseFolder = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri: Uri? ->
         if (uri != null) {
@@ -113,7 +148,10 @@ private fun App(capture: MutableState<Capture?>) {
 
     // A capture waits for somewhere to keep it, and then opens straight into a new note.
     val pending = capture.value
-    if (pending != null && keeping != Keeping.NOWHERE) {
+    if (pending != null && pending.record && keeping != Keeping.NOWHERE) {
+        capture.value = null
+        recordAsking()
+    } else if (pending != null && keeping != Keeping.NOWHERE) {
         capture.value = null
         screen = Screen.Note(
             path = Notes.newPath("", pending.title),
@@ -148,6 +186,7 @@ private fun App(capture: MutableState<Capture?>) {
                     screen = Screen.Note(note.path, Notes.read(note.path).orEmpty(), fresh = false)
                 },
                 onNew = { folder -> screen = Screen.Note(Notes.newPath(folder), "", fresh = true) },
+                onRecord = { recordAsking() },
                 onSettings = { screen = Screen.Settings },
                 onAbout = { aboutOpen = true },
             )
@@ -159,6 +198,13 @@ private fun App(capture: MutableState<Capture?>) {
                 initialTitle = now.title,
                 onClose = { screen = Screen.List },
                 onShare = { path, title -> screen = Screen.Share(path, title) },
+            )
+            Screen.Recording -> RecordScreen(
+                seconds = recordingSeconds,
+                onStop = {
+                    RecordService.stop(context)
+                    screen = Screen.List
+                },
             )
             is Screen.Share -> ShareScreen(
                 path = now.path,

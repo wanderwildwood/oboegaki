@@ -8,3 +8,5 @@ signing/signing.properties
 signing/signing.keystore
 .cxx/
 .kotlin/
+# The Whisper model is fetched and checked by hash, not committed: models/fetch.sh.
+models/*.bin

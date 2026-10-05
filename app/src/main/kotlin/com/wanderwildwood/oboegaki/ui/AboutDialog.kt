@@ -47,6 +47,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
         Spacer(Modifier.height(14.dp))
         TextMMD(text = stringResource(R.string.about_licence), style = MaterialTheme.typography.labelSmall)
         TextMMD(text = stringResource(R.string.about_okhttp), style = MaterialTheme.typography.labelSmall)
+        TextMMD(text = stringResource(R.string.about_whisper), style = MaterialTheme.typography.labelSmall)
         TextMMD(text = stringResource(R.string.about_icons), style = MaterialTheme.typography.labelSmall)
 
         Spacer(Modifier.height(14.dp))

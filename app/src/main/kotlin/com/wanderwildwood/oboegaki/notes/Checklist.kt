@@ -80,3 +80,14 @@ fun toggleTaskLine(text: String, cursor: Int): Pair<String, Int> {
         text.substring(0, start) + task + text.substring(end) to (task.length - line.length)
     }
 }
+
+/** The files a note links the Obsidian way, `![[name.m4a]]`, by name, in order. */
+fun embeds(text: String): List<String> =
+    Regex("""!\[\[([^\]|]+)(?:\|[^\]]*)?]]""").findAll(text).map { it.groupValues[1].trim() }.toList()
+
+/** Whether a line is only a link to a recording. */
+fun recordingOn(line: String): String? =
+    embeds(line.trim()).singleOrNull()?.takeIf { line.trim().startsWith("![[") && line.trim().endsWith("]]") && isSound(it) }
+
+fun isSound(name: String): Boolean =
+    listOf("m4a", "mp3", "wav", "ogg", "opus", "aac").any { name.lowercase().endsWith(".$it") }

@@ -3,8 +3,8 @@
     <string name="app_name">Notes</string>
     <!-- Second home-screen entry: opens straight into a blank note -->
     <string name="new_note_label">New note</string>
-    <!-- In other apps' share menus and selected-text menus -->
-    <string name="share_label">Add to notes</string>
+    <!-- In other apps' share menus and selected-text menus, beside Copy and Define: one word, as they are -->
+    <string name="share_label">Note</string>
 
     <!-- Read aloud by a screen reader -->
     <string name="cd_back">Back</string>
@@ -112,12 +112,31 @@
     <string name="list_shared">Shared</string>
 
     <!-- ============================================================ -->
+    <!-- Voice notes -->
+
+    <!-- Third home-screen entry: straight into a recording -->
+    <string name="record_label">Record</string>
+    <string name="cd_record">Record a voice note</string>
+    <string name="record_title">Recording</string>
+    <string name="record_stop">Stop</string>
+    <string name="record_note">It keeps recording with the screen off. Stopping makes it a note.</string>
+    <string name="record_channel">Recording</string>
+    <string name="record_notification">Recording a voice note</string>
+    <string name="cd_play">Play</string>
+    <string name="cd_pause">Pause</string>
+    <!-- %1$s is a length, e.g. "1:05" -->
+    <string name="player_recording">Recording · %1$s</string>
+    <string name="player_missing">The recording is not here yet.</string>
+    <string name="player_hearing">Turning it into words…</string>
+
+    <!-- ============================================================ -->
     <!-- About -->
 
     <string name="about_title">Notes %1$s</string>
-    <string name="about_privacy">Notes are plain files. With Nextcloud they go to your server and nowhere else; with a folder, they stay in it.</string>
+    <string name="about_privacy">Notes are plain files. With Nextcloud they go to your server and nowhere else; with a folder, they stay in it. Recordings are turned into words on this phone.</string>
     <string name="about_licence">GNU General Public License v3</string>
     <string name="about_okhttp">OkHttp, Apache 2.0</string>
+    <string name="about_whisper">Speech recognition by whisper.cpp, MIT, with OpenAI\'s Whisper model, MIT</string>
     <string name="about_icons">Icons from Material Symbols, Apache 2.0</string>
     <string name="about_feed_the_llamas">feed the llamas</string>
     <string name="about_no_browser">There is no browser on this phone to open that with.</string>

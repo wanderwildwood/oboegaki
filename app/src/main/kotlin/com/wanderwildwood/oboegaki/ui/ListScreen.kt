@@ -20,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -62,6 +63,7 @@ fun ListScreen(
     onView: (showing: String, order: Order) -> Unit,
     onOpen: (Note) -> Unit,
     onNew: (folder: String) -> Unit,
+    onRecord: () -> Unit,
     onSettings: () -> Unit,
     onAbout: () -> Unit,
 ) {
@@ -94,8 +96,15 @@ fun ListScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButtonMMD(onClick = { onNew(Showing.folderOf(showing) ?: "") }) {
-                Icon(Icons.Add, contentDescription = stringResource(R.string.cd_new_note), modifier = Modifier.size(28.dp))
+            // The microphone above the pen: one tap from the list to a recording under way.
+            Column(horizontalAlignment = Alignment.End) {
+                FloatingActionButtonMMD(onClick = onRecord) {
+                    Icon(Icons.Mic, contentDescription = stringResource(R.string.cd_record), modifier = Modifier.size(28.dp))
+                }
+                Spacer(Modifier.height(14.dp))
+                FloatingActionButtonMMD(onClick = { onNew(Showing.folderOf(showing) ?: "") }) {
+                    Icon(Icons.Add, contentDescription = stringResource(R.string.cd_new_note), modifier = Modifier.size(28.dp))
+                }
             }
         },
     ) { contentPadding ->
@@ -145,8 +154,8 @@ fun ListScreen(
                             NoteRow(note, note.path in shared, showFolder = Showing.folderOf(showing) == null) { onOpen(note) }
                         }
                     }
-                    // Room under the last row for the button that floats over it.
-                    item(key = "foot") { Spacer(Modifier.height(88.dp)) }
+                    // Room under the last row for the buttons that float over it.
+                    item(key = "foot") { Spacer(Modifier.height(160.dp)) }
                 }
             }
         }

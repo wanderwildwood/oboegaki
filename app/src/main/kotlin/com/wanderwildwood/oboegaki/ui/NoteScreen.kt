@@ -54,6 +54,9 @@ import com.wanderwildwood.oboegaki.notes.hasTasks
 import com.wanderwildwood.oboegaki.notes.lines
 import com.wanderwildwood.oboegaki.notes.toggle
 import com.wanderwildwood.oboegaki.notes.toggleTaskLine
+import com.wanderwildwood.oboegaki.notes.recordingOn
+import com.wanderwildwood.oboegaki.notes.embeds
+import com.wanderwildwood.oboegaki.hearing.Voice
 import kotlinx.coroutines.delay
 
 /**
@@ -81,9 +84,10 @@ fun NoteScreen(
     var loaded by remember { mutableStateOf(if (fresh) "" else initialText) }
     var body by remember { mutableStateOf(TextFieldValue(initialText, TextRange(initialText.length))) }
     var title by remember { mutableStateOf(if (fresh) initialTitle else at.substringAfterLast('/').substringBeforeLast('.')) }
-    var writing by remember { mutableStateOf(fresh || !hasTasks(initialText)) }
+    var writing by remember { mutableStateOf(fresh || !readable(initialText)) }
     var deleted by remember { mutableStateOf(false) }
     val changed by Notes.changed.collectAsStateWithLifecycle()
+    val hearing by Voice.hearing.collectAsStateWithLifecycle()
 
     fun save() {
         if (deleted) return
@@ -140,7 +144,7 @@ fun NoteScreen(
     }
 
     val close = {
-        if (writing && !fresh && hasTasks(body.text)) {
+        if (writing && !fresh && readable(body.text)) {
             writing = false
         } else {
             onClose()
@@ -205,6 +209,8 @@ fun NoteScreen(
             } else {
                 Reading(
                     title = title,
+                    folder = at.substringBeforeLast('/', ""),
+                    hearing = at in hearing,
                     text = body.text,
                     onToggle = { index -> body = body.copy(text = toggle(body.text, index)) },
                     onAdd = { item -> body = body.copy(text = addTask(body.text, item)) },
@@ -257,6 +263,8 @@ private fun Writing(
 @Composable
 private fun Reading(
     title: String,
+    folder: String,
+    hearing: Boolean,
     text: String,
     onToggle: (Int) -> Unit,
     onAdd: (String) -> Unit,
@@ -299,7 +307,11 @@ private fun Reading(
                         Spacer(Modifier.width(8.dp))
                         TextMMD(text = line.text, style = MaterialTheme.typography.bodyLarge)
                     }
-                    is Line.Text -> {
+                    is Line.Text -> if (recordingOn(line.text) != null) {
+                        val name = recordingOn(line.text)!!
+                        val path = if (folder.isEmpty()) name else "$folder/$name"
+                        Player(uri = Notes.shelf()?.uriOf(path), hearing = hearing)
+                    } else {
                         val heading = line.text.trimStart().startsWith("#")
                         TextMMD(
                             text = if (heading) line.text.trimStart('#', ' ') else line.text,
@@ -311,7 +323,8 @@ private fun Reading(
                 }
             }
         }
-        item(key = "add") {
+        // A list grows from its foot; a note that is not a list is added to with the pencil.
+        if (parsed.any { it is Line.Task }) item(key = "add") {
             TextFieldMMD(
                 value = adding,
                 onValueChange = { adding = it.replace("\n", "") },
@@ -329,3 +342,6 @@ private fun Reading(
         }
     }
 }
+
+/** A note opens to be read rather than written when it holds tasks to tick or a recording to play. */
+private fun readable(text: String): Boolean = hasTasks(text) || embeds(text).isNotEmpty()

@@ -36,6 +36,12 @@ interface Shelf {
     fun delete(path: String)
     fun rename(from: String, to: String)
     fun exists(path: String): Boolean
+
+    /** Put a recording, a scan or a picture at [path]. */
+    fun writeBytes(path: String, bytes: ByteArray, mime: String)
+
+    /** Somewhere a player can open the file at [path], or null if it is not there. */
+    fun uriOf(path: String): Uri?
 }
 
 /**
@@ -86,6 +92,19 @@ class FileShelf(private val root: File) : Shelf {
     }
 
     override fun exists(path: String): Boolean = File(root, path).isFile
+
+    override fun writeBytes(path: String, bytes: ByteArray, mime: String) = synchronized(notesLock) {
+        val file = File(root, path)
+        file.parentFile?.mkdirs()
+        val temp = File(file.parentFile, ".${file.name}.part")
+        temp.writeBytes(bytes)
+        if (!temp.renameTo(file)) {
+            file.writeBytes(bytes)
+            temp.delete()
+        }
+    }
+
+    override fun uriOf(path: String): Uri? = File(root, path).takeIf { it.isFile }?.let(Uri::fromFile)
 }
 
 /**
@@ -175,6 +194,17 @@ class FolderShelf(private val resolver: ContentResolver, private val tree: Uri) 
 
     override fun exists(path: String): Boolean = synchronized(notesLock) { idOf(path) != null }
 
+    override fun writeBytes(path: String, bytes: ByteArray, mime: String) = synchronized(notesLock) {
+        val id = idOf(path) ?: create(path, mime)
+        val uri = DocumentsContract.buildDocumentUriUsingTree(tree, id)
+        (resolver.openOutputStream(uri, "wt") ?: error("The folder would not let $path be written."))
+            .use { it.write(bytes) }
+    }
+
+    override fun uriOf(path: String): Uri? = synchronized(notesLock) {
+        idOf(path)?.let { DocumentsContract.buildDocumentUriUsingTree(tree, it) }
+    }
+
     private data class Child(val id: String, val name: String, val isFolder: Boolean, val modified: Long)
 
     private fun children(parentId: String): List<Child> {
@@ -215,7 +245,7 @@ class FolderShelf(private val resolver: ContentResolver, private val tree: Uri) 
     }
 
     /** A new document at [path], and any folders above it. */
-    private fun create(path: String): String {
+    private fun create(path: String, mime: String = "text/plain"): String {
         var parent = rootId
         var at = ""
         val parts = path.split('/')
@@ -235,7 +265,7 @@ class FolderShelf(private val resolver: ContentResolver, private val tree: Uri) 
         val uri = DocumentsContract.createDocument(
             resolver,
             DocumentsContract.buildDocumentUriUsingTree(tree, parent),
-            "text/plain",
+            mime,
             parts.last(),
         ) ?: error("The folder would not take $path.")
         val id = DocumentsContract.getDocumentId(uri)
@@ -268,7 +298,8 @@ fun preview(text: String): String {
         if (close >= 0) lines = all.drop(close + 2).asSequence().map { it.trim() }
     }
     return lines
-        .filter { it.isNotEmpty() && !it.startsWith("#") }
+        // Headings, and lines that only link a recording or a scan: neither is something to read.
+        .filter { it.isNotEmpty() && !it.startsWith("#") && !(it.startsWith("![[") && it.endsWith("]]")) }
         .map { plain(it) }
         .filter { it.isNotEmpty() }
         .take(3)

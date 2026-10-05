@@ -5,6 +5,13 @@
          leaves the phone. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Voice notes. Asked for the first time the microphone is pressed, never before. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- So a recording carries on with the screen off; Android requires a notification. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- Keeps the processor, not the screen, awake while recording and while hearing. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
     <!-- Lets the text-selection menu see other apps' text actions, such as Define from the
          Dictionary, beside Copy. Without it Android 11+ hides them from this app. -->
     <queries>
@@ -62,6 +69,23 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity-alias>
+
+        <!-- A third home-screen entry, straight into a recording. -->
+        <activity-alias
+            android:name=".Record"
+            android:exported="true"
+            android:label="@string/record_label"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <service
+            android:name=".hearing.RecordService"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
 
     </application>
 

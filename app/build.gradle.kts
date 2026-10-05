@@ -1,3 +1,4 @@
+import java.security.MessageDigest
 import java.util.Properties
 
 plugins {
@@ -6,9 +7,46 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+// The Whisper model goes into the APK as an asset. It is fetched by models/fetch.sh rather
+// than committed, and checked here by hash as well: a build that quietly packed a different
+// model, or half of one, would still say BUILD SUCCESSFUL. The same model Dream Log ships.
+val modelName = "ggml-base.en-q5_1.bin"
+val modelSha256 = "4baf70dd0d7c4247ba2b81fafd9c01005ac77c2f9ef064e00dcf195d0e2fdd2f"
+val modelAssets = layout.buildDirectory.dir("generated/model-assets")
+
+val stageModel by tasks.registering {
+    val source = rootProject.file("models/$modelName")
+    inputs.file(source).optional()
+    outputs.dir(modelAssets)
+    doLast {
+        if (!source.isFile) {
+            throw GradleException("models/$modelName is missing. Run models/fetch.sh first.")
+        }
+        val digest = MessageDigest.getInstance("SHA-256")
+        source.inputStream().use { input ->
+            val buffer = ByteArray(1 shl 20)
+            while (true) {
+                val n = input.read(buffer)
+                if (n < 0) break
+                digest.update(buffer, 0, n)
+            }
+        }
+        val actual = digest.digest().joinToString("") { "%02x".format(it) }
+        if (actual != modelSha256) {
+            throw GradleException("models/$modelName has sha256 $actual, expected $modelSha256.")
+        }
+        val out = modelAssets.get().asFile
+        out.deleteRecursively()
+        out.mkdirs()
+        source.copyTo(out.resolve("model.bin"))
+    }
+}
+
 android {
     namespace = "com.wanderwildwood.oboegaki"
     compileSdk = 36
+    // The build box has exactly this NDK, and CI installs the same one.
+    ndkVersion = "24.0.8215888"
 
     defaultConfig {
         applicationId = "com.wanderwildwood.oboegaki"
@@ -17,6 +55,24 @@ android {
         targetSdk = 31
         versionCode = 1
         versionName = "0.1.0"
+
+        ndk {
+            // The Kompakt is arm64. The emulator an x86_64 debug build is tried on is added
+            // below, so a release carries one copy of the native code rather than two.
+            abiFilters += "arm64-v8a"
+        }
+        externalNativeBuild {
+            cmake {
+                arguments += listOf("-DCMAKE_BUILD_TYPE=Release", "-DGGML_OPENMP=OFF")
+            }
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
     }
 
     // A real keystore in signing/ signs every build type when it is present, so the
@@ -41,6 +97,7 @@ android {
     buildTypes {
         getByName("debug") {
             isMinifyEnabled = false
+            ndk { abiFilters += "x86_64" }
             realSigningConfig?.let { signingConfig = it }
         }
         getByName("release") {
@@ -61,6 +118,12 @@ android {
                 include = false
             }
         }
+    }
+
+    // The model is read straight out of the APK by the native code, which needs it stored
+    // rather than deflated. It barely compresses anyway.
+    androidResources {
+        noCompress += "bin"
     }
 
     lint {
@@ -87,10 +150,15 @@ android {
     }
 
     sourceSets {
-        named("main") { kotlin.srcDir("src/main/kotlin") }
+        named("main") {
+            kotlin.srcDir("src/main/kotlin")
+            assets.srcDir(modelAssets)
+        }
         named("test") { kotlin.srcDir("src/test/kotlin") }
     }
 }
+
+tasks.named("preBuild") { dependsOn(stageModel) }
 
 dependencies {
     implementation(libs.androidx.core.ktx)
