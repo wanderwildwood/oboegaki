@@ -3,6 +3,8 @@ package com.wanderwildwood.oboegaki.notes
 import android.content.Context
 import com.wanderwildwood.oboegaki.sync.NextcloudRemote
 import com.wanderwildwood.oboegaki.sync.Refused
+import com.wanderwildwood.oboegaki.sync.Sharing
+import com.wanderwildwood.oboegaki.sync.isNote
 import com.wanderwildwood.oboegaki.sync.Sync
 import com.wanderwildwood.oboegaki.sync.Unreachable
 import com.wanderwildwood.oboegaki.sync.merge
@@ -14,6 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -81,40 +84,92 @@ object Notes {
             .sortedByDescending { it.modified }
     }
 
+    private val _shared = MutableStateFlow<Set<String>>(emptySet())
+    /** The notes, by path, shared with someone or by someone. */
+    val shared: StateFlow<Set<String>> = _shared
+
     /**
      * Bring the copy here and the Nextcloud folder together, if that is where the notes are
      * kept. One at a time: a second ask while one is running is the same ask.
      */
     fun syncNow() {
-        if (preferences.keeping != Keeping.NEXTCLOUD) return
-        val account = preferences.account ?: return
         scope.launch {
             if (!syncing.tryLock()) return@launch
             try {
-                _sync.value = SyncState.Running
-                val remote = NextcloudRemote(account, preferences.remoteFolder)
-                val sync = Sync(
-                    notes = mirror,
-                    base = File(nextcloudDir, "base"),
-                    stateFile = File(nextcloudDir, "state"),
-                    guard = { synchronized(notesLock) { it() } },
-                )
-                val result = sync.run(remote)
-                preferences.lastSync = System.currentTimeMillis()
-                _sync.value = SyncState.Idle
-                if (result.received > 0 || result.kept.isNotEmpty()) _changed.value++
-            } catch (_: Unreachable) {
-                _sync.value = SyncState.Unreachable
-            } catch (_: Refused) {
-                _sync.value = SyncState.SignedOut
-            } catch (e: Exception) {
-                _sync.value = SyncState.Failed(e.message ?: e.javaClass.simpleName)
+                runSync()
             } finally {
                 syncing.unlock()
-                reload()
             }
         }
     }
+
+    /** Sync, waiting for one already running rather than skipping, and return once done. */
+    suspend fun syncAndWait() {
+        withContext(Dispatchers.IO) { syncing.withLock { runSync() } }
+    }
+
+    private fun runSync() {
+        if (preferences.keeping != Keeping.NEXTCLOUD) return
+        val account = preferences.account ?: return
+        try {
+            _sync.value = SyncState.Running
+            val sharing = Sharing(account)
+            // A note someone shared lands at the top of this account's files. Moved into the
+            // notes folder, it is a note like any other here. Never allowed to stop a sync.
+            runCatching { adoptShared(sharing) }
+            val remote = NextcloudRemote(account, preferences.remoteFolder)
+            val sync = Sync(
+                notes = mirror,
+                base = File(nextcloudDir, "base"),
+                stateFile = File(nextcloudDir, "state"),
+                guard = { synchronized(notesLock) { it() } },
+            )
+            val result = sync.run(remote)
+            preferences.lastSync = System.currentTimeMillis()
+            _sync.value = SyncState.Idle
+            runCatching { _shared.value = sharedPaths(sharing) }
+            if (result.received > 0 || result.kept.isNotEmpty()) _changed.value++
+        } catch (_: Unreachable) {
+            _sync.value = SyncState.Unreachable
+        } catch (_: Refused) {
+            _sync.value = SyncState.SignedOut
+        } catch (e: Exception) {
+            _sync.value = SyncState.Failed(e.message ?: e.javaClass.simpleName)
+        } finally {
+            reload()
+        }
+    }
+
+    private val folderPrefix get() = "/" + preferences.remoteFolder.trim('/') + "/"
+
+    private fun adoptShared(sharing: Sharing) {
+        for (incoming in sharing.withMe()) {
+            val name = incoming.path.substringAfterLast('/')
+            if (!isNote(name) || incoming.path.startsWith(folderPrefix)) continue
+            val stem = name.substringBeforeLast('.')
+            val ext = name.substringAfterLast('.')
+            var n = 1
+            while (n < 20) {
+                val target = folderPrefix + (if (n == 1) name else "$stem $n.$ext")
+                // Overwrite is refused, so a name already taken here fails and the next is tried.
+                if (runCatching { sharing.move(incoming.path, target) }.isSuccess) break
+                n++
+            }
+        }
+    }
+
+    private fun sharedPaths(sharing: Sharing): Set<String> =
+        (sharing.mine() + sharing.withMe().map { it.path })
+            .filter { it.startsWith(folderPrefix) }
+            .map { it.removePrefix(folderPrefix) }
+            .toSet()
+
+    /** Sharing on the account the notes are kept in, or null when they are not on Nextcloud. */
+    fun sharing(): Sharing? =
+        if (preferences.keeping == Keeping.NEXTCLOUD) preferences.account?.let(::Sharing) else null
+
+    /** A note's path as the server knows it, from the top of the account's files. */
+    fun serverPath(path: String): String = folderPrefix + path
 
     /** Wait for any sync in progress to finish, then run [block]. */
     private suspend fun afterSync(block: () -> Unit) = syncing.withLock { block() }

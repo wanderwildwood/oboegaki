@@ -75,6 +75,7 @@ fun NoteScreen(
     fresh: Boolean,
     initialTitle: String = "",
     onClose: () -> Unit,
+    onShare: (path: String, title: String) -> Unit = { _, _ -> },
 ) {
     var at by remember { mutableStateOf(path) }
     var loaded by remember { mutableStateOf(if (fresh) "" else initialText) }
@@ -178,6 +179,13 @@ fun NoteScreen(
                             }
                         } else {
                             BarButton(Icons.Edit, stringResource(R.string.cd_edit)) { writing = true }
+                        }
+                        // Sharing is Nextcloud's, and needs something there to share.
+                        if (Notes.preferences.keeping == Keeping.NEXTCLOUD && (body.text.isNotBlank() || title.isNotBlank())) {
+                            BarButton(Icons.Share, stringResource(R.string.cd_share)) {
+                                save()
+                                onShare(at, title.ifBlank { at.substringAfterLast('/').substringBeforeLast('.') })
+                            }
                         }
                         BarButton(Icons.Delete, stringResource(R.string.cd_delete)) { armed.value = true }
                     }

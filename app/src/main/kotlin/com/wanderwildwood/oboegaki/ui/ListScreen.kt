@@ -41,6 +41,7 @@ import com.wanderwildwood.oboegaki.notes.SyncState
 fun ListScreen(
     folder: String,
     notes: List<Note>,
+    shared: Set<String>,
     sync: SyncState,
     onOpen: (Note) -> Unit,
     onFolder: (String) -> Unit,
@@ -110,7 +111,7 @@ fun ListScreen(
                         }
                     }
                     for (note in here) {
-                        item(key = note.path) { NoteRow(note) { onOpen(note) } }
+                        item(key = note.path) { NoteRow(note, note.path in shared) { onOpen(note) } }
                     }
                     // Room under the last row for the button that floats over it.
                     item(key = "foot") { Spacer(Modifier.height(88.dp)) }
@@ -150,7 +151,7 @@ private fun FolderRow(name: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun NoteRow(note: Note, onClick: () -> Unit) {
+private fun NoteRow(note: Note, isShared: Boolean, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -163,9 +164,11 @@ private fun NoteRow(note: Note, onClick: () -> Unit) {
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        if (note.preview.isNotEmpty()) {
+        val sharedWord = stringResource(R.string.list_shared)
+        val line = if (isShared) listOf(sharedWord, note.preview).filter { it.isNotEmpty() }.joinToString(" · ") else note.preview
+        if (line.isNotEmpty()) {
             TextMMD(
-                text = note.preview,
+                text = line,
                 style = MaterialTheme.typography.labelSmall,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,

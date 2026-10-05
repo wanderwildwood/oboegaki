@@ -79,6 +79,25 @@
     <string name="settings_leave_folder_confirm">Stop using this folder — tap again</string>
 
     <!-- ============================================================ -->
+    <!-- Sharing a note -->
+
+    <string name="cd_share">Share</string>
+    <string name="share_title">Share</string>
+    <string name="share_loading">Asking Nextcloud…</string>
+    <!-- %1$s is what the server or network said -->
+    <string name="share_problem">Nextcloud could not do that: %1$s</string>
+    <string name="share_shared_with">Shared with</string>
+    <string name="share_with">Share with</string>
+    <string name="share_can_edit">Can edit</string>
+    <string name="share_can_read">Can only read</string>
+    <!-- %1$s is a person's name -->
+    <string name="share_stop">Stop sharing with %1$s</string>
+    <string name="share_stop_confirm">Stop sharing with %1$s — tap again</string>
+    <string name="share_nobody">There is nobody else on this Nextcloud to share with.</string>
+    <!-- Before a note's preview in the list, when it is shared -->
+    <string name="list_shared">Shared</string>
+
+    <!-- ============================================================ -->
     <!-- About -->
 
     <string name="about_title">Notes %1$s</string>

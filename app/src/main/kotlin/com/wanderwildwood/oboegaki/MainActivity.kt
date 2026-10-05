@@ -23,6 +23,7 @@ import com.wanderwildwood.oboegaki.ui.AboutDialog
 import com.wanderwildwood.oboegaki.ui.ListScreen
 import com.wanderwildwood.oboegaki.ui.NoteScreen
 import com.wanderwildwood.oboegaki.ui.SettingsScreen
+import com.wanderwildwood.oboegaki.ui.ShareScreen
 import com.wanderwildwood.oboegaki.ui.SetupScreen
 import com.wanderwildwood.oboegaki.ui.SignInScreen
 import com.wanderwildwood.oboegaki.ui.monochrome
@@ -33,6 +34,7 @@ data class Capture(val title: String, val text: String)
 private sealed interface Screen {
     data object List : Screen
     data class Note(val path: String, val text: String, val fresh: Boolean, val title: String = "") : Screen
+    data class Share(val path: String, val title: String) : Screen
     data object Settings : Screen
     data object SignIn : Screen
 }
@@ -89,6 +91,7 @@ private fun App(capture: MutableState<Capture?>) {
     val context = LocalContext.current
     val notes by Notes.list.collectAsStateWithLifecycle()
     val sync by Notes.sync.collectAsStateWithLifecycle()
+    val shared by Notes.shared.collectAsStateWithLifecycle()
     var screen by remember { mutableStateOf<Screen>(Screen.List) }
     var folder by remember { mutableStateOf("") }
     var aboutOpen by remember { mutableStateOf(false) }
@@ -133,6 +136,7 @@ private fun App(capture: MutableState<Capture?>) {
                 ListScreen(
                     folder = folder,
                     notes = notes,
+                    shared = shared,
                     sync = sync,
                     onOpen = { note ->
                         screen = Screen.Note(note.path, Notes.read(note.path).orEmpty(), fresh = false)
@@ -151,6 +155,12 @@ private fun App(capture: MutableState<Capture?>) {
                 fresh = now.fresh,
                 initialTitle = now.title,
                 onClose = { screen = Screen.List },
+                onShare = { path, title -> screen = Screen.Share(path, title) },
+            )
+            is Screen.Share -> ShareScreen(
+                path = now.path,
+                title = now.title,
+                onBack = { screen = Screen.Note(now.path, Notes.read(now.path).orEmpty(), fresh = false) },
             )
             Screen.Settings -> {
                 BackHandler { screen = Screen.List }
