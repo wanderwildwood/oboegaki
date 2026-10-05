@@ -233,7 +233,7 @@ private fun Writing(
     TextFieldMMD(
         value = title,
         onValueChange = { onTitle(it.replace("\n", "")) },
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().textActions(),
         textStyle = MaterialTheme.typography.titleLarge,
         placeholder = { TextMMD(text = stringResource(R.string.note_title_hint), style = MaterialTheme.typography.titleLarge) },
         singleLine = true,

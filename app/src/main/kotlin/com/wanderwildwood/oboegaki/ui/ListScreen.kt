@@ -128,7 +128,7 @@ fun ListScreen(
                 TextFieldMMD(
                     value = query,
                     onValueChange = { query = it.replace("\n", "") },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).focusRequester(focus),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).focusRequester(focus).textActions(),
                     placeholder = { TextMMD(text = stringResource(R.string.list_search_hint)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
