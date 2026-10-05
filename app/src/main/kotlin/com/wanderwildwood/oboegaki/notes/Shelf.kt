@@ -136,7 +136,7 @@ class FolderShelf(private val resolver: ContentResolver, private val tree: Uri) 
         val pending = ArrayDeque(listOf("" to rootId))
         while (pending.isNotEmpty()) {
             val (dir, id) = pending.removeFirst()
-            for (child in children(id)) {
+            for (child in mended(children(id))) {
                 val path = if (dir.isEmpty()) child.name else "$dir/${child.name}"
                 if (child.name.startsWith(".")) continue
                 ids[path] = child.id
@@ -211,8 +211,7 @@ class FolderShelf(private val resolver: ContentResolver, private val tree: Uri) 
         synchronized(notesLock) {
             val id = idOf(from) ?: return
             val source = DocumentsContract.buildDocumentUriUsingTree(tree, id)
-            val mime = resolver.getType(source) ?: "application/octet-stream"
-            val target = DocumentsContract.buildDocumentUriUsingTree(tree, create(to, mime))
+            val target = DocumentsContract.buildDocumentUriUsingTree(tree, create(to))
             resolver.openInputStream(source)!!.use { input ->
                 resolver.openOutputStream(target, "wt")!!.use { input.copyTo(it) }
             }
@@ -222,7 +221,7 @@ class FolderShelf(private val resolver: ContentResolver, private val tree: Uri) 
     }
 
     override fun writeBytes(path: String, bytes: ByteArray, mime: String) = synchronized(notesLock) {
-        val id = idOf(path) ?: create(path, mime)
+        val id = idOf(path) ?: create(path)
         val uri = DocumentsContract.buildDocumentUriUsingTree(tree, id)
         (resolver.openOutputStream(uri, "wt") ?: error("The folder would not let $path be written."))
             .use { it.write(bytes) }
@@ -272,7 +271,7 @@ class FolderShelf(private val resolver: ContentResolver, private val tree: Uri) 
     }
 
     /** A new document at [path], and any folders above it. */
-    private fun create(path: String, mime: String = "text/plain"): String {
+    private fun create(path: String): String {
         var parent = rootId
         var at = ""
         val parts = path.split('/')
@@ -287,17 +286,53 @@ class FolderShelf(private val resolver: ContentResolver, private val tree: Uri) 
                 ) ?: error("The folder would not take $at."),
             ).also { ids[at] = it }
         }
-        // Asked for as text/plain with the extension in the name: asking for text/markdown is
-        // how some providers end up writing "name.md.txt".
-        val uri = DocumentsContract.createDocument(
+        // Asked for as octet-stream whatever it is. A provider that knows a type puts its own
+        // extension on a name that lacks it, and Android's own storage does not count ".md" as
+        // text/plain's, so asking for text/plain made "name.md.txt": a file Obsidian never
+        // shows, and one the next save could not find, so it made another.
+        val wanted = parts.last()
+        var uri = DocumentsContract.createDocument(
             resolver,
             DocumentsContract.buildDocumentUriUsingTree(tree, parent),
-            mime,
-            parts.last(),
+            "application/octet-stream",
+            wanted,
         ) ?: error("The folder would not take $path.")
+        // And if a provider changes the name all the same, it is put back.
+        if (nameOf(uri) != wanted) {
+            uri = runCatching { DocumentsContract.renameDocument(resolver, uri, wanted) }.getOrNull() ?: uri
+        }
         val id = DocumentsContract.getDocumentId(uri)
         ids[path] = id
         return id
+    }
+
+    private fun nameOf(uri: Uri): String? =
+        resolver.query(uri, arrayOf(DocumentsContract.Document.COLUMN_DISPLAY_NAME), null, null, null)
+            ?.use { if (it.moveToFirst()) it.getString(0) else null }
+
+    /**
+     * Notes the folder holds as "name.md.txt", "name.md (1).txt" and so on, made by version 0.1.0
+     * before [create] asked for the right type, put back as "name.md": the newest copy, which
+     * has the last thing written. The older copies are left where they are, to be looked at and
+     * deleted, rather than deleted unseen.
+     */
+    private fun mended(children: List<Child>): List<Child> {
+        val misnamed = Regex("""^(.+\.md)(?: \(\d+\))?\.txt$""")
+        val names = children.map { it.name }.toMutableSet()
+        val out = children.toMutableList()
+        children.filter { !it.isFolder }
+            .mapNotNull { child -> misnamed.matchEntire(child.name)?.let { it.groupValues[1] to child } }
+            .groupBy({ it.first }, { it.second })
+            .forEach { (proper, copies) ->
+                if (proper in names) return@forEach
+                val newest = copies.maxBy { it.modified }
+                val renamed = runCatching {
+                    DocumentsContract.renameDocument(resolver, DocumentsContract.buildDocumentUriUsingTree(tree, newest.id), proper)
+                }.getOrNull() ?: return@forEach
+                names += proper
+                out[out.indexOf(newest)] = newest.copy(id = DocumentsContract.getDocumentId(renamed), name = proper)
+            }
+        return out
     }
 
     private fun readId(id: String): String =
