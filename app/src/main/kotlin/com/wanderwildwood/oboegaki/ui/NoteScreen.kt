@@ -237,7 +237,7 @@ private fun Writing(
     TextField(
         value = body,
         onValueChange = onBody,
-        modifier = Modifier.fillMaxSize().focusRequester(focusBody),
+        modifier = Modifier.fillMaxSize().focusRequester(focusBody).textActions(body, onBody),
         textStyle = MaterialTheme.typography.bodyLarge,
         placeholder = { TextMMD(text = stringResource(R.string.note_body_hint), style = MaterialTheme.typography.bodyLarge) },
         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
