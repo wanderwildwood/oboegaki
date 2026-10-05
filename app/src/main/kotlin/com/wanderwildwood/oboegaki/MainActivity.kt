@@ -29,6 +29,7 @@ import com.wanderwildwood.oboegaki.ui.SettingsScreen
 import com.wanderwildwood.oboegaki.ui.ShareScreen
 import com.wanderwildwood.oboegaki.ui.RecordScreen
 import com.wanderwildwood.oboegaki.ui.ScanScreen
+import com.wanderwildwood.oboegaki.ui.OutsideScreen
 import com.wanderwildwood.oboegaki.hearing.RecordService
 import com.wanderwildwood.oboegaki.hearing.Voice
 import com.wanderwildwood.oboegaki.ui.SetupScreen
@@ -36,7 +37,7 @@ import com.wanderwildwood.oboegaki.ui.SignInScreen
 import com.wanderwildwood.oboegaki.ui.monochrome
 
 /** Something to be written down the moment the app opens: from "New note", or shared in. */
-data class Capture(val title: String, val text: String, val record: Boolean = false)
+data class Capture(val title: String, val text: String, val record: Boolean = false, val open: Uri? = null)
 
 private sealed interface Screen {
     data object List : Screen
@@ -46,6 +47,7 @@ private sealed interface Screen {
     data object SignIn : Screen
     data object Recording : Screen
     data object Scan : Screen
+    data class Outside(val uri: Uri) : Screen
 }
 
 /** The actions of the New note and Record shortcuts (res/xml/shortcuts.xml). */
@@ -90,6 +92,7 @@ class MainActivity : ComponentActivity() {
         return when {
             intent.action == NEW_NOTE -> Capture("", "")
             intent.action == RECORD -> Capture("", "", record = true)
+            intent.action == Intent.ACTION_VIEW && intent.data != null -> Capture("", "", open = intent.data)
             intent.action == Intent.ACTION_SEND -> {
                 val text = intent.getStringExtra(Intent.EXTRA_TEXT) ?: return null
                 Capture(intent.getStringExtra(Intent.EXTRA_SUBJECT).orEmpty(), text)
@@ -155,7 +158,11 @@ private fun App(capture: MutableState<Capture?>) {
 
     // A capture waits for somewhere to keep it, and then opens straight into a new note.
     val pending = capture.value
-    if (pending != null && pending.record && keeping != Keeping.NOWHERE) {
+    if (pending?.open != null) {
+        // A file to read needs nowhere to keep notes; keeping it does, and is offered only then.
+        capture.value = null
+        screen = Screen.Outside(pending.open)
+    } else if (pending != null && pending.record && keeping != Keeping.NOWHERE) {
         capture.value = null
         recordAsking()
     } else if (pending != null && keeping != Keeping.NOWHERE) {
@@ -168,7 +175,7 @@ private fun App(capture: MutableState<Capture?>) {
         )
     }
 
-    if (keeping == Keeping.NOWHERE && screen != Screen.SignIn) {
+    if (keeping == Keeping.NOWHERE && screen != Screen.SignIn && screen !is Screen.Outside) {
         SetupScreen(
             onNextcloud = { screen = Screen.SignIn },
             onFolder = { chooseFolder.launch(null) },
@@ -207,6 +214,17 @@ private fun App(capture: MutableState<Capture?>) {
                 initialTitle = now.title,
                 onClose = { screen = Screen.List },
                 onShare = { path, title -> screen = Screen.Share(path, title) },
+            )
+            is Screen.Outside -> OutsideScreen(
+                uri = now.uri,
+                canKeep = keeping != Keeping.NOWHERE,
+                onKeep = { name, text ->
+                    val path = Notes.newPath("", name.substringBeforeLast('.').ifEmpty { name })
+                    Notes.shelf()?.write(path, text)
+                    Notes.afterEdit()
+                    screen = Screen.Note(path, text, fresh = false)
+                },
+                onClose = { screen = Screen.List },
             )
             Screen.Scan -> ScanScreen(
                 onDone = { pdf ->

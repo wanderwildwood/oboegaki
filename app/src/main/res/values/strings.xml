@@ -186,6 +186,12 @@
     <string name="lock_all_done">%1$s · all done</string>
 
     <!-- ============================================================ -->
+    <!-- A file opened from another app -->
+
+    <string name="outside_keep">Keep in Notes</string>
+    <string name="outside_unreadable">That file could not be read.</string>
+
+    <!-- ============================================================ -->
     <!-- About -->
 
     <string name="about_title">Notes %1$s</string>
