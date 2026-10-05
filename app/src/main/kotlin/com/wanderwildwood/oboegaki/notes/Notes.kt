@@ -1,6 +1,7 @@
 package com.wanderwildwood.oboegaki.notes
 
 import android.content.Context
+import androidx.core.content.FileProvider
 import com.wanderwildwood.oboegaki.sync.NextcloudRemote
 import com.wanderwildwood.oboegaki.sync.Refused
 import com.wanderwildwood.oboegaki.sync.Sharing
@@ -71,7 +72,7 @@ object Notes {
     /** Where the notes are, or null before the reader has chosen. */
     fun shelf(): Shelf? = when (preferences.keeping) {
         Keeping.NOWHERE -> null
-        Keeping.NEXTCLOUD -> FileShelf(mirror)
+        Keeping.NEXTCLOUD -> FileShelf(mirror) { FileProvider.getUriForFile(appContext, "${appContext.packageName}.files", it) }
         Keeping.FOLDER -> preferences.folder?.let { FolderShelf(appContext.contentResolver, it) }
     }
 
@@ -271,6 +272,21 @@ object Notes {
             if (onDisk == null || now != onDisk || at != path) shelf.write(at, now)
             return Saved(at, now, merged)
         }
+    }
+
+    /**
+     * Keep a scan: the PDF beside a new note that shows it, named for the moment, and return
+     * the note's path. Null when there is nowhere to keep it.
+     */
+    fun saveScan(pdf: ByteArray): String? {
+        val shelf = shelf() ?: return null
+        val stamp = SimpleDateFormat("yyyy-MM-dd HHmm", Locale.ROOT).format(Date())
+        val notePath = newPath("", "Scan $stamp")
+        val stem = notePath.substringAfterLast('/').substringBeforeLast('.')
+        shelf.writeBytes("$stem.pdf", pdf, "application/pdf")
+        shelf.write(notePath, "![[$stem.pdf]]\n")
+        afterEdit()
+        return notePath
     }
 
     /**

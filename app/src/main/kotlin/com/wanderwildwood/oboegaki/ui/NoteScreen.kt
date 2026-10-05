@@ -55,6 +55,7 @@ import com.wanderwildwood.oboegaki.notes.lines
 import com.wanderwildwood.oboegaki.notes.toggle
 import com.wanderwildwood.oboegaki.notes.toggleTaskLine
 import com.wanderwildwood.oboegaki.notes.recordingOn
+import com.wanderwildwood.oboegaki.notes.scanOn
 import com.wanderwildwood.oboegaki.notes.embeds
 import com.wanderwildwood.oboegaki.hearing.Voice
 import kotlinx.coroutines.delay
@@ -307,7 +308,11 @@ private fun Reading(
                         Spacer(Modifier.width(8.dp))
                         TextMMD(text = line.text, style = MaterialTheme.typography.bodyLarge)
                     }
-                    is Line.Text -> if (recordingOn(line.text) != null) {
+                    is Line.Text -> if (scanOn(line.text) != null) {
+                        val name = scanOn(line.text)!!
+                        val path = if (folder.isEmpty()) name else "$folder/$name"
+                        Pages(uri = Notes.shelf()?.uriOf(path), name = name)
+                    } else if (recordingOn(line.text) != null) {
                         val name = recordingOn(line.text)!!
                         val path = if (folder.isEmpty()) name else "$folder/$name"
                         Player(uri = Notes.shelf()?.uriOf(path), hearing = hearing)

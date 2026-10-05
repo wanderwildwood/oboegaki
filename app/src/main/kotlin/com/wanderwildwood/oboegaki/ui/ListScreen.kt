@@ -64,6 +64,7 @@ fun ListScreen(
     onOpen: (Note) -> Unit,
     onNew: (folder: String) -> Unit,
     onRecord: () -> Unit,
+    onScan: () -> Unit,
     onSettings: () -> Unit,
     onAbout: () -> Unit,
 ) {
@@ -96,8 +97,12 @@ fun ListScreen(
             )
         },
         floatingActionButton = {
-            // The microphone above the pen: one tap from the list to a recording under way.
+            // Paper, voice, and the pen: one tap from the list to each way of taking a note.
             Column(horizontalAlignment = Alignment.End) {
+                FloatingActionButtonMMD(onClick = onScan) {
+                    Icon(Icons.Scan, contentDescription = stringResource(R.string.cd_scan), modifier = Modifier.size(28.dp))
+                }
+                Spacer(Modifier.height(14.dp))
                 FloatingActionButtonMMD(onClick = onRecord) {
                     Icon(Icons.Mic, contentDescription = stringResource(R.string.cd_record), modifier = Modifier.size(28.dp))
                 }
@@ -155,7 +160,7 @@ fun ListScreen(
                         }
                     }
                     // Room under the last row for the buttons that float over it.
-                    item(key = "foot") { Spacer(Modifier.height(160.dp)) }
+                    item(key = "foot") { Spacer(Modifier.height(232.dp)) }
                 }
             }
         }

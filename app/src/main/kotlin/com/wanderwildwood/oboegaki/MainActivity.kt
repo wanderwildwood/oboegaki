@@ -28,6 +28,7 @@ import com.wanderwildwood.oboegaki.ui.NoteScreen
 import com.wanderwildwood.oboegaki.ui.SettingsScreen
 import com.wanderwildwood.oboegaki.ui.ShareScreen
 import com.wanderwildwood.oboegaki.ui.RecordScreen
+import com.wanderwildwood.oboegaki.ui.ScanScreen
 import com.wanderwildwood.oboegaki.hearing.RecordService
 import com.wanderwildwood.oboegaki.hearing.Voice
 import com.wanderwildwood.oboegaki.ui.SetupScreen
@@ -44,6 +45,7 @@ private sealed interface Screen {
     data object Settings : Screen
     data object SignIn : Screen
     data object Recording : Screen
+    data object Scan : Screen
 }
 
 class MainActivity : ComponentActivity() {
@@ -187,6 +189,7 @@ private fun App(capture: MutableState<Capture?>) {
                 },
                 onNew = { folder -> screen = Screen.Note(Notes.newPath(folder), "", fresh = true) },
                 onRecord = { recordAsking() },
+                onScan = { screen = Screen.Scan },
                 onSettings = { screen = Screen.Settings },
                 onAbout = { aboutOpen = true },
             )
@@ -198,6 +201,13 @@ private fun App(capture: MutableState<Capture?>) {
                 initialTitle = now.title,
                 onClose = { screen = Screen.List },
                 onShare = { path, title -> screen = Screen.Share(path, title) },
+            )
+            Screen.Scan -> ScanScreen(
+                onDone = { pdf ->
+                    val path = Notes.saveScan(pdf)
+                    screen = if (path != null) Screen.Note(path, Notes.read(path).orEmpty(), fresh = false) else Screen.List
+                },
+                onCancel = { screen = Screen.List },
             )
             Screen.Recording -> RecordScreen(
                 seconds = recordingSeconds,

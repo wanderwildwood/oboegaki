@@ -130,6 +130,32 @@
     <string name="player_hearing">Turning it into words…</string>
 
     <!-- ============================================================ -->
+    <!-- Scanning paper -->
+
+    <string name="cd_scan">Scan paper</string>
+    <string name="scan_title">Scan</string>
+    <plurals name="scan_pages">
+        <item quantity="one">%d page</item>
+        <item quantity="other">%d pages</item>
+    </plurals>
+    <string name="scan_take">Take a photo</string>
+    <string name="scan_another">Add a page</string>
+    <string name="scan_choose">Use a picture already taken</string>
+    <string name="scan_done">Done</string>
+    <string name="scan_corners">Drag the corners onto the page\'s corners.</string>
+    <!-- The toggle between the two ways a page is kept; it names the one now chosen -->
+    <string name="scan_ink">Black and white</string>
+    <string name="scan_grey">Greys</string>
+    <string name="scan_keep">Keep this page</string>
+    <string name="scan_working">Straightening…</string>
+    <string name="scan_unreadable">That picture could not be read.</string>
+    <string name="scan_no_camera">There is no camera app on this phone to take the photo with.</string>
+    <string name="pages_missing">The scan is not here yet.</string>
+    <string name="pages_drawing">Drawing the pages…</string>
+    <!-- %1$s is the PDF's file name -->
+    <string name="pages_open">Open %1$s</string>
+
+    <!-- ============================================================ -->
     <!-- About -->
 
     <string name="about_title">Notes %1$s</string>

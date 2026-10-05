@@ -91,3 +91,9 @@ fun recordingOn(line: String): String? =
 
 fun isSound(name: String): Boolean =
     listOf("m4a", "mp3", "wav", "ogg", "opus", "aac").any { name.lowercase().endsWith(".$it") }
+
+/** Whether a line is only a link to a scanned PDF. */
+fun scanOn(line: String): String? =
+    embeds(line.trim()).singleOrNull()?.takeIf {
+        line.trim().startsWith("![[") && line.trim().endsWith("]]") && it.lowercase().endsWith(".pdf")
+    }

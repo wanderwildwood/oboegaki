@@ -51,7 +51,11 @@ interface Shelf {
 val notesLock = Any()
 
 /** A directory the app owns: the copy of the Nextcloud folder that [com.wanderwildwood.oboegaki.sync.Sync] keeps. */
-class FileShelf(private val root: File) : Shelf {
+class FileShelf(
+    private val root: File,
+    /** How a file here is addressed for a player or another app; a content address, not a path. */
+    private val address: (File) -> Uri = Uri::fromFile,
+) : Shelf {
 
     override fun list(): List<Note> = synchronized(notesLock) {
         root.walkTopDown()
@@ -104,7 +108,7 @@ class FileShelf(private val root: File) : Shelf {
         }
     }
 
-    override fun uriOf(path: String): Uri? = File(root, path).takeIf { it.isFile }?.let(Uri::fromFile)
+    override fun uriOf(path: String): Uri? = File(root, path).takeIf { it.isFile }?.let(address)
 }
 
 /**

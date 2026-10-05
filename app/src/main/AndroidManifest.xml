@@ -82,6 +82,19 @@
             </intent-filter>
         </activity-alias>
 
+        <!-- Addresses other apps can open: a scan opened in a PDF reader, and the file the
+             camera app writes its photograph into. Only the notes and that one scratch
+             folder, and only for as long as a grant lasts. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/files" />
+        </provider>
+
         <service
             android:name=".hearing.RecordService"
             android:exported="false"
