@@ -13,7 +13,14 @@ import java.io.FileOutputStream
  * One note: where it is ([path], relative to the notes folder, "ideas/kiln.md"), what it is
  * called, how it starts, and when it last changed.
  */
-data class Note(val path: String, val title: String, val preview: String, val modified: Long) {
+data class Note(
+    val path: String,
+    val title: String,
+    val preview: String,
+    val modified: Long,
+    /** Everything it says, for search and for telling a list from a page. */
+    val text: String = "",
+) {
     val folder: String get() = path.substringBeforeLast('/', "")
 }
 
@@ -246,7 +253,7 @@ class FolderShelf(private val resolver: ContentResolver, private val tree: Uri) 
 fun note(path: String, text: String, modified: Long): Note {
     val name = path.substringAfterLast('/')
     val title = name.substringBeforeLast('.').ifEmpty { name }
-    return Note(path = path, title = title, preview = preview(text), modified = modified)
+    return Note(path = path, title = title, preview = preview(text), modified = modified, text = text)
 }
 
 /**
@@ -262,9 +269,22 @@ fun preview(text: String): String {
     }
     return lines
         .filter { it.isNotEmpty() && !it.startsWith("#") }
-        .map { it.removePrefix("- [ ] ").removePrefix("- [x] ").removePrefix("- [X] ").removePrefix("- ").removePrefix("* ") }
+        .map { plain(it) }
+        .filter { it.isNotEmpty() }
         .take(3)
         .joinToString(" · ")
+}
+
+/**
+ * A line with Markdown's marks taken off: list and task marks, a quote's ">", and the stars and
+ * underscores of emphasis, so "> *Robin Wall Kimmerer*" previews as the name.
+ */
+fun plain(line: String): String {
+    var s = line.trim()
+    while (s.startsWith(">")) s = s.removePrefix(">").trimStart()
+    s = s.removePrefix("- [ ] ").removePrefix("- [x] ").removePrefix("- [X] ")
+        .removePrefix("- ").removePrefix("* ").removePrefix("+ ")
+    return s.replace(Regex("""(?<![\w*_`])(\*\*|__|\*|_|`)(\S(?:.*?\S)?)\1(?![\w*_`])"""), "$2").trim()
 }
 
 /** A title made safe to be a file name on any of the places a note might be synced to. */

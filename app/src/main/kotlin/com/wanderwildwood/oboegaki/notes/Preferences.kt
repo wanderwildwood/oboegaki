@@ -4,6 +4,9 @@ import android.content.Context
 import android.net.Uri
 import com.wanderwildwood.oboegaki.sync.Account
 
+/** The order of the list. */
+enum class Order { CHANGED, TITLE }
+
 /** Where the notes are kept. NOWHERE until the reader has chosen. */
 enum class Keeping { NOWHERE, FOLDER, NEXTCLOUD }
 
@@ -45,6 +48,15 @@ class Preferences(context: Context) {
         get() = store.getString(REMOTE_FOLDER, null) ?: "Notes"
         set(value) = store.edit().putString(REMOTE_FOLDER, value.trim('/', ' ')).apply()
 
+    var order: Order
+        get() = runCatching { Order.valueOf(store.getString(ORDER, null) ?: "") }.getOrDefault(Order.CHANGED)
+        set(value) = store.edit().putString(ORDER, value.name).apply()
+
+    /** What the list shows: "" for everything, "shared", "lists", or "folder:<path>". */
+    var showing: String
+        get() = store.getString(SHOWING, null) ?: ""
+        set(value) = store.edit().putString(SHOWING, value).apply()
+
     var lastSync: Long
         get() = store.getLong(LAST_SYNC, 0L)
         set(value) = store.edit().putLong(LAST_SYNC, value).apply()
@@ -57,5 +69,7 @@ class Preferences(context: Context) {
         const val PASSWORD = "password"
         const val REMOTE_FOLDER = "remote_folder"
         const val LAST_SYNC = "last_sync"
+        const val ORDER = "order"
+        const val SHOWING = "showing"
     }
 }

@@ -20,6 +20,20 @@
     <!-- The list -->
 
     <string name="list_empty">No notes yet.</string>
+    <string name="list_none_here">Nothing here.</string>
+    <string name="cd_search">Search</string>
+    <string name="list_search_hint">Search notes</string>
+    <!-- The line above the list: what it shows, then the order, e.g. "All notes · newest first" -->
+    <string name="view_show">Show</string>
+    <string name="view_order">Order</string>
+    <string name="view_all">All notes</string>
+    <string name="view_lists">Lists</string>
+    <string name="view_shared">Shared</string>
+    <string name="view_newest">newest first</string>
+    <string name="view_by_title">by title</string>
+    <!-- The same two, as choices in the picker -->
+    <string name="view_newest_choice">Newest first</string>
+    <string name="view_by_title_choice">By title</string>
     <string name="sync_unreachable">Nextcloud could not be reached. These are this phone\'s copies, and they go up when it can be.</string>
     <string name="sync_signed_out">Nextcloud refused this phone. Sign in again in settings.</string>
     <!-- %1$s is whatever the server or the network said -->

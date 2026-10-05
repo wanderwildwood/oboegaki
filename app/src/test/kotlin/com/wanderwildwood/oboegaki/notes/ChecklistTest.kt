@@ -61,4 +61,13 @@ class ChecklistTest {
         assertEquals("Shop\n- [ ] " to 6, toggleTaskLine("Shop\n", 5))
         assertEquals("- [ ] " to 6, toggleTaskLine("", 0))
     }
+
+    @Test
+    fun previewsDropMarkdownMarks() {
+        assertEquals("Robin Wall Kimmerer", plain("> *Robin Wall Kimmerer*"))
+        assertEquals("BRAIDING SWEETGRASS", plain("> > BRAIDING SWEETGRASS"))
+        assertEquals("a bold word", plain("- a **bold** word"))
+        assertEquals("snake_case_name stays", plain("snake_case_name stays"))
+        assertEquals("milk · bread", preview("# Shop\n- [ ] milk\n- [x] bread\n"))
+    }
 }

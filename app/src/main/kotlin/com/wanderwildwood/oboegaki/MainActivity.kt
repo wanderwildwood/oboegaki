@@ -93,7 +93,8 @@ private fun App(capture: MutableState<Capture?>) {
     val sync by Notes.sync.collectAsStateWithLifecycle()
     val shared by Notes.shared.collectAsStateWithLifecycle()
     var screen by remember { mutableStateOf<Screen>(Screen.List) }
-    var folder by remember { mutableStateOf("") }
+    var showing by remember { mutableStateOf(Notes.preferences.showing) }
+    var order by remember { mutableStateOf(Notes.preferences.order) }
     var aboutOpen by remember { mutableStateOf(false) }
     var keeping by remember { mutableStateOf(Notes.preferences.keeping) }
 
@@ -106,7 +107,6 @@ private fun App(capture: MutableState<Capture?>) {
             Notes.preferences.folder = uri
             Notes.preferences.keeping = Keeping.FOLDER
             keeping = Keeping.FOLDER
-            folder = ""
             Notes.refresh()
         }
     }
@@ -116,7 +116,7 @@ private fun App(capture: MutableState<Capture?>) {
     if (pending != null && keeping != Keeping.NOWHERE) {
         capture.value = null
         screen = Screen.Note(
-            path = Notes.newPath(folder, pending.title),
+            path = Notes.newPath("", pending.title),
             text = pending.text,
             fresh = true,
             title = pending.title,
@@ -131,23 +131,26 @@ private fun App(capture: MutableState<Capture?>) {
         )
     } else {
         when (val now = screen) {
-            Screen.List -> {
-                if (folder.isNotEmpty()) BackHandler { folder = folder.substringBeforeLast('/', "") }
-                ListScreen(
-                    folder = folder,
-                    notes = notes,
-                    shared = shared,
-                    sync = sync,
-                    onOpen = { note ->
-                        screen = Screen.Note(note.path, Notes.read(note.path).orEmpty(), fresh = false)
-                    },
-                    onFolder = { folder = it },
-                    onUp = { folder = folder.substringBeforeLast('/', "") },
-                    onNew = { screen = Screen.Note(Notes.newPath(folder), "", fresh = true) },
-                    onSettings = { screen = Screen.Settings },
-                    onAbout = { aboutOpen = true },
-                )
-            }
+            Screen.List -> ListScreen(
+                notes = notes,
+                shared = shared,
+                canShare = keeping == Keeping.NEXTCLOUD,
+                sync = sync,
+                showing = showing,
+                order = order,
+                onView = { s, o ->
+                    showing = s
+                    order = o
+                    Notes.preferences.showing = s
+                    Notes.preferences.order = o
+                },
+                onOpen = { note ->
+                    screen = Screen.Note(note.path, Notes.read(note.path).orEmpty(), fresh = false)
+                },
+                onNew = { folder -> screen = Screen.Note(Notes.newPath(folder), "", fresh = true) },
+                onSettings = { screen = Screen.Settings },
+                onAbout = { aboutOpen = true },
+            )
             is Screen.Note -> NoteScreen(
                 // Keyed by path so a second capture while one is open starts a new screen.
                 path = now.path,
@@ -179,7 +182,6 @@ private fun App(capture: MutableState<Capture?>) {
                 SignInScreen(
                     onSignedIn = {
                         keeping = Keeping.NEXTCLOUD
-                        folder = ""
                         screen = Screen.List
                     },
                     onBack = { screen = if (keeping == Keeping.NOWHERE) Screen.List else Screen.Settings },
