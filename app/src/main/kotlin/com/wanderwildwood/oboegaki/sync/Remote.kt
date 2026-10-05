@@ -22,12 +22,21 @@ interface Remote {
      */
     fun put(path: String, text: String, expect: Expect): String?
 
+    /** An attachment's bytes, as [get] reads a note's text. */
+    fun getBytes(path: String): FetchedBytes
+
+    /** Put an attachment, under the same rule as [put]. */
+    fun putBytes(path: String, bytes: ByteArray, expect: Expect): String?
+
     /** Remove the note at [path], only if it is still [etag]. Throws [Moved] if it is not. */
     fun delete(path: String, etag: String)
 }
 
 /** A note as read from the server, and when the server says it last changed, if it says. */
 data class Fetched(val text: String, val etag: String?, val modified: Long? = null)
+
+/** An attachment as read from the server. */
+class FetchedBytes(val bytes: ByteArray, val etag: String?, val modified: Long? = null)
 
 /** What the server must still hold for a write to go ahead. */
 sealed interface Expect {

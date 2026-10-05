@@ -61,7 +61,7 @@ class NextcloudRemote(private val account: Account, folder: String) : Remote {
                 if (name.startsWith(".")) continue
                 if (entry.isFolder) {
                     pending += relative
-                } else if (isNote(name) && entry.etag != null) {
+                } else if ((isNote(name) || isAttachment(name)) && entry.etag != null) {
                     out[relative] = entry.etag
                 }
             }
@@ -76,9 +76,22 @@ class NextcloudRemote(private val account: Account, folder: String) : Remote {
             Fetched(response.body!!.string(), response.header("ETag"), response.headers.getDate("Last-Modified")?.time)
         }
 
-    override fun put(path: String, text: String, expect: Expect): String? {
+    override fun getBytes(path: String): FetchedBytes =
+        call(request(url(path)).get().build()) { response ->
+            if (response.code == 404) throw Moved("$path is gone")
+            check(response, path)
+            FetchedBytes(response.body!!.bytes(), response.header("ETag"), response.headers.getDate("Last-Modified")?.time)
+        }
+
+    override fun putBytes(path: String, bytes: ByteArray, expect: Expect): String? =
+        putBody(path, bytes.toRequestBody(OCTETS), expect)
+
+    override fun put(path: String, text: String, expect: Expect): String? =
+        putBody(path, text.toRequestBody(MARKDOWN), expect)
+
+    private fun putBody(path: String, body: okhttp3.RequestBody, expect: Expect): String? {
         makeParents(path)
-        val builder = request(url(path)).put(text.toRequestBody(MARKDOWN))
+        val builder = request(url(path)).put(body)
         when (expect) {
             Expect.Absent -> builder.header("If-None-Match", "*")
             is Expect.Unchanged -> builder.header("If-Match", expect.etag)
@@ -209,6 +222,7 @@ object LoginFlow {
 
 private val MARKDOWN = "text/markdown; charset=utf-8".toMediaType()
 private val XML = "application/xml; charset=utf-8".toMediaType()
+private val OCTETS = "application/octet-stream".toMediaType()
 
 private const val PROPFIND_BODY = """<?xml version="1.0"?>
 <d:propfind xmlns:d="DAV:"><d:prop><d:getetag/><d:resourcetype/></d:prop></d:propfind>"""

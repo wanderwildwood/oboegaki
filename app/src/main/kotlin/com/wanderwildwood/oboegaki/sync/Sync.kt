@@ -27,11 +27,15 @@ class Sync(
     private val guard: (() -> Unit) -> Unit = { it() },
 ) {
 
+    /** Etag and hash of every attachment as both ends last agreed on it. Kept apart from the notes'. */
+    private val blobStateFile = File(stateFile.parentFile, stateFile.name + ".attachments")
+
     data class Result(val sent: Int, val received: Int, val kept: List<String>)
 
     fun run(remote: Remote): Result {
         val state = readState().toMutableMap()
-        val there = remote.list()
+        val everything = remote.list()
+        val there = everything.filterKeys { isNote(it.substringAfterLast('/')) }
         val here = localPaths()
         var sent = 0
         var received = 0
@@ -87,9 +91,14 @@ class Sync(
                 // in which case the deletion was of something the deleter never saw, and the
                 // newer version comes back.
                 known != null && etag != null && local == null -> {
-                    if (etag == known) {
+                    // A moved etag is not proof the note changed: a server may never have said
+                    // it, or move it for sharing or a rescan. Before a deletion here is undone
+                    // for being out of date, the note is read and compared, because assuming
+                    // brought deleted notes back.
+                    val unchanged = etag == known || remote.get(path).text == agreed
+                    if (unchanged) {
                         try {
-                            remote.delete(path, known)
+                            remote.delete(path, etag)
                             forget(path, state)
                         } catch (_: Moved) {
                             receive(remote, path, null, state)
@@ -137,8 +146,146 @@ class Sync(
             writeState(state)
         }
 
+        val blobs = syncAttachments(remote, everything.filterKeys { isAttachment(it.substringAfterLast('/')) })
+        return Result(sent + blobs.sent, received + blobs.received, kept + blobs.kept)
+    }
+
+    /**
+     * Recordings, scans and pictures: files written once and never merged. The same cases as a
+     * note, decided by etag on the server and by hash here; where both ends changed one, the
+     * server's keeps the name and this phone's is kept beside it.
+     */
+    private fun syncAttachments(remote: Remote, there: Map<String, String>): Result {
+        val state = readBlobState().toMutableMap()
+        val here = mutableSetOf<String>()
+        guard {
+            notes.walkTopDown()
+                .onEnter { it == notes || !it.name.startsWith(".") }
+                .filter { it.isFile && isAttachment(it.name) }
+                .forEach { here += it.relativeTo(notes).invariantSeparatorsPath }
+        }
+        var sent = 0
+        var received = 0
+        val kept = mutableListOf<String>()
+
+        fun fetch(path: String) {
+            val fetched = remote.getBytes(path)
+            guard {
+                writeBytes(notes, path, fetched.bytes)
+                fetched.modified?.let { File(notes, path).setLastModified(it) }
+            }
+            state[path] = (fetched.etag ?: "") to hash(fetched.bytes)
+            received++
+        }
+
+        fun upload(path: String, expect: Expect) {
+            val bytes = File(notes, path).readBytes()
+            val etag = remote.putBytes(path, bytes, expect)
+            state[path] = (etag ?: "") to hash(bytes)
+            sent++
+        }
+
+        fun keepBoth(path: String) {
+            val beside = besideFree(path)
+            guard { File(notes, path).renameTo(File(notes, beside).also { it.parentFile?.mkdirs() }) }
+            kept += beside
+            fetch(path)
+            runCatching { upload(beside, Expect.Absent) }
+        }
+
+        for (path in (state.keys + there.keys + here).sorted()) {
+            val known = state[path]
+            val etag = there[path]
+            val file = File(notes, path)
+            val local = if (file.isFile) hash(file.readBytes()) else null
+
+            when {
+                known != null && etag != null && local != null -> {
+                    val changedHere = local != known.second
+                    val changedThere = etag != known.first
+                    when {
+                        !changedHere && !changedThere -> Unit
+                        !changedHere -> fetch(path)
+                        !changedThere -> try {
+                            upload(path, Expect.Unchanged(known.first))
+                        } catch (_: Moved) {
+                            keepBoth(path)
+                        }
+                        else -> keepBoth(path)
+                    }
+                }
+                known != null && etag == null && local != null -> {
+                    if (local == known.second) {
+                        guard { file.delete() }
+                        state.remove(path)
+                    } else {
+                        upload(path, Expect.Absent)
+                    }
+                }
+                known != null && etag != null && local == null -> {
+                    val unchanged = etag == known.first || hash(remote.getBytes(path).bytes) == known.second
+                    if (unchanged) {
+                        try {
+                            remote.delete(path, etag)
+                            state.remove(path)
+                        } catch (_: Moved) {
+                            fetch(path)
+                        }
+                    } else {
+                        fetch(path)
+                    }
+                }
+                known != null -> state.remove(path)
+                etag != null && local == null -> fetch(path)
+                etag == null && local != null -> try {
+                    upload(path, Expect.Absent)
+                } catch (_: Moved) {
+                    keepBoth(path)
+                }
+                etag != null && local != null -> {
+                    val fetched = remote.getBytes(path)
+                    if (hash(fetched.bytes) == local) {
+                        state[path] = (fetched.etag ?: "") to local
+                    } else {
+                        keepBoth(path)
+                    }
+                }
+            }
+            writeBlobState(state)
+        }
         return Result(sent, received, kept)
     }
+
+    private fun writeBytes(root: File, path: String, bytes: ByteArray) {
+        val file = File(root, path)
+        file.parentFile?.mkdirs()
+        val temp = File(file.parentFile, ".${file.name}.part")
+        temp.writeBytes(bytes)
+        if (!temp.renameTo(file)) {
+            file.writeBytes(bytes)
+            temp.delete()
+        }
+    }
+
+    private fun readBlobState(): Map<String, Pair<String, String>> {
+        if (!blobStateFile.isFile) return emptyMap()
+        return blobStateFile.readLines()
+            .mapNotNull { line ->
+                val parts = line.split('\t')
+                if (parts.size < 3) null else parts[0] to (parts[1] to parts[2])
+            }
+            .toMap()
+    }
+
+    private fun writeBlobState(state: Map<String, Pair<String, String>>) {
+        blobStateFile.parentFile?.mkdirs()
+        val temp = File(blobStateFile.parentFile, blobStateFile.name + ".part")
+        temp.writeText(state.entries.sortedBy { it.key }.joinToString("") { "${it.key}\t${it.value.first}\t${it.value.second}\n" })
+        temp.renameTo(blobStateFile)
+    }
+
+    private fun hash(bytes: ByteArray): String =
+        java.security.MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
 
     /** Take the server's copy. [seen] is what this phone held when it decided to. */
     private fun receive(remote: Remote, path: String, seen: String?, state: MutableMap<String, String>) {
@@ -283,6 +430,15 @@ class Sync(
         temp.renameTo(stateFile)
     }
 }
+
+/** Whether a file is something a note can hold: a recording, a scan, a picture. */
+fun isAttachment(name: String): Boolean {
+    val lower = name.lowercase()
+    if (lower.startsWith(".")) return false
+    return ATTACHMENTS.any { lower.endsWith(".$it") }
+}
+
+private val ATTACHMENTS = listOf("m4a", "mp3", "wav", "ogg", "opus", "aac", "pdf", "jpg", "jpeg", "png")
 
 /** Whether a file is something this app treats as a note. */
 fun isNote(name: String): Boolean {
