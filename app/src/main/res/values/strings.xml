@@ -30,6 +30,11 @@
     <string name="view_lists">Lists</string>
     <string name="view_voice">Voice notes</string>
     <string name="view_scans">Scans</string>
+    <string name="view_archive">Archive</string>
+    <string name="view_oldest">oldest first</string>
+    <string name="view_oldest_choice">Oldest first</string>
+    <string name="cd_archive">Archive</string>
+    <string name="cd_unarchive">Bring back from the archive</string>
     <string name="view_shared">Shared</string>
     <string name="view_newest">newest first</string>
     <string name="view_by_title">by title</string>

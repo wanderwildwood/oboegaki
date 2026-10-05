@@ -5,7 +5,7 @@ import android.net.Uri
 import com.wanderwildwood.oboegaki.sync.Account
 
 /** The order of the list. */
-enum class Order { CHANGED, TITLE }
+enum class Order { CHANGED, OLDEST, TITLE }
 
 /** Where the notes are kept. NOWHERE until the reader has chosen. */
 enum class Keeping { NOWHERE, FOLDER, NEXTCLOUD }

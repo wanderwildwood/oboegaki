@@ -35,6 +35,9 @@ interface Shelf {
     fun write(path: String, text: String)
     fun delete(path: String)
     fun rename(from: String, to: String)
+
+    /** Move a file to another folder, making the folder if it is not there. */
+    fun move(from: String, to: String)
     fun exists(path: String): Boolean
 
     /** Put a recording, a scan or a picture at [path]. */
@@ -96,6 +99,8 @@ class FileShelf(
     }
 
     override fun exists(path: String): Boolean = File(root, path).isFile
+
+    override fun move(from: String, to: String) = rename(from, to)
 
     override fun writeBytes(path: String, bytes: ByteArray, mime: String) = synchronized(notesLock) {
         val file = File(root, path)
@@ -197,6 +202,24 @@ class FolderShelf(private val resolver: ContentResolver, private val tree: Uri) 
     }
 
     override fun exists(path: String): Boolean = synchronized(notesLock) { idOf(path) != null }
+
+    /**
+     * Copied across and then removed, rather than moved by the provider: not every provider
+     * can move between folders, and every one can read, write and delete.
+     */
+    override fun move(from: String, to: String) {
+        synchronized(notesLock) {
+            val id = idOf(from) ?: return
+            val source = DocumentsContract.buildDocumentUriUsingTree(tree, id)
+            val mime = resolver.getType(source) ?: "application/octet-stream"
+            val target = DocumentsContract.buildDocumentUriUsingTree(tree, create(to, mime))
+            resolver.openInputStream(source)!!.use { input ->
+                resolver.openOutputStream(target, "wt")!!.use { input.copyTo(it) }
+            }
+            DocumentsContract.deleteDocument(resolver, source)
+            ids.remove(from)
+        }
+    }
 
     override fun writeBytes(path: String, bytes: ByteArray, mime: String) = synchronized(notesLock) {
         val id = idOf(path) ?: create(path, mime)

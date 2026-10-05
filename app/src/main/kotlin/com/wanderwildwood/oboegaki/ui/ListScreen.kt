@@ -190,10 +190,17 @@ private fun viewLabel(showing: String, order: Order): String {
             Showing.LISTS -> R.string.view_lists
             Showing.VOICE -> R.string.view_voice
             Showing.SCANS -> R.string.view_scans
+            Showing.ARCHIVE -> R.string.view_archive
             else -> R.string.view_all
         },
     )
-    val how = stringResource(if (order == Order.TITLE) R.string.view_by_title else R.string.view_newest)
+    val how = stringResource(
+        when (order) {
+            Order.TITLE -> R.string.view_by_title
+            Order.OLDEST -> R.string.view_oldest
+            Order.CHANGED -> R.string.view_newest
+        },
+    )
     return "$what · $how"
 }
 
@@ -229,8 +236,10 @@ private fun ViewDialog(
                     ) { onChoose(Showing.folder(folder), order) }
                 }
             }
+            item { Choice(stringResource(R.string.view_archive), showing == Showing.ARCHIVE) { onChoose(Showing.ARCHIVE, order) } }
             item { DialogHeading(stringResource(R.string.view_order)) }
             item { Choice(stringResource(R.string.view_newest_choice), order == Order.CHANGED) { onChoose(showing, Order.CHANGED) } }
+            item { Choice(stringResource(R.string.view_oldest_choice), order == Order.OLDEST) { onChoose(showing, Order.OLDEST) } }
             item { Choice(stringResource(R.string.view_by_title_choice), order == Order.TITLE) { onChoose(showing, Order.TITLE) } }
         }
     }

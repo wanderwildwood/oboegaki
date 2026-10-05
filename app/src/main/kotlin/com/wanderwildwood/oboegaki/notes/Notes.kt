@@ -275,6 +275,42 @@ object Notes {
     }
 
     /**
+     * Put a note away: moved, with the recordings and scans beside it that it links, into the
+     * archive folder, under the folder it was in, so it can go back to the same place. Returns
+     * where it went.
+     */
+    fun archive(path: String): String? = relocate(path) { folder ->
+        if (folder.isEmpty()) ARCHIVE_FOLDER else "$ARCHIVE_FOLDER/$folder"
+    }
+
+    /** Bring an archived note back to the folder it was archived from. */
+    fun unarchive(path: String): String? = relocate(path) { folder ->
+        folder.removePrefix(ARCHIVE_FOLDER).trimStart('/')
+    }
+
+    private fun relocate(path: String, to: (String) -> String): String? {
+        val shelf = shelf() ?: return null
+        val folder = path.substringBeforeLast('/', "")
+        val target = to(folder)
+        val prefix = if (folder.isEmpty()) "" else "$folder/"
+        val targetPrefix = if (target.isEmpty()) "" else "$target/"
+        val name = path.substringAfterLast('/')
+        val moved = free(target, name.substringBeforeLast('.'))
+        synchronized(notesLock) {
+            val text = shelf.read(path) ?: return null
+            // The attachments go first and keep their names, so the note's links still find them.
+            for (attachment in embeds(text)) {
+                if (shelf.exists(prefix + attachment) && !shelf.exists(targetPrefix + attachment)) {
+                    runCatching { shelf.move(prefix + attachment, targetPrefix + attachment) }
+                }
+            }
+            shelf.move(path, moved)
+        }
+        afterEdit()
+        return moved
+    }
+
+    /**
      * Keep a scan: the PDF beside a new note that shows it, named for the moment, and return
      * the note's path. Null when there is nowhere to keep it.
      */

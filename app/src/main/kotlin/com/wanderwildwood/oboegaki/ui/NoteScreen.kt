@@ -57,6 +57,7 @@ import com.wanderwildwood.oboegaki.notes.toggleTaskLine
 import com.wanderwildwood.oboegaki.notes.recordingOn
 import com.wanderwildwood.oboegaki.notes.scanOn
 import com.wanderwildwood.oboegaki.notes.embeds
+import com.wanderwildwood.oboegaki.notes.isArchived
 import com.wanderwildwood.oboegaki.hearing.Voice
 import kotlinx.coroutines.delay
 
@@ -190,6 +191,19 @@ fun NoteScreen(
                             BarButton(Icons.Share, stringResource(R.string.cd_share)) {
                                 save()
                                 onShare(at, title.ifBlank { at.substringAfterLast('/').substringBeforeLast('.') })
+                            }
+                        }
+                        // Out of the way, not gone: archived, or brought back if it already is.
+                        if (!fresh || body.text.isNotBlank()) {
+                            val archived = isArchived(at)
+                            BarButton(
+                                if (archived) Icons.Unarchive else Icons.Archive,
+                                stringResource(if (archived) R.string.cd_unarchive else R.string.cd_archive),
+                            ) {
+                                save()
+                                deleted = true
+                                if (archived) Notes.unarchive(at) else Notes.archive(at)
+                                onClose()
                             }
                         }
                         BarButton(Icons.Delete, stringResource(R.string.cd_delete)) { armed.value = true }
