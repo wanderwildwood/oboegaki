@@ -85,6 +85,12 @@
                 android:resource="@xml/files" />
         </provider>
 
+        <!-- The pinned notes for Glance's lock-screen panel; it answers Glance alone. -->
+        <provider
+            android:name=".glance.PinnedOnLockScreen"
+            android:authorities="com.wanderwildwood.oboegaki.glance"
+            android:exported="true" />
+
         <service
             android:name=".hearing.RecordService"
             android:exported="false"

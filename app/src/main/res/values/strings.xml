@@ -173,6 +173,19 @@
     <string name="pages_open">Open %1$s</string>
 
     <!-- ============================================================ -->
+    <!-- On the lock screen, through the Glance app -->
+
+    <string name="settings_lock_screen">Pinned notes on the lock screen</string>
+    <string name="lock_heading">Notes</string>
+    <!-- A pinned list on the lock screen: "Groceries · 3 to get" -->
+    <plurals name="lock_left">
+        <item quantity="one">%1$s · %2$d to do</item>
+        <item quantity="other">%1$s · %2$d to do</item>
+    </plurals>
+    <!-- A pinned list with everything ticked -->
+    <string name="lock_all_done">%1$s · all done</string>
+
+    <!-- ============================================================ -->
     <!-- About -->
 
     <string name="about_title">Notes %1$s</string>

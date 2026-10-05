@@ -62,6 +62,11 @@ class Preferences(context: Context) {
         get() = store.getString(CAMERA, null)
         set(value) = store.edit().putString(CAMERA, value).apply()
 
+    /** Whether the pinned notes are handed to Glance for the lock screen. */
+    var lockScreen: Boolean
+        get() = store.getBoolean(LOCK_SCREEN, true)
+        set(value) = store.edit().putBoolean(LOCK_SCREEN, value).apply()
+
     var lastSync: Long
         get() = store.getLong(LAST_SYNC, 0L)
         set(value) = store.edit().putLong(LAST_SYNC, value).apply()
@@ -77,5 +82,6 @@ class Preferences(context: Context) {
         const val ORDER = "order"
         const val SHOWING = "showing"
         const val CAMERA = "camera"
+        const val LOCK_SCREEN = "lock_screen"
     }
 }

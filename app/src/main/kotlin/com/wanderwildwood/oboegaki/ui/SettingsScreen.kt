@@ -5,6 +5,7 @@ import android.net.Uri
 import android.provider.DocumentsContract
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,6 +22,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -32,6 +34,7 @@ import com.mudita.mmd.components.buttons.ButtonMMD
 import com.mudita.mmd.components.buttons.OutlinedButtonMMD
 import com.mudita.mmd.components.divider.HorizontalDividerMMD
 import com.mudita.mmd.components.lazy.LazyColumnMMD
+import com.mudita.mmd.components.switcher.SwitchMMD
 import com.mudita.mmd.components.text.TextMMD
 import com.mudita.mmd.components.text_field.TextFieldMMD
 import com.mudita.mmd.components.top_app_bar.TopAppBarMMD
@@ -39,6 +42,7 @@ import com.wanderwildwood.oboegaki.R
 import com.wanderwildwood.oboegaki.notes.Keeping
 import com.wanderwildwood.oboegaki.notes.Notes
 import com.wanderwildwood.oboegaki.notes.SyncState
+import com.wanderwildwood.oboegaki.glance.GlanceProvider
 import com.wanderwildwood.oboegaki.sync.LoginFlow
 import com.wanderwildwood.oboegaki.sync.Refused
 import kotlinx.coroutines.Dispatchers
@@ -63,6 +67,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
 ) {
     val preferences = Notes.preferences
+    val context = LocalContext.current
     var renaming by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -75,11 +80,33 @@ fun SettingsScreen(
         },
     ) { contentPadding ->
         LazyColumnMMD(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
+            item {
+                var on by remember { mutableStateOf(preferences.lockScreen) }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            on = !on
+                            preferences.lockScreen = on
+                            GlanceProvider.changed(context)
+                        }
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    TextMMD(
+                        text = stringResource(R.string.settings_lock_screen),
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.weight(1f),
+                    )
+                    SwitchMMD(checked = on, onCheckedChange = null)
+                }
+                HorizontalDividerMMD()
+            }
             when (preferences.keeping) {
                 Keeping.NEXTCLOUD -> {
                     val account = preferences.account
                     item {
-                        Row(
+                        SettingRow(
                             stringResource(R.string.settings_account),
                             account?.let { stringResource(R.string.settings_account_value, it.user, Uri.parse(it.server).host ?: it.server) }
                                 ?: stringResource(R.string.settings_signed_out),
@@ -87,10 +114,10 @@ fun SettingsScreen(
                         )
                     }
                     item {
-                        Row(stringResource(R.string.settings_remote_folder), preferences.remoteFolder.ifEmpty { "/" }) { renaming = true }
+                        SettingRow(stringResource(R.string.settings_remote_folder), preferences.remoteFolder.ifEmpty { "/" }) { renaming = true }
                     }
                     item {
-                        Row(stringResource(R.string.settings_sync_now), syncValue(sync, preferences.lastSync)) { Notes.syncNow() }
+                        SettingRow(stringResource(R.string.settings_sync_now), syncValue(sync, preferences.lastSync)) { Notes.syncNow() }
                     }
                     item {
                         Leave(stringResource(R.string.settings_sign_out), stringResource(R.string.settings_sign_out_confirm)) {
@@ -101,7 +128,7 @@ fun SettingsScreen(
                 }
                 Keeping.FOLDER -> {
                     item {
-                        Row(stringResource(R.string.settings_folder), folderName(preferences.folder), onClick = onChooseFolder)
+                        SettingRow(stringResource(R.string.settings_folder), folderName(preferences.folder), onClick = onChooseFolder)
                     }
                     item {
                         Leave(stringResource(R.string.settings_leave_folder), stringResource(R.string.settings_leave_folder_confirm)) {
@@ -148,7 +175,7 @@ fun folderName(uri: Uri?): String {
 }
 
 @Composable
-private fun Row(label: String, value: String, onClick: () -> Unit) {
+private fun SettingRow(label: String, value: String, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.core.content.FileProvider
 import com.wanderwildwood.oboegaki.sync.NextcloudRemote
 import com.wanderwildwood.oboegaki.sync.Refused
+import com.wanderwildwood.oboegaki.glance.GlanceProvider
 import com.wanderwildwood.oboegaki.sync.PINS
 import com.wanderwildwood.oboegaki.sync.Sharing
 import com.wanderwildwood.oboegaki.sync.isNote
@@ -90,7 +91,13 @@ object Notes {
         _list.value = runCatching { shelf?.list() }.getOrNull().orEmpty()
             .sortedByDescending { it.modified }
         _pins.value = runCatching { readPins(shelf) }.getOrDefault(emptySet())
+        // The lock screen shows the pinned notes; whatever just changed may be one of them.
+        GlanceProvider.changed(appContext)
     }
+
+    /** The pinned notes, in the order they were pinned, read now rather than remembered. */
+    fun pinnedNow(): List<String> =
+        shelf()?.read(PINS)?.lines()?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty()
 
     private fun readPins(shelf: Shelf?): Set<String> =
         shelf?.read(PINS)?.lines()?.map { it.trim() }?.filter { it.isNotEmpty() }?.toSet().orEmpty()
@@ -110,6 +117,7 @@ object Notes {
             val text = after.joinToString("") { "$it\n" }
             if (text != before) shelf.write(PINS, text)
             _pins.value = after.toSet()
+            GlanceProvider.changed(appContext)
         }
     }
 
