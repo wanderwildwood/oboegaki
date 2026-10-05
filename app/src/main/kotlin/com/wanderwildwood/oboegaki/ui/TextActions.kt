@@ -44,7 +44,7 @@ fun Modifier.textActions(value: TextFieldValue, onValue: (TextFieldValue) -> Uni
         // The flags-object overload is Android 13; the Kompakt is 12.
         @Suppress("DEPRECATION")
         context.packageManager.queryIntentActivities(query, 0)
-            .filter { it.activityInfo.exported }
+            .filter { it.activityInfo.exported && it.activityInfo.packageName !in NOT_SHOWN }
             .map { ComponentName(it.activityInfo.packageName, it.activityInfo.name) to it.loadLabel(context.packageManager).toString() }
     }
     val sent = remember { arrayOfNulls<Pair<TextRange, String>>(1) }
@@ -85,6 +85,12 @@ fun Modifier.textActions(value: TextFieldValue, onValue: (TextFieldValue) -> Uni
             }
         }
 }
+
+/**
+ * Apps left out of the menu. EinkBro offers an online dictionary under its own name, which
+ * duplicates Define beside it; he asked for it gone, and EinkBro has no setting to withdraw it.
+ */
+private val NOT_SHOWN = setOf("info.plateaukao.einkbro")
 
 /** A menu entry of this file's own, so the filter above does not take it out again. */
 private data class Action(val index: Int)
