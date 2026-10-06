@@ -40,6 +40,10 @@ a voice note heard and written down, a page photographed and handed to the scann
 - **One list of everything**, the last note touched at the top, its folder named on the row.
   The line above it narrows the list to lists, voice notes, scans, shared notes, a folder, or
   the archive, and orders by newest, oldest or title. The magnifier searches titles and text.
+- **Folders** are listed under *Folders* in the view line, and inside one the list starts with
+  the way back up and a row for each folder within it. *New notes go in*, in the settings, names
+  the folder new notes, voice notes, scans and pictures are made in, so Notes can be pointed at a
+  whole Obsidian vault and still keep what the phone makes in one place of it.
 - **Pinned** notes stay at the top. **Archived** notes move to an `Archive` folder, out of every
   view but their own, and a search still finds them.
 - **From anywhere**: text shared from another app, or selected and sent with *Note*, becomes a
@@ -66,10 +70,18 @@ Two people adding to a list at once both keep their additions. Where the same li
 two different ways there is no right answer, and both versions are kept, the other one as
 `name (this phone).md`. Nothing is dropped to make a sync come out tidy.
 
-**In a folder on the phone**, chosen through the system's picker. Nothing is synced by this
-app; if another app syncs that folder, the notes go wherever it takes them.
+**On any WebDAV server**: an address, a username, a password, and a folder on the server
+(`Notes` unless you name another). It is synced exactly as a Nextcloud is, kept on the phone as
+well and put together line by line, and works with servers that send no ETags or full
+addresses in place of paths. The address is checked before anything is saved: a wrong
+password, an address that is not WebDAV, or a certificate the phone does not trust each say
+so. Where the service offers app passwords, use one.
 
-**Changing your mind.** *Notes kept in*, at the top of the settings, offers the same two
+**In a folder on the phone**, chosen through the system's picker. Nothing is synced by this
+app; if another app syncs that folder, the notes go wherever it takes them. They are plain `.md`
+files, so plugging the phone into a computer and copying the folder works with no sync at all.
+
+**Changing your mind.** *Notes kept in*, at the top of the settings, offers the same three
 places again. With *Bring these notes along* on, the notes, and the recordings, scans and
 pictures beside them, are copied to the new place; the old place keeps every one. A note
 already there under the same name with different words is not written over: the one coming in
@@ -79,6 +91,9 @@ is kept beside it as `name (other copy).md`.
 
 A vault is a folder of Markdown files, so Notes can keep its notes in one. Obsidian itself is
 free; what is needed is something to keep the phone's folder and the computer's the same.
+*Using with Obsidian*, in the settings, says the same in short. Notes can be given the whole
+vault: set *New notes go in* to a folder of it, such as `Kompakt`, to keep what the phone makes
+together.
 
 - **Obsidian Sync.** Install Obsidian on the phone and open the synced vault once. Obsidian
   keeps it in its own storage, where no other app can reach it, so in *Manage vaults* move the
@@ -89,10 +104,21 @@ free; what is needed is something to keep the phone's folder and the computer's 
   for the changes to cross.
 - **Nextcloud.** Keep the notes on Nextcloud, and let the Nextcloud desktop app keep the folder
   on the computer, to open as a vault.
+- **A WebDAV service**, with no server of your own. [Koofr](https://koofr.eu/) has a free
+  10 GB plan: keep the notes on *A WebDAV server* at `https://app.koofr.net/dav/Koofr` with an
+  app password made in Koofr's settings, and let Koofr's desktop app keep the folder on the
+  computer, to open as a vault.
+- **DAVx⁵**, if it is already on the phone for contacts and calendars. Its *WebDAV mounts* put
+  a WebDAV folder in the system's picker, so *In a folder on the phone* can choose it. The files
+  are read from the server as they are opened, so with no signal they do not open, and two
+  people's changes are not put together; *A WebDAV server* in Notes keeps a copy on the phone and
+  merges.
+- **A cable.** Notes in a folder on the phone can be copied to the vault over USB whenever you
+  like.
 
 ## Sharing
 
-On Nextcloud, a note can be shared with anyone else on the same server, to read or to change.
+On Nextcloud, and only there, a note can be shared with anyone else on the same server, to read or to change.
 It is the server's own sharing, so both people's phones sync the one file. A note shared with
 you is moved into your notes folder and marked as shared.
 
@@ -118,7 +144,7 @@ and the SHA-256 of the certificate it is signed with; any other caller is `refus
 
 ## Permissions
 
-- `INTERNET`, to reach a Nextcloud. Kept in a folder, nothing leaves the phone. Plain `http` is
+- `INTERNET`, to reach a Nextcloud or a WebDAV server. Kept in a folder, nothing leaves the phone. Plain `http` is
   allowed, for a server at home or on Tailscale; over `http` on an ordinary network the notes
   and the app password can be read by anyone else on it, so give a server that has `https`
   as `https`.
