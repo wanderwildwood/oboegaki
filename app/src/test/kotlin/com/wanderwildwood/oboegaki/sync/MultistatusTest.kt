@@ -47,4 +47,53 @@ class MultistatusTest {
     fun pathsAreEncodedSegmentBySegment() {
         assertEquals("field%20notes/salt%2Bpepper%20%28this%20phone%29.md", encodePath("field notes/salt+pepper (this phone).md"))
     }
+
+    /** Shaped like a server that keeps no etags and names everything by its full URL. */
+    private val plain = """
+        <?xml version="1.0" encoding="utf-8"?>
+        <D:multistatus xmlns:D="DAV:">
+         <D:response>
+          <D:href>https://dav.example/files/Notes</D:href>
+          <D:propstat><D:prop><D:resourcetype><D:collection/></D:resourcetype></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat>
+         </D:response>
+         <D:response>
+          <D:href>https://dav.example/files/Notes/field%20notes</D:href>
+          <D:propstat><D:prop><D:resourcetype><D:collection/></D:resourcetype></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat>
+         </D:response>
+         <D:response>
+          <D:href>https://dav.example/files/Notes/bread%20(rye).md</D:href>
+          <D:propstat><D:prop><D:resourcetype/><D:getlastmodified>Tue, 06 Oct 2026 11:56:40 GMT</D:getlastmodified><D:getcontentlength>42</D:getcontentlength></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat>
+          <D:propstat><D:prop><D:getetag/></D:prop><D:status>HTTP/1.1 404 Not Found</D:status></D:propstat>
+         </D:response>
+        </D:multistatus>
+    """.trimIndent()
+
+    @Test
+    fun aServerWithoutEtagsGivesADateAndLengthVersion() {
+        val entries = parseMultistatus(plain.byteInputStream())
+        assertEquals("/files/Notes/", entries[0].path)
+        assertEquals(true, entries[0].isFolder)
+        // A folder's trailing slash is put back where the server left it off.
+        assertEquals("/files/Notes/field notes/", entries[1].path)
+        val note = entries[2]
+        assertEquals("/files/Notes/bread (rye).md", note.path)
+        assertEquals(null, note.etag)
+        assertEquals(1791287800000L, note.modified)
+        assertEquals(42L, note.length)
+        assertEquals("lm:1791287800:42", note.version)
+    }
+
+    @Test
+    fun etagsAreComparedQuoted() {
+        assertEquals("\"abc\"", Entry("/a.md", "abc", false).version)
+        assertEquals("\"abc\"", Entry("/a.md", "\"abc\"", false).version)
+        assertEquals("W/\"abc\"", Entry("/a.md", "W/\"abc\"", false).version)
+        assertEquals(true, isEtag("\"abc\""))
+        assertEquals(false, isEtag("lm:1:2"))
+    }
+
+    @Test
+    fun doubledSlashesInAnHrefAreOne() {
+        assertEquals("/dav/Notes/a.md", decodeHref("/dav//Notes/a.md"))
+    }
 }

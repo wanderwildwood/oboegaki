@@ -26,6 +26,7 @@ import com.mudita.mmd.ThemeMMD
 import com.wanderwildwood.oboegaki.notes.Keeping
 import com.wanderwildwood.oboegaki.notes.Move
 import com.wanderwildwood.oboegaki.notes.Notes
+import com.wanderwildwood.oboegaki.notes.Showing
 import com.wanderwildwood.oboegaki.notes.sharedText
 import com.wanderwildwood.oboegaki.ui.PicturesDialog
 import com.wanderwildwood.oboegaki.ui.PicturesFailedDialog
@@ -44,6 +45,8 @@ import com.wanderwildwood.oboegaki.hearing.RecordService
 import com.wanderwildwood.oboegaki.hearing.Voice
 import com.wanderwildwood.oboegaki.ui.SetupScreen
 import com.wanderwildwood.oboegaki.ui.SignInScreen
+import com.wanderwildwood.oboegaki.ui.ObsidianScreen
+import com.wanderwildwood.oboegaki.ui.WebDavScreen
 import com.wanderwildwood.oboegaki.ui.monochrome
 
 /** Something to be written down the moment the app opens: from "New note", or shared in. */
@@ -62,6 +65,8 @@ private sealed interface Screen {
     data class Share(val path: String, val title: String) : Screen
     data object Settings : Screen
     data object SignIn : Screen
+    data object WebDav : Screen
+    data object Obsidian : Screen
     data object Recording : Screen
     /** [pictures]: shared in to be scanned, one page each, rather than photographed. */
     data class Scan(val pictures: kotlin.collections.List<Uri> = emptyList()) : Screen
@@ -220,16 +225,17 @@ private fun App(capture: MutableState<Capture?>) {
     } else if (pending != null && keeping != Keeping.NOWHERE) {
         capture.value = null
         screen = Screen.Note(
-            path = Notes.newPath("", pending.title),
+            path = Notes.newPath(Notes.newFolder, pending.title),
             text = pending.text,
             fresh = true,
             title = pending.title,
         )
     }
 
-    if (keeping == Keeping.NOWHERE && screen != Screen.SignIn && screen !is Screen.Outside) {
+    if (keeping == Keeping.NOWHERE && screen != Screen.SignIn && screen != Screen.WebDav && screen !is Screen.Outside) {
         SetupScreen(
             onNextcloud = { screen = Screen.SignIn },
+            onWebDav = { screen = Screen.WebDav },
             onFolder = { chooseFolder.launch(null) },
             onAbout = { aboutOpen = true },
         )
@@ -242,7 +248,8 @@ private fun App(capture: MutableState<Capture?>) {
                 canShare = keeping == Keeping.NEXTCLOUD,
                 sync = sync,
                 moving = moving,
-                showing = showing,
+                // Shares are Nextcloud's; anywhere else a view of them would be empty for good.
+                showing = if (keeping != Keeping.NEXTCLOUD && showing == Showing.SHARED) Showing.ALL else showing,
                 order = order,
                 onView = { s, o ->
                     showing = s
@@ -253,7 +260,8 @@ private fun App(capture: MutableState<Capture?>) {
                 onOpen = { note ->
                     screen = Screen.Note(note.path, Notes.read(note.path).orEmpty(), fresh = false)
                 },
-                onNew = { folder -> screen = Screen.Note(Notes.newPath(folder), "", fresh = true) },
+                // Made in the folder being shown, or where new notes go.
+                onNew = { folder -> screen = Screen.Note(Notes.newPath(folder.ifEmpty { Notes.newFolder }), "", fresh = true) },
                 onRecord = { recordAsking() },
                 onScan = { screen = Screen.Scan() },
                 onSettings = { screen = Screen.Settings },
@@ -274,7 +282,7 @@ private fun App(capture: MutableState<Capture?>) {
                 uri = now.uri,
                 canKeep = keeping != Keeping.NOWHERE,
                 onKeep = { name, text ->
-                    val path = Notes.newPath("", name.substringBeforeLast('.').ifEmpty { name })
+                    val path = Notes.newPath(Notes.newFolder, name.substringBeforeLast('.').ifEmpty { name })
                     Notes.shelf()?.write(path, text)
                     Notes.afterEdit()
                     screen = Screen.Note(path, text, fresh = false)
@@ -305,19 +313,49 @@ private fun App(capture: MutableState<Capture?>) {
                 BackHandler { screen = Screen.List }
                 SettingsScreen(
                     sync = sync,
-                    onMove = { toNextcloud, bring ->
-                        if (toNextcloud && keeping == Keeping.NEXTCLOUD) {
+                    onMove = { to, bring ->
+                        // The same kind of server again is a new sign-in to it, not a move.
+                        if (to == Keeping.NEXTCLOUD && keeping == Keeping.NEXTCLOUD) {
                             screen = Screen.SignIn
+                        } else if (to == Keeping.WEBDAV && keeping == Keeping.WEBDAV) {
+                            screen = Screen.WebDav
                         } else {
                             move = Notes.startMove(bring)
-                            if (toNextcloud) screen = Screen.SignIn else chooseFolder.launch(null)
+                            when (to) {
+                                Keeping.NEXTCLOUD -> screen = Screen.SignIn
+                                Keeping.WEBDAV -> screen = Screen.WebDav
+                                else -> chooseFolder.launch(null)
+                            }
                         }
                     },
                     onSignIn = { screen = Screen.SignIn },
+                    onWebDav = { screen = Screen.WebDav },
+                    onObsidian = { screen = Screen.Obsidian },
                     onBack = {
                         keeping = Notes.preferences.keeping
                         screen = Screen.List
                     },
+                )
+            }
+            Screen.Obsidian -> {
+                BackHandler { screen = Screen.Settings }
+                ObsidianScreen(onBack = { screen = Screen.Settings })
+            }
+            Screen.WebDav -> {
+                fun back() {
+                    move = null
+                    screen = if (keeping == Keeping.NOWHERE) Screen.List else Screen.Settings
+                }
+                BackHandler { back() }
+                WebDavScreen(
+                    onSaved = { dav, folder ->
+                        Notes.useWebDav(dav, folder)
+                        keeping = Keeping.WEBDAV
+                        move?.let(Notes::finishMove)
+                        move = null
+                        screen = Screen.List
+                    },
+                    onBack = { back() },
                 )
             }
             Screen.SignIn -> {

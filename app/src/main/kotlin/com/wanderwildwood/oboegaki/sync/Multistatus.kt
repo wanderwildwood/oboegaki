@@ -6,8 +6,41 @@ import java.net.URI
 import java.net.URLDecoder
 import javax.xml.parsers.DocumentBuilderFactory
 
-/** One entry in a WebDAV folder listing. [path] is decoded, and a folder's ends in "/". */
-data class Entry(val path: String, val etag: String?, val isFolder: Boolean)
+/**
+ * One entry in a WebDAV folder listing. [path] is decoded, and a folder's ends in "/", whether
+ * or not the server's href did. [modified] and [length] are there when the server says them.
+ */
+data class Entry(
+    val path: String,
+    val etag: String?,
+    val isFolder: Boolean,
+    val modified: Long? = null,
+    val length: Long? = null,
+) {
+    /**
+     * What changes whenever the file does: its etag, or, from a server that keeps none, when it
+     * last changed and how long it is. A token is never sent back to the server as an etag; it
+     * is only compared with the last one seen.
+     */
+    val version: String?
+        get() = etag?.let(::canonicalEtag)
+            ?: if (modified != null || length != null) "$VERSION_PREFIX${(modified ?: 0) / 1000}:${length ?: -1}" else null
+}
+
+/** How a version made up here, rather than an etag from the server, begins. */
+const val VERSION_PREFIX = "lm:"
+
+/** Whether [version] is a real etag, one that can go back to the server in an If-Match. */
+fun isEtag(version: String): Boolean = version.startsWith("\"") || version.startsWith("W/\"")
+
+/**
+ * An etag as a header carries it, quoted. Some servers list it bare and send it quoted, and the
+ * two would otherwise never match.
+ */
+fun canonicalEtag(etag: String): String {
+    val trimmed = etag.trim()
+    return if (trimmed.startsWith("\"") || trimmed.startsWith("W/\"")) trimmed else "\"$trimmed\""
+}
 
 /**
  * The answer to a PROPFIND: one `<d:response>` per file or folder, each naming itself by an
@@ -32,20 +65,32 @@ fun parseMultistatus(body: InputStream): List<Entry> {
         // Only the properties the server actually has: a 404 propstat lists the ones it lacks.
         var etag: String? = null
         var folder = false
+        var modified: Long? = null
+        var length: Long? = null
         val propstats = response.getElementsByTagNameNS(DAV, "propstat")
         for (j in 0 until propstats.length) {
             val propstat = propstats.item(j) as Element
             val status = propstat.first("status")?.textContent ?: ""
             if (!status.contains(" 200 ")) continue
             propstat.first("getetag")?.textContent?.trim()?.takeIf { it.isNotEmpty() }?.let { etag = it }
+            propstat.first("getlastmodified")?.textContent?.trim()?.let { modified = parseHttpDate(it) ?: modified }
+            propstat.first("getcontentlength")?.textContent?.trim()?.toLongOrNull()?.let { length = it }
             if (propstat.first("resourcetype")?.let { it.getElementsByTagNameNS(DAV, "collection").length > 0 } == true) {
                 folder = true
             }
         }
-        out += Entry(path = decodeHref(href), etag = etag, isFolder = folder)
+        var path = decodeHref(href)
+        if (folder && !path.endsWith("/")) path += "/"
+        out += Entry(path = path, etag = etag, isFolder = folder, modified = modified, length = length)
     }
     return out
 }
+
+/** An HTTP date, "Tue, 06 Oct 2026 07:56:40 GMT", as milliseconds; null if it is not one. */
+fun parseHttpDate(text: String): Long? =
+    runCatching {
+        java.time.ZonedDateTime.parse(text.trim(), java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME).toInstant().toEpochMilli()
+    }.getOrNull()
 
 /**
  * The path an href names, decoded. Some servers give a full URL here and some only the path;
@@ -54,7 +99,7 @@ fun parseMultistatus(body: InputStream): List<Entry> {
  */
 fun decodeHref(href: String): String {
     val raw = if (href.startsWith("http://") || href.startsWith("https://")) URI(href).rawPath else href
-    return URLDecoder.decode(raw.replace("+", "%2B"), "UTF-8")
+    return URLDecoder.decode(raw.replace("+", "%2B"), "UTF-8").replace(Regex("/{2,}"), "/")
 }
 
 /** Each segment of a path, percent-encoded for a URL, the slashes kept. */

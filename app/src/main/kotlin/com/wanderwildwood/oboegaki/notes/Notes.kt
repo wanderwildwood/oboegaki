@@ -5,7 +5,9 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.core.content.FileProvider
-import com.wanderwildwood.oboegaki.sync.NextcloudRemote
+import com.wanderwildwood.oboegaki.sync.DavAccount
+import com.wanderwildwood.oboegaki.sync.WebDavRemote
+import com.wanderwildwood.oboegaki.sync.nextcloudRemote
 import com.wanderwildwood.oboegaki.sync.Refused
 import com.wanderwildwood.oboegaki.glance.GlanceProvider
 import com.wanderwildwood.oboegaki.sync.PINS
@@ -55,8 +57,8 @@ sealed interface Moving {
 /**
  * The notes, wherever they are kept, and the one place the screens go to change them.
  *
- * With Nextcloud the app works on a copy kept in its own storage, and [sync] brings that copy
- * and the server together. Nothing waits on the network to open, save or list a note, so a
+ * On a server, Nextcloud or any other WebDAV, the app works on a copy kept in its own storage,
+ * one for each kind, and [sync] brings that copy and the server together. Nothing waits on the network to open, save or list a note, so a
  * shopping list still opens in a shop with no signal.
  */
 object Notes {
@@ -78,8 +80,9 @@ object Notes {
     private val _changed = MutableStateFlow(0)
     val changed: StateFlow<Int> = _changed
 
-    private val nextcloudDir get() = File(appContext.filesDir, "nextcloud")
-    private val mirror get() = File(nextcloudDir, "notes")
+    /** Where the copy of a server's notes, and what the sync knows of it, are kept. */
+    private fun syncDir(place: Keeping) = File(appContext.filesDir, if (place == Keeping.WEBDAV) "webdav" else "nextcloud")
+    private fun mirror(place: Keeping) = File(syncDir(place), "notes")
 
     fun init(context: Context) {
         if (::appContext.isInitialized) return
@@ -90,7 +93,9 @@ object Notes {
     /** Where the notes are, or null before the reader has chosen. */
     fun shelf(): Shelf? = when (preferences.keeping) {
         Keeping.NOWHERE -> null
-        Keeping.NEXTCLOUD -> FileShelf(mirror) { FileProvider.getUriForFile(appContext, "${appContext.packageName}.files", it) }
+        Keeping.NEXTCLOUD, Keeping.WEBDAV -> FileShelf(mirror(preferences.keeping)) {
+            FileProvider.getUriForFile(appContext, "${appContext.packageName}.files", it)
+        }
         Keeping.FOLDER -> preferences.folder?.let { FolderShelf(appContext.contentResolver, it) }
     }
 
@@ -152,7 +157,7 @@ object Notes {
     val shared: StateFlow<Set<String>> = _shared
 
     /**
-     * Bring the copy here and the Nextcloud folder together, if that is where the notes are
+     * Bring the copy here and the server's folder together, if that is where the notes are
      * kept. One at a time: a second ask while one is running is the same ask.
      */
     fun syncNow() {
@@ -171,27 +176,37 @@ object Notes {
         withContext(Dispatchers.IO) { syncing.withLock { runSync() } }
     }
 
-    /** [leaving]: one last sync of a Nextcloud being moved away from, so its last edits go up. */
-    private fun runSync(leaving: Boolean = false) {
-        if (preferences.keeping != Keeping.NEXTCLOUD && !leaving) return
-        val account = preferences.account ?: return
+    /**
+     * Sync with the server at [place]: where the notes are kept, or, once more, one being moved
+     * away from, so its last edits go up.
+     */
+    private fun runSync(place: Keeping = preferences.keeping) {
+        if (!place.isServer) return
+        val account = if (place == Keeping.NEXTCLOUD) preferences.account ?: return else null
+        val dav = if (place == Keeping.WEBDAV) preferences.dav ?: return else null
         try {
             _sync.value = SyncState.Running
-            val sharing = Sharing(account)
+            // Sharing is Nextcloud's own; a plain WebDAV server has none.
+            val sharing = account?.let(::Sharing)
             // A note someone shared lands at the top of this account's files. Moved into the
             // notes folder, it is a note like any other here. Never allowed to stop a sync.
-            runCatching { adoptShared(sharing) }
-            val remote = NextcloudRemote(account, preferences.remoteFolder)
+            if (sharing != null) runCatching { adoptShared(sharing) }
+            val remote = if (account != null) {
+                nextcloudRemote(account, preferences.remoteFolder)
+            } else {
+                WebDavRemote(dav!!.address, dav.user, dav.password, preferences.davFolder)
+            }
+            val dir = syncDir(place)
             val sync = Sync(
-                notes = mirror,
-                base = File(nextcloudDir, "base"),
-                stateFile = File(nextcloudDir, "state"),
+                notes = mirror(place),
+                base = File(dir, "base"),
+                stateFile = File(dir, "state"),
                 guard = { synchronized(notesLock) { it() } },
             )
             val result = sync.run(remote)
             preferences.lastSync = System.currentTimeMillis()
             _sync.value = SyncState.Idle
-            runCatching { _shared.value = sharedPaths(sharing) }
+            if (sharing != null) runCatching { _shared.value = sharedPaths(sharing) } else _shared.value = emptySet()
             if (result.received > 0 || result.kept.isNotEmpty()) _changed.value++
         } catch (_: Unreachable) {
             _sync.value = SyncState.Unreachable
@@ -238,12 +253,12 @@ object Notes {
     /** Wait for any sync in progress to finish, then run [block]. */
     private suspend fun afterSync(block: () -> Unit) = syncing.withLock { block() }
 
-    /** Stop keeping notes in Nextcloud on this phone. What is on the server is not touched. */
+    /** Stop keeping notes on the server on this phone. What is on the server is not touched. */
     fun signOut() {
         scope.launch {
             afterSync {
-                nextcloudDir.deleteRecursively()
-                preferences.account = null
+                syncDir(preferences.keeping).deleteRecursively()
+                forget(preferences.keeping)
                 preferences.keeping = Keeping.NOWHERE
                 preferences.lastSync = 0
                 _sync.value = SyncState.Idle
@@ -252,14 +267,63 @@ object Notes {
         }
     }
 
+    /** Let go of a server's sign-in: its password, and the shares it saw. */
+    private fun forget(place: Keeping) {
+        when (place) {
+            Keeping.NEXTCLOUD -> preferences.account = null
+            Keeping.WEBDAV -> preferences.dav = null
+            else -> Unit
+        }
+        _shared.value = emptySet()
+    }
+
+    /** The folder on the server the notes are in, for whichever server they are kept on. */
+    val remoteFolder: String
+        get() = if (preferences.keeping == Keeping.WEBDAV) preferences.davFolder else preferences.remoteFolder
+
     /**
-     * Point at another folder on the Nextcloud. The copy here is of the old folder, so it is
+     * Point at another folder on the server. The copy here is of the old folder, so it is
      * synced once more and then let go, and the new folder is fetched fresh.
      */
     fun changeRemoteFolder(folder: String) {
         scope.launch {
-            afterSync { nextcloudDir.deleteRecursively() }
-            preferences.remoteFolder = folder
+            val place = preferences.keeping
+            afterSync {
+                runSync(place)
+                syncDir(place).deleteRecursively()
+            }
+            if (place == Keeping.WEBDAV) preferences.davFolder = folder else preferences.remoteFolder = folder
+            _list.value = emptyList()
+            syncNow()
+        }
+    }
+
+    /**
+     * Keep the notes on a WebDAV server, already checked. With the notes there already, a new
+     * password carries on as before; another server or folder is a new place, so the copy here
+     * is synced once more with the old one, let go, and the new one fetched fresh.
+     */
+    fun useWebDav(dav: DavAccount, folder: String) {
+        val now = preferences.dav
+        val wanted = folder.trim('/', ' ')
+        val onWebDav = preferences.keeping == Keeping.WEBDAV
+        val samePlace = onWebDav && now?.address == dav.address && now.user == dav.user && preferences.davFolder == wanted
+        if (!onWebDav || samePlace) {
+            preferences.dav = dav
+            preferences.davFolder = wanted
+            preferences.keeping = Keeping.WEBDAV
+            reload()
+            syncNow()
+            return
+        }
+        scope.launch {
+            afterSync {
+                runSync(Keeping.WEBDAV)
+                syncDir(Keeping.WEBDAV).deleteRecursively()
+                preferences.dav = dav
+                preferences.davFolder = wanted
+                preferences.lastSync = 0
+            }
             _list.value = emptyList()
             syncNow()
         }
@@ -275,22 +339,21 @@ object Notes {
      * The reader has chosen somewhere new, and [preferences] already say where. Bring the notes
      * from where they were, if asked: copied, never moved, so the old place keeps every one.
      *
-     * Leaving Nextcloud, the phone's copy goes up one last time first; it is let go afterwards
-     * only if that worked or the notes came along, so nothing typed offline is lost. Going to
-     * Nextcloud, the server's notes come down first, so one there with the same name is seen.
+     * Leaving a server, the phone's copy goes up one last time first; it is let go afterwards
+     * only if that worked or the notes came along, so nothing typed offline is lost. Going to a
+     * server, its notes come down first, so one there with the same name is seen.
      */
     fun finishMove(from: Move) {
         scope.launch {
-            val leavingNextcloud = from.keeping == Keeping.NEXTCLOUD && preferences.keeping != Keeping.NEXTCLOUD
+            val leavingServer = from.keeping.isServer && preferences.keeping != from.keeping
             var wentUp = false
-            if (leavingNextcloud) {
-                syncing.withLock { runSync(leaving = true) }
+            if (leavingServer) {
+                syncing.withLock { runSync(from.keeping) }
                 wentUp = _sync.value == SyncState.Idle
-            } else if (preferences.keeping == Keeping.NEXTCLOUD) {
-                syncAndWait()
             }
+            if (preferences.keeping.isServer) syncAndWait()
             val old = when (from.keeping) {
-                Keeping.NEXTCLOUD -> FileShelf(mirror)
+                Keeping.NEXTCLOUD, Keeping.WEBDAV -> FileShelf(mirror(from.keeping))
                 Keeping.FOLDER -> from.folder?.let { FolderShelf(appContext.contentResolver, it) }
                 Keeping.NOWHERE -> null
             }
@@ -302,13 +365,12 @@ object Notes {
                 _moving.value = Moving.Done(failed)
                 brought = failed == 0
             }
-            if (leavingNextcloud && (wentUp || brought)) {
+            if (leavingServer && (wentUp || brought)) {
                 afterSync {
-                    nextcloudDir.deleteRecursively()
-                    preferences.account = null
-                    preferences.lastSync = 0
+                    syncDir(from.keeping).deleteRecursively()
+                    forget(from.keeping)
+                    if (!preferences.keeping.isServer) preferences.lastSync = 0
                     _sync.value = SyncState.Idle
-                    _shared.value = emptySet()
                 }
             }
             afterEdit()
@@ -362,6 +424,9 @@ object Notes {
     }
 
     fun read(path: String): String? = shelf()?.read(path)
+
+    /** The folder new notes go in, as the reader set it in settings. */
+    val newFolder: String get() = preferences.newFolder
 
     /**
      * A path for a new note in [folder], named for [title] or, with none, for the moment, and
@@ -479,9 +544,10 @@ object Notes {
     fun saveScan(pdf: ByteArray): String? {
         val shelf = shelf() ?: return null
         val stamp = SimpleDateFormat("yyyy-MM-dd HHmm", Locale.ROOT).format(Date())
-        val notePath = newPath("", "Scan $stamp")
+        val folder = preferences.newFolder
+        val notePath = newPath(folder, "Scan $stamp")
         val stem = notePath.substringAfterLast('/').substringBeforeLast('.')
-        shelf.writeBytes("$stem.pdf", pdf, "application/pdf")
+        shelf.writeBytes(inFolder(folder, "$stem.pdf"), pdf, "application/pdf")
         shelf.write(notePath, "![[$stem.pdf]]\n")
         afterEdit()
         return notePath
@@ -496,15 +562,16 @@ object Notes {
     fun savePictures(uris: List<Uri>): String? {
         val shelf = shelf() ?: return null
         val stamp = SimpleDateFormat("yyyy-MM-dd HHmm", Locale.ROOT).format(Date())
-        val notePath = newPath("", "Picture $stamp")
+        val folder = preferences.newFolder
+        val notePath = newPath(folder, "Picture $stamp")
         val stem = notePath.substringAfterLast('/').substringBeforeLast('.')
         val names = mutableListOf<String>()
         for (uri in uris) {
             val (bytes, ext) = runCatching { pictureBytes(uri) }.getOrNull() ?: continue
             var name = if (names.isEmpty()) "$stem.$ext" else "$stem ${names.size + 1}.$ext"
             var n = names.size + 2
-            while (shelf.exists(name)) name = "$stem ${n++}.$ext"
-            shelf.writeBytes(name, bytes, if (ext == "jpg") "image/jpeg" else "image/$ext")
+            while (shelf.exists(inFolder(folder, name))) name = "$stem ${n++}.$ext"
+            shelf.writeBytes(inFolder(folder, name), bytes, if (ext == "jpg") "image/jpeg" else "image/$ext")
             names += name
         }
         if (names.isEmpty()) return null
@@ -529,7 +596,7 @@ object Notes {
         return out.toByteArray() to "jpg"
     }
 
-    /** Whether there is somewhere to keep notes yet: a Nextcloud signed in to, or a folder. */
+    /** Whether there is somewhere to keep notes yet: a server signed in to, or a folder. */
     fun isSetUp(): Boolean = shelf() != null
 
     /**
@@ -593,11 +660,13 @@ object Notes {
             val linkedElsewhere = others.any { note -> embeds(note.text).any { prefix + it == attachment || it == attachment } }
             if (!linkedElsewhere) runCatching { shelf.delete(attachment) }
         }
-        reload()
+        refresh()
     }
 
     fun afterEdit() {
-        reload()
+        // Off the main thread: listing a folder reads every note in it, and a folder that is a
+        // mount of a server reads each one over the network.
+        refresh()
         syncNow()
     }
 }

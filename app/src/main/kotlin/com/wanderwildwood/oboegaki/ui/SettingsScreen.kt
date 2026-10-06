@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -29,6 +30,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mudita.mmd.components.buttons.ButtonMMD
 import com.mudita.mmd.components.buttons.OutlinedButtonMMD
@@ -42,6 +44,8 @@ import com.wanderwildwood.oboegaki.R
 import com.wanderwildwood.oboegaki.notes.Keeping
 import com.wanderwildwood.oboegaki.notes.Notes
 import com.wanderwildwood.oboegaki.notes.SyncState
+import com.wanderwildwood.oboegaki.notes.cleanFolder
+import com.wanderwildwood.oboegaki.notes.folders
 import com.wanderwildwood.oboegaki.glance.GlanceProvider
 import com.wanderwildwood.oboegaki.sync.LoginFlow
 import com.wanderwildwood.oboegaki.sync.Refused
@@ -53,23 +57,28 @@ import java.text.DateFormat
 import java.util.Date
 
 /**
- * Where the notes are kept, and nothing else yet.
+ * Where the notes are kept, how to reach them from Obsidian, and the lock screen.
  *
  * Each place has its own short list. Leaving one goes last and asks first, because it is the
- * row that loses something: for Nextcloud, this phone's copy, and for a folder, the grant.
+ * row that loses something: for a server, this phone's copy, and for a folder, the grant.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     sync: SyncState,
-    onMove: (toNextcloud: Boolean, bring: Boolean) -> Unit,
+    onMove: (to: Keeping, bring: Boolean) -> Unit,
     onSignIn: () -> Unit,
+    onWebDav: () -> Unit,
+    onObsidian: () -> Unit,
     onBack: () -> Unit,
 ) {
     val preferences = Notes.preferences
     val context = LocalContext.current
     var renaming by remember { mutableStateOf(false) }
     var choosing by remember { mutableStateOf(false) }
+    var choosingFolder by remember { mutableStateOf(false) }
+    var newFolder by remember { mutableStateOf(preferences.newFolder) }
+    val keptFolder = remember(preferences.folder) { folderName(preferences.folder, context.contentResolver) }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface,
@@ -86,10 +95,20 @@ fun SettingsScreen(
                     stringResource(R.string.settings_kept),
                     when (preferences.keeping) {
                         Keeping.NEXTCLOUD -> stringResource(R.string.setup_nextcloud)
-                        Keeping.FOLDER -> stringResource(R.string.settings_kept_folder, folderName(preferences.folder))
+                        Keeping.WEBDAV -> stringResource(R.string.settings_kept_webdav, hostOf(preferences.dav?.address))
+                        Keeping.FOLDER -> stringResource(R.string.settings_kept_folder, keptFolder)
                         Keeping.NOWHERE -> ""
                     },
                 ) { choosing = true }
+            }
+            item {
+                SettingRow(
+                    stringResource(R.string.settings_new_in),
+                    newFolder.ifEmpty { stringResource(R.string.settings_new_top) },
+                ) { choosingFolder = true }
+            }
+            item {
+                SettingRow(stringResource(R.string.obsidian_title), "", onClick = onObsidian)
             }
             item {
                 var on by remember { mutableStateOf(preferences.lockScreen) }
@@ -137,6 +156,29 @@ fun SettingsScreen(
                         }
                     }
                 }
+                Keeping.WEBDAV -> {
+                    val dav = preferences.dav
+                    item {
+                        SettingRow(
+                            stringResource(R.string.settings_server),
+                            dav?.let { stringResource(R.string.settings_account_value, it.user, hostOf(it.address)) }
+                                ?: stringResource(R.string.settings_signed_out),
+                            onClick = onWebDav,
+                        )
+                    }
+                    item {
+                        SettingRow(stringResource(R.string.settings_dav_folder), preferences.davFolder.ifEmpty { "/" }) { renaming = true }
+                    }
+                    item {
+                        SettingRow(stringResource(R.string.settings_sync_now), syncValue(sync, preferences.lastSync)) { Notes.syncNow() }
+                    }
+                    item {
+                        Leave(stringResource(R.string.settings_forget), stringResource(R.string.settings_forget_confirm)) {
+                            Notes.signOut()
+                            onBack()
+                        }
+                    }
+                }
                 Keeping.FOLDER, Keeping.NOWHERE -> Unit
             }
         }
@@ -144,20 +186,37 @@ fun SettingsScreen(
 
     if (choosing) {
         KeptDialog(
-            onDone = { toNextcloud, bring ->
+            onDone = { to, bring ->
                 choosing = false
-                onMove(toNextcloud, bring)
+                onMove(to, bring)
             },
             onDismiss = { choosing = false },
         )
     }
 
+    if (choosingFolder) {
+        NewFolderDialog(
+            current = newFolder,
+            folders = folders(Notes.list.value),
+            onDone = { folder ->
+                choosingFolder = false
+                if (folder != null) {
+                    newFolder = folder
+                    preferences.newFolder = folder
+                }
+            },
+        )
+    }
+
     if (renaming) {
+        val onWebDav = preferences.keeping == Keeping.WEBDAV
         RemoteFolderDialog(
-            current = preferences.remoteFolder,
+            current = Notes.remoteFolder,
+            title = stringResource(if (onWebDav) R.string.settings_dav_folder else R.string.settings_remote_folder),
+            note = stringResource(if (onWebDav) R.string.dav_folder_note else R.string.settings_remote_folder_note),
             onDone = { folder ->
                 renaming = false
-                if (folder != null && folder != preferences.remoteFolder) Notes.changeRemoteFolder(folder)
+                if (folder != null && folder != Notes.remoteFolder) Notes.changeRemoteFolder(folder)
             },
         )
     }
@@ -176,11 +235,30 @@ private fun syncValue(sync: SyncState, last: Long): String = when (sync) {
     }
 }
 
-/** "Notes" for content://…/tree/primary%3ANotes: what the reader would call it. */
-fun folderName(uri: Uri?): String {
+/** "app.koofr.net" for a server's address, or the address itself if it has no host. */
+fun hostOf(address: String?): String {
+    if (address == null) return ""
+    return Uri.parse(address).host ?: address
+}
+
+/**
+ * "Notes" for content://…/tree/primary%3ANotes: what the reader would call it. Another app's
+ * folder, a WebDAV mount or a server share, has ids that are no kind of name, so it is asked
+ * for the folder's own name.
+ */
+fun folderName(uri: Uri?, resolver: android.content.ContentResolver): String {
     if (uri == null) return ""
     val id = runCatching { DocumentsContract.getTreeDocumentId(uri) }.getOrNull() ?: return uri.toString()
-    return id.substringAfter(':').ifEmpty { id }.substringAfterLast('/')
+    if (uri.authority == "com.android.externalstorage.documents") {
+        return id.substringAfter(':').ifEmpty { id }.substringAfterLast('/')
+    }
+    val named = runCatching {
+        resolver.query(
+            DocumentsContract.buildDocumentUriUsingTree(uri, id),
+            arrayOf(DocumentsContract.Document.COLUMN_DISPLAY_NAME), null, null, null,
+        )?.use { if (it.moveToFirst()) it.getString(0) else null }
+    }.getOrNull()
+    return named ?: id
 }
 
 @Composable
@@ -213,20 +291,24 @@ private fun Leave(label: String, confirm: String, onConfirm: () -> Unit) {
 }
 
 /**
- * Somewhere else to keep the notes: the same two ways as the first screen, and whether the
+ * Somewhere else to keep the notes: the same three ways as the first screen, and whether the
  * notes come along. They are copied, so the place they leave keeps them all.
  */
 @Composable
-private fun KeptDialog(onDone: (toNextcloud: Boolean, bring: Boolean) -> Unit, onDismiss: () -> Unit) {
+private fun KeptDialog(onDone: (to: Keeping, bring: Boolean) -> Unit, onDismiss: () -> Unit) {
     var bring by remember { mutableStateOf(true) }
     EInkDialog(onDismiss = onDismiss) {
         TextMMD(text = stringResource(R.string.setup_where), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
         Spacer(Modifier.height(16.dp))
-        ButtonMMD(onClick = { onDone(true, bring) }, modifier = Modifier.fillMaxWidth().height(48.dp)) {
+        ButtonMMD(onClick = { onDone(Keeping.NEXTCLOUD, bring) }, modifier = Modifier.fillMaxWidth().height(48.dp)) {
             TextMMD(text = stringResource(R.string.setup_nextcloud))
         }
         Spacer(Modifier.height(8.dp))
-        OutlinedButtonMMD(onClick = { onDone(false, bring) }, modifier = Modifier.fillMaxWidth().height(48.dp)) {
+        OutlinedButtonMMD(onClick = { onDone(Keeping.WEBDAV, bring) }, modifier = Modifier.fillMaxWidth().height(48.dp)) {
+            TextMMD(text = stringResource(R.string.setup_webdav))
+        }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButtonMMD(onClick = { onDone(Keeping.FOLDER, bring) }, modifier = Modifier.fillMaxWidth().height(48.dp)) {
             TextMMD(text = stringResource(R.string.setup_folder))
         }
         Spacer(Modifier.height(12.dp))
@@ -248,11 +330,69 @@ private fun KeptDialog(onDone: (toNextcloud: Boolean, bring: Boolean) -> Unit, o
     }
 }
 
+/**
+ * Where new notes go: the top, a folder the notes already have, or a new one typed in, which is
+ * made with the first note put there.
+ */
 @Composable
-private fun RemoteFolderDialog(current: String, onDone: (String?) -> Unit) {
+private fun NewFolderDialog(current: String, folders: List<String>, onDone: (String?) -> Unit) {
+    var typed by remember { mutableStateOf("") }
+    var refused by remember { mutableStateOf(false) }
+    fun useTyped() {
+        val clean = cleanFolder(typed)
+        if (clean == null) refused = true else onDone(clean)
+    }
+    EInkDialog(onDismiss = { onDone(null) }) {
+        TextMMD(text = stringResource(R.string.settings_new_in), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+        Spacer(Modifier.height(4.dp))
+        TextMMD(text = stringResource(R.string.settings_new_note), style = MaterialTheme.typography.labelSmall)
+        LazyColumnMMD(modifier = Modifier.fillMaxWidth().heightIn(max = 220.dp)) {
+            item { FolderChoice(stringResource(R.string.settings_new_top), current.isEmpty()) { onDone("") } }
+            for (folder in folders) {
+                item(key = folder) { FolderChoice(folder, folder == current) { onDone(folder) } }
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        TextFieldMMD(
+            value = typed,
+            onValueChange = {
+                typed = it.replace("\n", "")
+                refused = false
+            },
+            modifier = Modifier.fillMaxWidth(),
+            label = { TextMMD(text = stringResource(R.string.settings_new_type)) },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { useTyped() }),
+        )
+        if (refused) {
+            Spacer(Modifier.height(4.dp))
+            TextMMD(text = stringResource(R.string.settings_new_bad), style = MaterialTheme.typography.labelSmall)
+        }
+        Spacer(Modifier.height(12.dp))
+        ButtonMMD(onClick = { useTyped() }, enabled = typed.isNotBlank(), modifier = Modifier.fillMaxWidth().height(48.dp)) {
+            TextMMD(text = stringResource(R.string.settings_new_use))
+        }
+    }
+}
+
+@Composable
+private fun FolderChoice(label: String, chosen: Boolean, onClick: () -> Unit) {
+    TextMMD(
+        text = label,
+        style = MaterialTheme.typography.bodyLarge,
+        fontWeight = if (chosen) FontWeight.Bold else null,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 10.dp),
+    )
+}
+
+@Composable
+private fun RemoteFolderDialog(current: String, title: String, note: String, onDone: (String?) -> Unit) {
     var typed by remember { mutableStateOf(current) }
     EInkDialog(onDismiss = { onDone(null) }) {
-        TextMMD(text = stringResource(R.string.settings_remote_folder), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+        TextMMD(text = title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
         Spacer(Modifier.height(12.dp))
         TextFieldMMD(
             value = typed,
@@ -263,7 +403,7 @@ private fun RemoteFolderDialog(current: String, onDone: (String?) -> Unit) {
             keyboardActions = KeyboardActions(onDone = { onDone(typed.trim('/', ' ')) }),
         )
         Spacer(Modifier.height(8.dp))
-        TextMMD(text = stringResource(R.string.settings_remote_folder_note), style = MaterialTheme.typography.labelSmall)
+        TextMMD(text = note, style = MaterialTheme.typography.labelSmall)
         Spacer(Modifier.height(16.dp))
         ButtonMMD(onClick = { onDone(typed.trim('/', ' ')) }, modifier = Modifier.fillMaxWidth().height(48.dp)) {
             TextMMD(text = stringResource(R.string.settings_remote_folder_use))
@@ -272,12 +412,12 @@ private fun RemoteFolderDialog(current: String, onDone: (String?) -> Unit) {
 }
 
 /**
- * The first screen, before there is anywhere to keep a note: two ways, side by side, and a line
- * on what each one means.
+ * The first screen, before there is anywhere to keep a note: three ways, one under another, and
+ * a line on what each one means.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SetupScreen(onNextcloud: () -> Unit, onFolder: () -> Unit, onAbout: () -> Unit) {
+fun SetupScreen(onNextcloud: () -> Unit, onWebDav: () -> Unit, onFolder: () -> Unit, onAbout: () -> Unit) {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
@@ -287,21 +427,30 @@ fun SetupScreen(onNextcloud: () -> Unit, onFolder: () -> Unit, onAbout: () -> Un
             )
         },
     ) { contentPadding ->
-        Column(modifier = Modifier.fillMaxSize().padding(contentPadding).padding(20.dp)) {
-            TextMMD(text = stringResource(R.string.setup_where), style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(20.dp))
-            ButtonMMD(onClick = onNextcloud, modifier = Modifier.fillMaxWidth().height(56.dp)) {
-                TextMMD(text = stringResource(R.string.setup_nextcloud))
+        LazyColumnMMD(modifier = Modifier.fillMaxSize().padding(contentPadding).padding(horizontal = 20.dp)) {
+            item {
+                Spacer(Modifier.height(20.dp))
+                TextMMD(text = stringResource(R.string.setup_where), style = MaterialTheme.typography.titleMedium)
             }
-            Spacer(Modifier.height(8.dp))
-            TextMMD(text = stringResource(R.string.setup_nextcloud_note), style = MaterialTheme.typography.labelSmall)
-            Spacer(Modifier.height(24.dp))
-            OutlinedButtonMMD(onClick = onFolder, modifier = Modifier.fillMaxWidth().height(56.dp)) {
-                TextMMD(text = stringResource(R.string.setup_folder))
-            }
-            Spacer(Modifier.height(8.dp))
-            TextMMD(text = stringResource(R.string.setup_folder_note), style = MaterialTheme.typography.labelSmall)
+            item { SetupChoice(stringResource(R.string.setup_nextcloud), stringResource(R.string.setup_nextcloud_note), filled = true, onClick = onNextcloud) }
+            item { SetupChoice(stringResource(R.string.setup_webdav), stringResource(R.string.setup_webdav_note), filled = false, onClick = onWebDav) }
+            item { SetupChoice(stringResource(R.string.setup_folder), stringResource(R.string.setup_folder_note), filled = false, onClick = onFolder) }
         }
+    }
+}
+
+/** One way to keep notes on the first screen: its button, and a line on what it means. */
+@Composable
+private fun SetupChoice(label: String, note: String, filled: Boolean, onClick: () -> Unit) {
+    Column {
+        Spacer(Modifier.height(20.dp))
+        if (filled) {
+            ButtonMMD(onClick = onClick, modifier = Modifier.fillMaxWidth().height(56.dp)) { TextMMD(text = label) }
+        } else {
+            OutlinedButtonMMD(onClick = onClick, modifier = Modifier.fillMaxWidth().height(56.dp)) { TextMMD(text = label) }
+        }
+        Spacer(Modifier.height(8.dp))
+        TextMMD(text = note, style = MaterialTheme.typography.labelSmall)
     }
 }
 

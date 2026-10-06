@@ -3,6 +3,7 @@ package com.wanderwildwood.oboegaki.hearing
 import android.content.Context
 import android.os.PowerManager
 import com.wanderwildwood.oboegaki.notes.Notes
+import com.wanderwildwood.oboegaki.notes.inFolder
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.io.File
@@ -91,14 +92,16 @@ object Voice {
             return
         }
         val stamp = wav.nameWithoutExtension
-        val notePath = Notes.newPath("", "Voice $stamp")
+        val folder = Notes.newFolder
+        val notePath = Notes.newPath(folder, "Voice $stamp")
         val stem = notePath.substringAfterLast('/').substringBeforeLast('.')
+        // The link names it as it sits beside the note, which is how Obsidian finds it too.
         val audioPath = "$stem.m4a"
         val m4a = File(dir, "$stem.m4a.part")
         try {
             Encoder.toM4a(wav, m4a)
             val shelf = Notes.shelf() ?: error("nowhere to keep it")
-            shelf.writeBytes(audioPath, m4a.readBytes(), "audio/mp4")
+            shelf.writeBytes(inFolder(folder, audioPath), m4a.readBytes(), "audio/mp4")
             shelf.write(notePath, "![[$audioPath]]\n")
         } catch (e: Exception) {
             _failed.value = true

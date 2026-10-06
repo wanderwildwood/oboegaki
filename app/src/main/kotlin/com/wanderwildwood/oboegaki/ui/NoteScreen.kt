@@ -125,7 +125,7 @@ fun NoteScreen(
     }
 
     // Every half minute while it is open, so a shared list keeps up.
-    if (Notes.preferences.keeping == Keeping.NEXTCLOUD) {
+    if (Notes.preferences.keeping.isServer) {
         LaunchedEffect(Unit) {
             while (true) {
                 delay(30_000)

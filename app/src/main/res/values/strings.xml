@@ -36,13 +36,23 @@
     <string name="cd_archive">Archive</string>
     <string name="cd_unarchive">Bring back from the archive</string>
     <string name="view_shared">Shared</string>
+    <!-- Heading over the notes' folders in the choice of what the list shows -->
+    <string name="view_folders">Folders</string>
+    <!-- First row of the list inside a folder; %1$s is the folder above, e.g. "Up to Garden" -->
+    <string name="list_up">Up to %1$s</string>
+    <string name="list_up_all">Up to all notes</string>
+    <!-- Under a folder's name in the list -->
+    <plurals name="list_folder">
+        <item quantity="one">Folder · %d note</item>
+        <item quantity="other">Folder · %d notes</item>
+    </plurals>
     <string name="view_newest">newest first</string>
     <string name="view_by_title">by title</string>
     <!-- The same two, as choices in the picker -->
     <string name="view_newest_choice">Newest first</string>
     <string name="view_by_title_choice">By title</string>
-    <string name="sync_unreachable">Nextcloud could not be reached. These are this phone\'s copies, and they go up when it can be.</string>
-    <string name="sync_signed_out">Nextcloud refused this phone. Sign in again in settings.</string>
+    <string name="sync_unreachable">The server could not be reached. These are this phone\'s copies, and they go up when it can be.</string>
+    <string name="sync_signed_out">The server refused this phone. Sign in again in settings.</string>
     <!-- %1$s is whatever the server or the network said -->
     <string name="sync_failed">The last sync stopped partway: %1$s</string>
 
@@ -66,6 +76,8 @@
     <string name="setup_where">Where should notes be kept?</string>
     <string name="setup_nextcloud">Nextcloud</string>
     <string name="setup_nextcloud_note">Kept on your Nextcloud and on this phone. They open without a signal, and notes can be shared with other people on the same Nextcloud.</string>
+    <string name="setup_webdav">A WebDAV server</string>
+    <string name="setup_webdav_note">Kept on any server or storage service that offers WebDAV, and on this phone. They open without a signal; sharing with other people is Nextcloud\'s alone.</string>
     <string name="setup_folder">A folder on this phone</string>
     <string name="setup_folder_note">Plain files in a folder you choose. If another app syncs that folder, such as Syncthing or Obsidian, the notes go wherever it takes them.</string>
 
@@ -81,6 +93,36 @@
     <string name="signin_not_nextcloud">That address answered, but not as a Nextcloud.</string>
     <string name="signin_gave_up">Stopped waiting. Sign in again when you are ready.</string>
     <string name="signin_note">You sign in on your Nextcloud\'s own page, in the browser. It gives this phone a password of its own, which you can take back from the server\'s security settings at any time.</string>
+
+    <!-- ============================================================ -->
+    <!-- A WebDAV server -->
+
+    <string name="dav_title">WebDAV server</string>
+    <string name="dav_address">Address</string>
+    <!-- Under the address field: what kind of address is meant -->
+    <string name="dav_address_note">The full WebDAV address, as the service gives it.</string>
+    <string name="dav_user">Username</string>
+    <string name="dav_password">Password</string>
+    <!-- The button beside the password that shows or hides what was typed -->
+    <string name="dav_show">Show</string>
+    <string name="dav_hide">Hide</string>
+    <string name="dav_password_note">Where the service offers app passwords, make one for this phone and use it here: it can be taken back without changing your own.</string>
+    <string name="dav_folder">Folder on the server</string>
+    <string name="dav_folder_note">Under the address. It is made if it is not there.</string>
+    <string name="dav_save">Save</string>
+    <string name="dav_checking">Asking the server…</string>
+    <string name="dav_ok">OK</string>
+    <string name="dav_unreachable">Nothing answered at that address. Check it, and that this phone can get to it.</string>
+    <string name="dav_bad_address">That is not an address. It begins https:// and names the server, as in https://webdav.example.org/files.</string>
+    <string name="dav_refused">The server refused that username and password.</string>
+    <string name="dav_not_webdav">That address answered, but not as a WebDAV folder. Check the full address, the way the service gives it.</string>
+    <string name="dav_certificate">The server\'s certificate could not be trusted, so nothing was sent to it. Check the address; a server with a certificate of its own making cannot be used over https.</string>
+    <!-- %1$s is what the server or the network said -->
+    <string name="dav_failed">The server could not make the folder: %1$s</string>
+    <string name="dav_http_title">Plain http</string>
+    <string name="dav_http">Over http on an ordinary network, the notes and the password can be read by anyone else on it. That is fine for a server at home or on Tailscale; give one that has https as https.</string>
+    <string name="dav_http_go">Use http</string>
+    <string name="dav_http_back">Back</string>
 
     <!-- ============================================================ -->
     <!-- Settings -->
@@ -101,6 +143,18 @@
     <string name="settings_sign_out">Sign out</string>
     <string name="settings_sign_out_confirm">Sign out — this phone\'s copies go, the server\'s stay; tap again</string>
     <string name="settings_kept">Notes kept in</string>
+    <string name="settings_new_in">New notes go in</string>
+    <string name="settings_new_top">The top of the notes</string>
+    <string name="settings_new_note">New notes, voice notes, scans, pictures and anything shared in are made here. A new folder is made with the first note in it.</string>
+    <string name="settings_new_type">Or a new folder</string>
+    <string name="settings_new_use">Use this folder</string>
+    <string name="settings_new_bad">That cannot be a folder\'s name here.</string>
+    <!-- %1$s is a host, e.g. "A WebDAV server: app.koofr.net" -->
+    <string name="settings_kept_webdav">A WebDAV server: %1$s</string>
+    <string name="settings_server">Server</string>
+    <string name="settings_dav_folder">Folder on the server</string>
+    <string name="settings_forget">Stop using this server</string>
+    <string name="settings_forget_confirm">Stop using it — this phone\'s copies go, the server\'s stay; tap again</string>
     <!-- %1$s is a folder's name, e.g. "Documents" -->
     <string name="settings_kept_folder">A folder on this phone: %1$s</string>
     <string name="settings_bring">Bring these notes along</string>
@@ -224,10 +278,31 @@
     <string name="outside_unreadable">That file could not be read.</string>
 
     <!-- ============================================================ -->
+    <!-- Using the notes with Obsidian on a computer -->
+
+    <string name="obsidian_title">Using with Obsidian</string>
+    <string name="obsidian_intro">An Obsidian vault is a folder of Markdown files, which is what Notes keeps. What is needed is a way to get the same files onto the computer.</string>
+    <!-- Shown only while the notes are in a folder on the phone. %1$s is a place, e.g. "Documents/Notes on this phone\'s storage" -->
+    <string name="obsidian_copy_heading">Copying by hand</string>
+    <string name="obsidian_copy">The notes are plain .md files in %1$s. Plug the phone into a computer by USB and copy that folder across, then open it as a vault: no sync and nothing else to install.</string>
+    <string name="obsidian_copy_place">%1$s on this phone\'s storage</string>
+    <string name="obsidian_copy_unknown">the folder you chose</string>
+    <string name="obsidian_webdav_heading">A WebDAV service</string>
+    <string name="obsidian_webdav">Keep the notes on a WebDAV service such as Koofr, which is free up to 10 GB and gives app passwords for WebDAV. Its desktop app keeps a folder on the computer the same as the one on the service, and that folder opens as a vault.</string>
+    <string name="obsidian_davx5_heading">A DAVx5 mount</string>
+    <string name="obsidian_davx5">If you already use DAVx5, its WebDAV mounts put a WebDAV folder in the phone\'s folder picker, and Notes can keep its notes there as a folder on this phone. The mount reads from the server as files are opened, so there is no copy to open without a signal and no merging of two people\'s edits; a WebDAV server chosen in Notes itself keeps a copy here and merges.</string>
+    <string name="obsidian_syncthing_heading">Syncthing</string>
+    <string name="obsidian_syncthing">Install Syncthing-Fork on the phone and Syncthing on the computer, and sync a folder on the phone with one on the computer, with no server between them. Keep the notes in the phone\'s folder and open the computer\'s as a vault; both have to be on for changes to cross.</string>
+    <string name="obsidian_nextcloud_heading">Nextcloud</string>
+    <string name="obsidian_nextcloud">Keep the notes on your Nextcloud, and let the Nextcloud desktop app keep the folder on the computer. Open that folder as a vault.</string>
+    <string name="obsidian_sync_heading">Obsidian Sync</string>
+    <string name="obsidian_sync">Obsidian\'s own paid sync, through Obsidian on the phone. Open the synced vault there once, move it in Manage vaults to a folder such as Documents, and keep the notes in that folder.</string>
+
+    <!-- ============================================================ -->
     <!-- About -->
 
     <string name="about_title">Notes %1$s</string>
-    <string name="about_privacy">Notes are plain files. With Nextcloud they go to your server and nowhere else; with a folder, they stay in it. Recordings are turned into words on this phone.</string>
+    <string name="about_privacy">Notes are plain files. On a server they go to that server and nowhere else; in a folder, they stay in it. Recordings are turned into words on this phone.</string>
     <string name="about_licence">GNU General Public License v3</string>
     <string name="about_okhttp">OkHttp, Apache 2.0</string>
     <string name="about_whisper">Speech recognition by whisper.cpp, MIT, with OpenAI\'s Whisper model, MIT</string>

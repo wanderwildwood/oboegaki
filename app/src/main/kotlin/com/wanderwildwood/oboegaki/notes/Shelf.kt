@@ -183,8 +183,17 @@ class FolderShelf(private val resolver: ContentResolver, private val tree: Uri) 
         // ask: without both, a shorter note is written over the start of the longer one and
         // the old tail stays on the end. The Typewriter learned this the hard way.
         val descriptor = runCatching { resolver.openFileDescriptor(uri, "rwt") }.getOrNull()
-            ?: resolver.openFileDescriptor(uri, "rw")
-            ?: error("The folder would not let $path be written.")
+            ?: runCatching { resolver.openFileDescriptor(uri, "rw") }.getOrNull()
+        if (descriptor == null) {
+            // A provider that streams to a server, such as a DAVx5 WebDAV mount, refuses both
+            // ("Mode rw not supported by WebDAV"): it can only be written from the start. "wt"
+            // truncates; plain "w" is the last resort for one that knows no other mode.
+            val stream = runCatching { resolver.openOutputStream(uri, "wt") }.getOrNull()
+                ?: resolver.openOutputStream(uri, "w")
+                ?: error("The folder would not let $path be written.")
+            stream.use { it.write(bytes) }
+            return@synchronized
+        }
         descriptor.use {
             FileOutputStream(it.fileDescriptor).use { stream ->
                 stream.write(bytes)

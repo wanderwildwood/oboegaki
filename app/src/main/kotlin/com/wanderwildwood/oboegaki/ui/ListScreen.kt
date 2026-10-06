@@ -44,6 +44,8 @@ import com.wanderwildwood.oboegaki.notes.Moving
 import com.wanderwildwood.oboegaki.notes.SyncState
 import com.wanderwildwood.oboegaki.notes.arrange
 import com.wanderwildwood.oboegaki.notes.folders
+import com.wanderwildwood.oboegaki.notes.parentFolder
+import com.wanderwildwood.oboegaki.notes.subfolders
 
 /**
  * Every note, the last one touched at the top, whatever folder it is in.
@@ -150,7 +152,12 @@ fun ListScreen(
                     .padding(horizontal = 20.dp, vertical = 12.dp),
             )
 
-            if (shown.isEmpty()) {
+            // Inside a folder, the way back up and the folders in it come first, so a folder is
+            // walked like one rather than found only through the line above.
+            val current = Showing.folderOf(showing)?.takeIf { !searching }
+            val inside = current?.let { subfolders(allFolders, it) }.orEmpty()
+
+            if (shown.isEmpty() && current == null) {
                 TextMMD(
                     text = stringResource(if (notes.isEmpty()) R.string.list_empty else R.string.list_none_here),
                     style = MaterialTheme.typography.bodyMedium,
@@ -158,6 +165,32 @@ fun ListScreen(
                 )
             } else {
                 LazyColumnMMD(modifier = Modifier.fillMaxSize()) {
+                    if (current != null) {
+                        val parent = parentFolder(current)
+                        item(key = "up") {
+                            FolderRow(
+                                if (parent.isEmpty()) stringResource(R.string.list_up_all) else stringResource(R.string.list_up, parent.substringAfterLast('/')),
+                                null,
+                            ) { onView(if (parent.isEmpty()) Showing.ALL else Showing.folder(parent), order) }
+                        }
+                        for (folder in inside) {
+                            item(key = "folder:$folder") {
+                                val count = notes.count { it.folder == folder || it.folder.startsWith("$folder/") }
+                                FolderRow(folder.substringAfterLast('/'), pluralStringResource(R.plurals.list_folder, count, count)) {
+                                    onView(Showing.folder(folder), order)
+                                }
+                            }
+                        }
+                        if (shown.isEmpty()) {
+                            item(key = "none") {
+                                TextMMD(
+                                    text = stringResource(R.string.list_none_here),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                                )
+                            }
+                        }
+                    }
                     for (note in shown) {
                         item(key = note.path) {
                             NoteRow(note, note.path in shared, note.path in pinned, showFolder = Showing.folderOf(showing) == null) { onOpen(note) }
@@ -231,6 +264,8 @@ private fun ViewDialog(
             if (canShare) {
                 item { Choice(stringResource(R.string.view_shared), showing == Showing.SHARED) { onChoose(Showing.SHARED, order) } }
             }
+            item { Choice(stringResource(R.string.view_archive), showing == Showing.ARCHIVE) { onChoose(Showing.ARCHIVE, order) } }
+            if (folders.isNotEmpty()) item { DialogHeading(stringResource(R.string.view_folders)) }
             for (folder in folders) {
                 item(key = "folder-$folder") {
                     val depth = folder.count { it == '/' }
@@ -240,7 +275,6 @@ private fun ViewDialog(
                     ) { onChoose(Showing.folder(folder), order) }
                 }
             }
-            item { Choice(stringResource(R.string.view_archive), showing == Showing.ARCHIVE) { onChoose(Showing.ARCHIVE, order) } }
             item { DialogHeading(stringResource(R.string.view_order)) }
             item { Choice(stringResource(R.string.view_newest_choice), order == Order.CHANGED) { onChoose(showing, Order.CHANGED) } }
             item { Choice(stringResource(R.string.view_oldest_choice), order == Order.OLDEST) { onChoose(showing, Order.OLDEST) } }
@@ -283,6 +317,26 @@ private fun syncLine(sync: SyncState): String? = when (sync) {
     SyncState.Unreachable -> stringResource(R.string.sync_unreachable)
     SyncState.SignedOut -> stringResource(R.string.sync_signed_out)
     is SyncState.Failed -> stringResource(R.string.sync_failed, sync.why)
+}
+
+/** A folder in the list: its name, and how many notes are in it; or the way back up. */
+@Composable
+private fun FolderRow(name: String, line: String?, onClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+    ) {
+        TextMMD(
+            text = name,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        if (line != null) TextMMD(text = line, style = MaterialTheme.typography.labelSmall)
+    }
 }
 
 @Composable

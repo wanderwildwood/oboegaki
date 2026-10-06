@@ -3,12 +3,18 @@ package com.wanderwildwood.oboegaki.notes
 import android.content.Context
 import android.net.Uri
 import com.wanderwildwood.oboegaki.sync.Account
+import com.wanderwildwood.oboegaki.sync.DavAccount
 
 /** The order of the list. */
 enum class Order { CHANGED, OLDEST, TITLE }
 
 /** Where the notes are kept. NOWHERE until the reader has chosen. */
-enum class Keeping { NOWHERE, FOLDER, NEXTCLOUD }
+enum class Keeping {
+    NOWHERE, FOLDER, NEXTCLOUD, WEBDAV;
+
+    /** Kept on a server, through a copy on the phone that is synced with it. */
+    val isServer get() = this == NEXTCLOUD || this == WEBDAV
+}
 
 /**
  * What the reader chose, kept in the app's private preferences.
@@ -16,6 +22,8 @@ enum class Keeping { NOWHERE, FOLDER, NEXTCLOUD }
  * The Nextcloud app password is kept here as well. The app's storage is private to it and the
  * manifest turns backups off, so it leaves the phone only to go to the server it was made for;
  * and it is an app password, which the server can revoke on its own from its security page.
+ * A WebDAV server's password is kept the same way, beside its address; the form suggests an
+ * app password for it too, where the service offers one.
  */
 class Preferences(context: Context) {
 
@@ -43,10 +51,37 @@ class Preferences(context: Context) {
             .putString(PASSWORD, value?.password)
             .apply()
 
+    /** A WebDAV server, as it was typed in and checked. */
+    var dav: DavAccount?
+        get() {
+            val address = store.getString(DAV_ADDRESS, null) ?: return null
+            val user = store.getString(DAV_USER, null) ?: return null
+            val password = store.getString(DAV_PASSWORD, null) ?: return null
+            return DavAccount(address, user, password)
+        }
+        set(value) = store.edit()
+            .putString(DAV_ADDRESS, value?.address)
+            .putString(DAV_USER, value?.user)
+            .putString(DAV_PASSWORD, value?.password)
+            .apply()
+
+    /** The folder on the WebDAV server the notes live in, under its address. */
+    var davFolder: String
+        get() = store.getString(DAV_FOLDER, null) ?: "Notes"
+        set(value) = store.edit().putString(DAV_FOLDER, value.trim('/', ' ')).apply()
+
     /** The folder on the Nextcloud the notes live in, under the user's files. */
     var remoteFolder: String
         get() = store.getString(REMOTE_FOLDER, null) ?: "Notes"
         set(value) = store.edit().putString(REMOTE_FOLDER, value.trim('/', ' ')).apply()
+
+    /**
+     * The folder new notes are made in, under the notes folder: new notes, voice notes, scans,
+     * pictures and anything shared in. "" is the top, as it always was.
+     */
+    var newFolder: String
+        get() = store.getString(NEW_FOLDER, null) ?: ""
+        set(value) = store.edit().putString(NEW_FOLDER, value).apply()
 
     var order: Order
         get() = runCatching { Order.valueOf(store.getString(ORDER, null) ?: "") }.getOrDefault(Order.CHANGED)
@@ -78,7 +113,12 @@ class Preferences(context: Context) {
         const val USER = "user"
         const val PASSWORD = "password"
         const val REMOTE_FOLDER = "remote_folder"
+        const val DAV_ADDRESS = "dav_address"
+        const val DAV_USER = "dav_user"
+        const val DAV_PASSWORD = "dav_password"
+        const val DAV_FOLDER = "dav_folder"
         const val LAST_SYNC = "last_sync"
+        const val NEW_FOLDER = "new_folder"
         const val ORDER = "order"
         const val SHOWING = "showing"
         const val CAMERA = "camera"
