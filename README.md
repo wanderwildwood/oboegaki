@@ -17,7 +17,7 @@ Not a fork. Written from scratch in Kotlin and Jetpack Compose, using Mudita's o
 
 ## Where this is up to
 
-Version 0.1.1. On a Kompakt: notes and lists syncing through Nextcloud
+Version 0.1.3. On a Kompakt: notes and lists syncing through Nextcloud
 between two phones, a list shared between them and ticked on one while added to on the other,
 a voice note heard and written down, a page photographed and handed to the scanner.
 
@@ -68,6 +68,27 @@ two different ways there is no right answer, and both versions are kept, the oth
 
 **In a folder on the phone**, chosen through the system's picker. Nothing is synced by this
 app; if another app syncs that folder, the notes go wherever it takes them.
+
+**Changing your mind.** *Notes kept in*, at the top of the settings, offers the same two
+places again. With *Bring these notes along* on, the notes, and the recordings, scans and
+pictures beside them, are copied to the new place; the old place keeps every one. A note
+already there under the same name with different words is not written over: the one coming in
+is kept beside it as `name (other copy).md`.
+
+### With Obsidian
+
+A vault is a folder of Markdown files, so Notes can keep its notes in one. Obsidian itself is
+free; what is needed is something to keep the phone's folder and the computer's the same.
+
+- **Obsidian Sync.** Install Obsidian on the phone and open the synced vault once. Obsidian
+  keeps it in its own storage, where no other app can reach it, so in *Manage vaults* move the
+  vault to a folder such as `Documents`, then choose that folder (or a folder inside it) in Notes.
+- **[Syncthing](https://syncthing.net/)**, free, from the phone to the computer with no server
+  in between. On Android it is the Syncthing-Fork app. Sync a folder on the phone to one on the
+  computer, choose the phone's in Notes, and open the computer's as a vault. Both have to be on
+  for the changes to cross.
+- **Nextcloud.** Keep the notes on Nextcloud, and let the Nextcloud desktop app keep the folder
+  on the computer, to open as a vault.
 
 ## Sharing
 

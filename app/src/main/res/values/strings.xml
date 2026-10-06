@@ -67,7 +67,7 @@
     <string name="setup_nextcloud">Nextcloud</string>
     <string name="setup_nextcloud_note">Kept on your Nextcloud and on this phone. They open without a signal, and notes can be shared with other people on the same Nextcloud.</string>
     <string name="setup_folder">A folder on this phone</string>
-    <string name="setup_folder_note">Plain files in a folder you choose. If another app syncs that folder, the notes go wherever it takes them.</string>
+    <string name="setup_folder_note">Plain files in a folder you choose. If another app syncs that folder, such as Syncthing or Obsidian, the notes go wherever it takes them.</string>
 
     <!-- ============================================================ -->
     <!-- Signing in -->
@@ -100,9 +100,17 @@
     <string name="settings_synced_at">Last synced at %1$s</string>
     <string name="settings_sign_out">Sign out</string>
     <string name="settings_sign_out_confirm">Sign out — this phone\'s copies go, the server\'s stay; tap again</string>
-    <string name="settings_folder">Folder</string>
-    <string name="settings_leave_folder">Stop using this folder</string>
-    <string name="settings_leave_folder_confirm">Stop using this folder — tap again</string>
+    <string name="settings_kept">Notes kept in</string>
+    <!-- %1$s is a folder's name, e.g. "Documents" -->
+    <string name="settings_kept_folder">A folder on this phone: %1$s</string>
+    <string name="settings_bring">Bring these notes along</string>
+    <string name="settings_bring_note">They are copied, so the place they leave still has them all.</string>
+    <string name="moving_running">Bringing the notes over…</string>
+    <!-- %1$d is how many files -->
+    <plurals name="moving_failed">
+        <item quantity="one">%1$d file could not be brought over. It is still where the notes were.</item>
+        <item quantity="other">%1$d files could not be brought over. They are still where the notes were.</item>
+    </plurals>
 
     <!-- ============================================================ -->
     <!-- Sharing a note -->

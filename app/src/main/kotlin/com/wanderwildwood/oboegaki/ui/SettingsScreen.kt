@@ -62,13 +62,14 @@ import java.util.Date
 @Composable
 fun SettingsScreen(
     sync: SyncState,
-    onChooseFolder: () -> Unit,
+    onMove: (toNextcloud: Boolean, bring: Boolean) -> Unit,
     onSignIn: () -> Unit,
     onBack: () -> Unit,
 ) {
     val preferences = Notes.preferences
     val context = LocalContext.current
     var renaming by remember { mutableStateOf(false) }
+    var choosing by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface,
@@ -80,6 +81,16 @@ fun SettingsScreen(
         },
     ) { contentPadding ->
         LazyColumnMMD(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
+            item {
+                SettingRow(
+                    stringResource(R.string.settings_kept),
+                    when (preferences.keeping) {
+                        Keeping.NEXTCLOUD -> stringResource(R.string.setup_nextcloud)
+                        Keeping.FOLDER -> stringResource(R.string.settings_kept_folder, folderName(preferences.folder))
+                        Keeping.NOWHERE -> ""
+                    },
+                ) { choosing = true }
+            }
             item {
                 var on by remember { mutableStateOf(preferences.lockScreen) }
                 Row(
@@ -126,21 +137,19 @@ fun SettingsScreen(
                         }
                     }
                 }
-                Keeping.FOLDER -> {
-                    item {
-                        SettingRow(stringResource(R.string.settings_folder), folderName(preferences.folder), onClick = onChooseFolder)
-                    }
-                    item {
-                        Leave(stringResource(R.string.settings_leave_folder), stringResource(R.string.settings_leave_folder_confirm)) {
-                            preferences.keeping = Keeping.NOWHERE
-                            Notes.refresh()
-                            onBack()
-                        }
-                    }
-                }
-                Keeping.NOWHERE -> Unit
+                Keeping.FOLDER, Keeping.NOWHERE -> Unit
             }
         }
+    }
+
+    if (choosing) {
+        KeptDialog(
+            onDone = { toNextcloud, bring ->
+                choosing = false
+                onMove(toNextcloud, bring)
+            },
+            onDismiss = { choosing = false },
+        )
     }
 
     if (renaming) {
@@ -201,6 +210,42 @@ private fun Leave(label: String, confirm: String, onConfirm: () -> Unit) {
             .clickable { if (armed.value) onConfirm() else armed.value = true }
             .padding(horizontal = 20.dp, vertical = 16.dp),
     )
+}
+
+/**
+ * Somewhere else to keep the notes: the same two ways as the first screen, and whether the
+ * notes come along. They are copied, so the place they leave keeps them all.
+ */
+@Composable
+private fun KeptDialog(onDone: (toNextcloud: Boolean, bring: Boolean) -> Unit, onDismiss: () -> Unit) {
+    var bring by remember { mutableStateOf(true) }
+    EInkDialog(onDismiss = onDismiss) {
+        TextMMD(text = stringResource(R.string.setup_where), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+        Spacer(Modifier.height(16.dp))
+        ButtonMMD(onClick = { onDone(true, bring) }, modifier = Modifier.fillMaxWidth().height(48.dp)) {
+            TextMMD(text = stringResource(R.string.setup_nextcloud))
+        }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButtonMMD(onClick = { onDone(false, bring) }, modifier = Modifier.fillMaxWidth().height(48.dp)) {
+            TextMMD(text = stringResource(R.string.setup_folder))
+        }
+        Spacer(Modifier.height(12.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { bring = !bring }
+                .padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TextMMD(
+                text = stringResource(R.string.settings_bring),
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f),
+            )
+            SwitchMMD(checked = bring, onCheckedChange = null)
+        }
+        TextMMD(text = stringResource(R.string.settings_bring_note), style = MaterialTheme.typography.labelSmall)
+    }
 }
 
 @Composable

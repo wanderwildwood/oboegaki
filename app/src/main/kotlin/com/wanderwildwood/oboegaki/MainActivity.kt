@@ -24,6 +24,7 @@ import androidx.core.content.IntentCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mudita.mmd.ThemeMMD
 import com.wanderwildwood.oboegaki.notes.Keeping
+import com.wanderwildwood.oboegaki.notes.Move
 import com.wanderwildwood.oboegaki.notes.Notes
 import com.wanderwildwood.oboegaki.notes.sharedText
 import com.wanderwildwood.oboegaki.ui.PicturesDialog
@@ -163,6 +164,9 @@ private fun App(capture: MutableState<Capture?>) {
     var keeping by remember { mutableStateOf(Notes.preferences.keeping) }
     val recordingSeconds by Voice.recording.collectAsStateWithLifecycle()
     val made by Voice.made.collectAsStateWithLifecycle()
+    val moving by Notes.moving.collectAsStateWithLifecycle()
+    // Where the notes were, while the reader picks somewhere new for them.
+    var move by remember { mutableStateOf<Move?>(null) }
 
     fun record() {
         RecordService.start(context)
@@ -195,8 +199,10 @@ private fun App(capture: MutableState<Capture?>) {
             Notes.preferences.folder = uri
             Notes.preferences.keeping = Keeping.FOLDER
             keeping = Keeping.FOLDER
-            Notes.refresh()
+            move?.let(Notes::finishMove) ?: Notes.refresh()
+            screen = Screen.List
         }
+        move = null
     }
 
     // A capture waits for somewhere to keep it, and then opens straight into a new note.
@@ -235,6 +241,7 @@ private fun App(capture: MutableState<Capture?>) {
                 pinned = pinned,
                 canShare = keeping == Keeping.NEXTCLOUD,
                 sync = sync,
+                moving = moving,
                 showing = showing,
                 order = order,
                 onView = { s, o ->
@@ -298,7 +305,14 @@ private fun App(capture: MutableState<Capture?>) {
                 BackHandler { screen = Screen.List }
                 SettingsScreen(
                     sync = sync,
-                    onChooseFolder = { chooseFolder.launch(null) },
+                    onMove = { toNextcloud, bring ->
+                        if (toNextcloud && keeping == Keeping.NEXTCLOUD) {
+                            screen = Screen.SignIn
+                        } else {
+                            move = Notes.startMove(bring)
+                            if (toNextcloud) screen = Screen.SignIn else chooseFolder.launch(null)
+                        }
+                    },
                     onSignIn = { screen = Screen.SignIn },
                     onBack = {
                         keeping = Notes.preferences.keeping
@@ -307,13 +321,19 @@ private fun App(capture: MutableState<Capture?>) {
                 )
             }
             Screen.SignIn -> {
-                BackHandler { screen = if (keeping == Keeping.NOWHERE) Screen.List else Screen.Settings }
+                fun back() {
+                    move = null
+                    screen = if (keeping == Keeping.NOWHERE) Screen.List else Screen.Settings
+                }
+                BackHandler { back() }
                 SignInScreen(
                     onSignedIn = {
                         keeping = Keeping.NEXTCLOUD
+                        move?.let(Notes::finishMove)
+                        move = null
                         screen = Screen.List
                     },
-                    onBack = { screen = if (keeping == Keeping.NOWHERE) Screen.List else Screen.Settings },
+                    onBack = { back() },
                 )
             }
         }

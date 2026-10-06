@@ -24,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -39,6 +40,7 @@ import com.wanderwildwood.oboegaki.R
 import com.wanderwildwood.oboegaki.notes.Note
 import com.wanderwildwood.oboegaki.notes.Order
 import com.wanderwildwood.oboegaki.notes.Showing
+import com.wanderwildwood.oboegaki.notes.Moving
 import com.wanderwildwood.oboegaki.notes.SyncState
 import com.wanderwildwood.oboegaki.notes.arrange
 import com.wanderwildwood.oboegaki.notes.folders
@@ -59,6 +61,7 @@ fun ListScreen(
     pinned: Set<String>,
     canShare: Boolean,
     sync: SyncState,
+    moving: Moving?,
     showing: String,
     order: Order,
     onView: (showing: String, order: Order) -> Unit,
@@ -115,7 +118,7 @@ fun ListScreen(
         },
     ) { contentPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
-            syncLine(sync)?.let { line ->
+            (movingLine(moving) ?: syncLine(sync))?.let { line ->
                 TextMMD(
                     text = line,
                     style = MaterialTheme.typography.labelSmall,
@@ -265,6 +268,13 @@ private fun Choice(label: String, chosen: Boolean, onClick: () -> Unit) {
         overflow = TextOverflow.Ellipsis,
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 10.dp),
     )
+}
+
+@Composable
+private fun movingLine(moving: Moving?): String? = when (moving) {
+    Moving.Running -> stringResource(R.string.moving_running)
+    is Moving.Done -> if (moving.failed > 0) pluralStringResource(R.plurals.moving_failed, moving.failed, moving.failed) else null
+    null -> null
 }
 
 @Composable

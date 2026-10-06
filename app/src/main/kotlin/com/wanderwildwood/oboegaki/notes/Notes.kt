@@ -41,6 +41,18 @@ sealed interface SyncState {
 }
 
 /**
+ * Where the notes were kept, held while the reader chooses somewhere new. [bring]: whether
+ * they are copied across once the new place is ready.
+ */
+data class Move(val keeping: Keeping, val folder: Uri?, val bring: Boolean)
+
+/** How the last move went: running, or done with [failed] files that stayed behind. */
+sealed interface Moving {
+    data object Running : Moving
+    data class Done(val failed: Int) : Moving
+}
+
+/**
  * The notes, wherever they are kept, and the one place the screens go to change them.
  *
  * With Nextcloud the app works on a copy kept in its own storage, and [sync] brings that copy
@@ -159,8 +171,9 @@ object Notes {
         withContext(Dispatchers.IO) { syncing.withLock { runSync() } }
     }
 
-    private fun runSync() {
-        if (preferences.keeping != Keeping.NEXTCLOUD) return
+    /** [leaving]: one last sync of a Nextcloud being moved away from, so its last edits go up. */
+    private fun runSync(leaving: Boolean = false) {
+        if (preferences.keeping != Keeping.NEXTCLOUD && !leaving) return
         val account = preferences.account ?: return
         try {
             _sync.value = SyncState.Running
@@ -250,6 +263,102 @@ object Notes {
             _list.value = emptyList()
             syncNow()
         }
+    }
+
+    private val _moving = MutableStateFlow<Moving?>(null)
+    val moving: StateFlow<Moving?> = _moving
+
+    /** Where the notes are now, to be held while the reader chooses somewhere new. */
+    fun startMove(bring: Boolean) = Move(preferences.keeping, preferences.folder, bring)
+
+    /**
+     * The reader has chosen somewhere new, and [preferences] already say where. Bring the notes
+     * from where they were, if asked: copied, never moved, so the old place keeps every one.
+     *
+     * Leaving Nextcloud, the phone's copy goes up one last time first; it is let go afterwards
+     * only if that worked or the notes came along, so nothing typed offline is lost. Going to
+     * Nextcloud, the server's notes come down first, so one there with the same name is seen.
+     */
+    fun finishMove(from: Move) {
+        scope.launch {
+            val leavingNextcloud = from.keeping == Keeping.NEXTCLOUD && preferences.keeping != Keeping.NEXTCLOUD
+            var wentUp = false
+            if (leavingNextcloud) {
+                syncing.withLock { runSync(leaving = true) }
+                wentUp = _sync.value == SyncState.Idle
+            } else if (preferences.keeping == Keeping.NEXTCLOUD) {
+                syncAndWait()
+            }
+            val old = when (from.keeping) {
+                Keeping.NEXTCLOUD -> FileShelf(mirror)
+                Keeping.FOLDER -> from.folder?.let { FolderShelf(appContext.contentResolver, it) }
+                Keeping.NOWHERE -> null
+            }
+            val new = shelf()
+            var brought = false
+            if (from.bring && old != null && new != null) {
+                _moving.value = Moving.Running
+                val failed = copyAll(old, new)
+                _moving.value = Moving.Done(failed)
+                brought = failed == 0
+            }
+            if (leavingNextcloud && (wentUp || brought)) {
+                afterSync {
+                    nextcloudDir.deleteRecursively()
+                    preferences.account = null
+                    preferences.lastSync = 0
+                    _sync.value = SyncState.Idle
+                    _shared.value = emptySet()
+                }
+            }
+            afterEdit()
+        }
+    }
+
+    /**
+     * Copy every file from [from] to [to], and return how many could not be. A file already
+     * there the same is passed over; a note there that differs keeps its place, and the one
+     * coming in is kept beside it as "(other copy)", the way [save] keeps one it cannot merge.
+     * A recording or scan of the same name already there is left as it is.
+     */
+    private fun copyAll(from: Shelf, to: Shelf): Int {
+        var failed = 0
+        val there = runCatching { to.files().toSet() }.getOrDefault(emptySet())
+        for (path in runCatching { from.files() }.getOrDefault(emptyList())) {
+            if (path == PINS) continue
+            val ok = runCatching {
+                val bytes = from.readBytes(path) ?: error("unreadable")
+                synchronized(notesLock) {
+                    val note = isNote(path.substringAfterLast('/'))
+                    when {
+                        path !in there && note -> to.write(path, bytes.toString(Charsets.UTF_8))
+                        path !in there -> to.writeBytes(path, bytes, "application/octet-stream")
+                        note && !(to.readBytes(path) contentEquals bytes) ->
+                            to.write(otherCopy(to, path), bytes.toString(Charsets.UTF_8))
+                        else -> Unit
+                    }
+                }
+            }.isSuccess
+            if (!ok) failed++
+        }
+        val pins = runCatching { readPins(from) }.getOrDefault(emptySet())
+        if (pins.isNotEmpty()) runCatching { editPins { it.addAll(pins) } }
+        return failed
+    }
+
+    private fun otherCopy(shelf: Shelf, path: String): String {
+        val folder = path.substringBeforeLast('/', "")
+        val prefix = if (folder.isEmpty()) "" else "$folder/"
+        val name = path.substringAfterLast('/')
+        val stem = name.substringBeforeLast('.')
+        val ext = name.substringAfterLast('.', "md")
+        var candidate = "$prefix$stem (other copy).$ext"
+        var n = 2
+        while (shelf.exists(candidate)) {
+            candidate = "$prefix$stem (other copy $n).$ext"
+            n++
+        }
+        return candidate
     }
 
     fun read(path: String): String? = shelf()?.read(path)

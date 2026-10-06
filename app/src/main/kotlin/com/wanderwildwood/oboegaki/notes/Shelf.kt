@@ -5,6 +5,7 @@ import android.net.Uri
 import android.provider.DocumentsContract
 import android.system.ErrnoException
 import android.system.Os
+import com.wanderwildwood.oboegaki.sync.PINS
 import com.wanderwildwood.oboegaki.sync.isNote
 import java.io.File
 import java.io.FileOutputStream
@@ -45,6 +46,11 @@ interface Shelf {
 
     /** Somewhere a player can open the file at [path], or null if it is not there. */
     fun uriOf(path: String): Uri?
+
+    /** Every file kept here, notes and what sits beside them, and the pins: what a move takes along. */
+    fun files(): List<String>
+
+    fun readBytes(path: String): ByteArray?
 }
 
 /**
@@ -114,6 +120,19 @@ class FileShelf(
     }
 
     override fun uriOf(path: String): Uri? = File(root, path).takeIf { it.isFile }?.let(address)
+
+    override fun files(): List<String> = synchronized(notesLock) {
+        root.walkTopDown()
+            .onEnter { it == root || !it.name.startsWith(".") }
+            .filter { it.isFile }
+            .map { it.relativeTo(root).invariantSeparatorsPath }
+            .filter { !it.substringAfterLast('/').startsWith(".") || it == PINS }
+            .toList()
+    }
+
+    override fun readBytes(path: String): ByteArray? = synchronized(notesLock) {
+        File(root, path).takeIf { it.isFile }?.readBytes()
+    }
 }
 
 /**
@@ -229,6 +248,30 @@ class FolderShelf(private val resolver: ContentResolver, private val tree: Uri) 
 
     override fun uriOf(path: String): Uri? = synchronized(notesLock) {
         idOf(path)?.let { DocumentsContract.buildDocumentUriUsingTree(tree, it) }
+    }
+
+    override fun files(): List<String> = synchronized(notesLock) {
+        ids.clear()
+        ids[""] = rootId
+        val out = mutableListOf<String>()
+        val pending = ArrayDeque(listOf("" to rootId))
+        while (pending.isNotEmpty()) {
+            val (dir, id) = pending.removeFirst()
+            for (child in children(id)) {
+                val path = if (dir.isEmpty()) child.name else "$dir/${child.name}"
+                if (child.name.startsWith(".") && path != PINS) continue
+                ids[path] = child.id
+                if (child.isFolder) pending += path to child.id else out += path
+            }
+        }
+        out
+    }
+
+    override fun readBytes(path: String): ByteArray? = synchronized(notesLock) {
+        val id = idOf(path) ?: return null
+        runCatching {
+            resolver.openInputStream(DocumentsContract.buildDocumentUriUsingTree(tree, id))?.use { it.readBytes() }
+        }.getOrNull()
     }
 
     private data class Child(val id: String, val name: String, val isFolder: Boolean, val modified: Long)
