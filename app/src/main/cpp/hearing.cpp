@@ -1,5 +1,6 @@
-// The bridge between the app and whisper.cpp: load the model out of the APK, transcribe one
-// recording, hand back the text. Nothing is kept between calls.
+// The bridge between the app and whisper.cpp: load the model, transcribe one recording, hand
+// back the text. Nothing is kept between calls. The English model comes out of the APK; the
+// one for other languages is a file the app downloaded.
 
 #include <jni.h>
 #include <string>
@@ -27,20 +28,30 @@ void asset_close(void *ctx) {
 
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_wanderwildwood_oboegaki_hearing_Whisper_transcribe(
-        JNIEnv *env, jobject, jobject asset_manager, jstring asset_name,
-        jfloatArray samples, jint threads) {
-    AAssetManager *manager = AAssetManager_fromJava(env, asset_manager);
-    const char *name = env->GetStringUTFChars(asset_name, nullptr);
-    AAsset *asset = AAssetManager_open(manager, name, AASSET_MODE_STREAMING);
-    env->ReleaseStringUTFChars(asset_name, name);
-    if (asset == nullptr) return nullptr;
-
-    whisper_model_loader loader = {asset, asset_read, asset_eof, asset_close};
+        JNIEnv *env, jobject, jobject asset_manager, jstring asset_name, jstring model_path,
+        jstring language, jfloatArray samples, jint threads) {
     whisper_context_params cparams = whisper_context_default_params();
     cparams.use_gpu = false;
-    // The loader closes the asset itself, whether or not the load succeeds.
-    whisper_context *ctx = whisper_init_with_params(&loader, cparams);
+    whisper_context *ctx = nullptr;
+    if (model_path != nullptr) {
+        const char *path = env->GetStringUTFChars(model_path, nullptr);
+        ctx = whisper_init_from_file_with_params(path, cparams);
+        env->ReleaseStringUTFChars(model_path, path);
+    } else {
+        AAssetManager *manager = AAssetManager_fromJava(env, asset_manager);
+        const char *name = env->GetStringUTFChars(asset_name, nullptr);
+        AAsset *asset = AAssetManager_open(manager, name, AASSET_MODE_STREAMING);
+        env->ReleaseStringUTFChars(asset_name, name);
+        if (asset == nullptr) return nullptr;
+        whisper_model_loader loader = {asset, asset_read, asset_eof, asset_close};
+        // The loader closes the asset itself, whether or not the load succeeds.
+        ctx = whisper_init_with_params(&loader, cparams);
+    }
     if (ctx == nullptr) return nullptr;
+
+    const char *lang = env->GetStringUTFChars(language, nullptr);
+    std::string spoken(lang);
+    env->ReleaseStringUTFChars(language, lang);
 
     whisper_full_params params = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
     params.print_realtime = false;
@@ -48,7 +59,7 @@ Java_com_wanderwildwood_oboegaki_hearing_Whisper_transcribe(
     params.print_timestamps = false;
     params.print_special = false;
     params.translate = false;
-    params.language = "en";
+    params.language = spoken.c_str();
     params.n_threads = threads;
     params.no_context = true;
     // Non-speech markers like [BLANK_AUDIO] and (wind blowing) are not words anyone said.

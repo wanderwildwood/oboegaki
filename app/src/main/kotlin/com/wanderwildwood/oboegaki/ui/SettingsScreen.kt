@@ -18,6 +18,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,6 +48,7 @@ import com.wanderwildwood.oboegaki.notes.SyncState
 import com.wanderwildwood.oboegaki.notes.cleanFolder
 import com.wanderwildwood.oboegaki.notes.folders
 import com.wanderwildwood.oboegaki.glance.GlanceProvider
+import com.wanderwildwood.oboegaki.hearing.Speech
 import com.wanderwildwood.oboegaki.sync.LoginFlow
 import com.wanderwildwood.oboegaki.sync.Refused
 import kotlinx.coroutines.Dispatchers
@@ -77,6 +79,9 @@ fun SettingsScreen(
     var renaming by remember { mutableStateOf(false) }
     var choosing by remember { mutableStateOf(false) }
     var choosingFolder by remember { mutableStateOf(false) }
+    var choosingSpeech by remember { mutableStateOf(false) }
+    val speech by Speech.state.collectAsState()
+    val spoken by Speech.chosen.collectAsState()
     var newFolder by remember { mutableStateOf(preferences.newFolder) }
     val keptFolder = remember(preferences.folder) { folderName(preferences.folder, context.contentResolver) }
 
@@ -131,6 +136,19 @@ fun SettingsScreen(
                     SwitchMMD(checked = on, onCheckedChange = null)
                 }
                 HorizontalDividerMMD()
+            }
+            item {
+                SettingRow(
+                    stringResource(R.string.speech_title),
+                    when (val now = speech) {
+                        is Speech.State.Downloading -> stringResource(R.string.speech_downloading, Speech.named(now.language), now.percent)
+                        is Speech.State.Failed -> stringResource(R.string.speech_failed, Speech.named(now.language))
+                        Speech.State.Idle -> Speech.named(spoken)
+                    },
+                ) {
+                    val now = speech
+                    if (now is Speech.State.Failed) Speech.choose(context, now.language) else choosingSpeech = true
+                }
             }
             when (preferences.keeping) {
                 Keeping.NEXTCLOUD -> {
@@ -191,6 +209,16 @@ fun SettingsScreen(
                 onMove(to, bring)
             },
             onDismiss = { choosing = false },
+        )
+    }
+
+    if (choosingSpeech) {
+        SpeechDialog(
+            current = (speech as? Speech.State.Downloading)?.language ?: spoken,
+            onDone = { language ->
+                choosingSpeech = false
+                if (language != null) Speech.choose(context, language)
+            },
         )
     }
 
@@ -327,6 +355,40 @@ private fun KeptDialog(onDone: (to: Keeping, bring: Boolean) -> Unit, onDismiss:
             SwitchMMD(checked = bring, onCheckedChange = null)
         }
         TextMMD(text = stringResource(R.string.settings_bring_note), style = MaterialTheme.typography.labelSmall)
+    }
+}
+
+/**
+ * The language voice notes are heard in. A language that needs the download asks first, with
+ * its size, since it goes over whatever connection the phone has.
+ */
+@Composable
+private fun SpeechDialog(current: String, onDone: (String?) -> Unit) {
+    var asking by remember { mutableStateOf<Speech.Language?>(null) }
+    EInkDialog(onDismiss = { onDone(null) }) {
+        val ask = asking
+        if (ask == null) {
+            TextMMD(text = stringResource(R.string.speech_title), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.height(4.dp))
+            TextMMD(text = stringResource(R.string.speech_note), style = MaterialTheme.typography.labelSmall)
+            LazyColumnMMD(modifier = Modifier.fillMaxWidth().heightIn(max = 260.dp)) {
+                for (language in Speech.languages) {
+                    item(key = language.code) {
+                        FolderChoice(language.name, language.code == current) {
+                            if (language.code == "en" || Speech.downloaded()) onDone(language.code) else asking = language
+                        }
+                    }
+                }
+            }
+        } else {
+            TextMMD(text = stringResource(R.string.speech_ask, ask.name), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.height(8.dp))
+            TextMMD(text = stringResource(R.string.speech_note), style = MaterialTheme.typography.labelSmall)
+            Spacer(Modifier.height(16.dp))
+            ButtonMMD(onClick = { onDone(ask.code) }, modifier = Modifier.fillMaxWidth().height(48.dp)) {
+                TextMMD(text = stringResource(R.string.speech_download))
+            }
+        }
     }
 }
 

@@ -31,7 +31,9 @@ a voice note heard and written down, a page photographed and handed to the scann
   off. Stopping makes a note with the recording beside it, linked the way Obsidian links
   (`![[Voice 2026-10-03 0742.m4a]]`), and plays it in place. Then the phone listens to it and
   writes the words under the link; on a Kompakt that takes about as long as the recording.
-  It hears English only, and it mishears: the recording stays, and is the real one.
+  It hears English, or one of a dozen other languages chosen in the settings (Czech, Danish,
+  Dutch, Finnish, French, German, Italian, Norwegian, Polish, Portuguese, Spanish, Swedish),
+  and it mishears: the recording stays, and is the real one.
 - **Scans.** A photograph of a page, from a camera app or one already taken. The page's
   corners are guessed and dragged where the guess is wrong, and it can be turned a quarter at
   a time. Each page is straightened and kept in black and white, in greys, or in color, and the
@@ -159,6 +161,10 @@ The words are worked out on the phone. Recordings go nowhere but where the notes
 
 About 65 MB, nearly all of it the speech model, `ggml-base.en-q5_1` (57 MB, English only), the
 same one [Dream Log](https://github.com/wanderwildwood/yumecho) uses.
+
+Choosing another language for voice notes downloads Whisper's multilingual model,
+`ggml-base-q5_1` (60 MB), once, from Hugging Face, into the app's own storage. It is used only
+if its SHA-256 matches the one in the app. Choosing English again deletes it.
 
 ## Getting it, and keeping it
 

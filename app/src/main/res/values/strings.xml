@@ -259,6 +259,17 @@
     <string name="picture_unreadable">That picture could not be read.</string>
 
     <!-- ============================================================ -->
+    <!-- The language voice notes are heard in -->
+
+    <string name="speech_title">Voice notes heard in</string>
+    <!-- Under the row while the other languages' model downloads: "Deutsch: downloading, 40%" -->
+    <string name="speech_downloading">%1$s: downloading, %2$d%%</string>
+    <string name="speech_failed">%1$s: the download did not finish. Tap to try again.</string>
+    <string name="speech_note">English is built in. Any other language needs a second listening model, about 60 MB, downloaded once from Hugging Face over the internet. Choosing English again deletes it.</string>
+    <string name="speech_download">Download (60 MB)</string>
+    <string name="speech_ask">Download the model for %1$s?</string>
+
+    <!-- ============================================================ -->
     <!-- On the lock screen, through the Glance app -->
 
     <string name="settings_lock_screen">Pinned notes on the lock screen</string>

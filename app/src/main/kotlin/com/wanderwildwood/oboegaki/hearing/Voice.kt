@@ -18,7 +18,8 @@ import java.util.concurrent.Executors
  * Stopping writes the sound beside a new note, "Voice 2026-10-05 0214.m4a" next to
  * "Voice 2026-10-05 0214.md", and the note links it the way Obsidian does, `![[…]]`, so the
  * same folder opened on a computer shows the same thing. Then the recording is heard on the
- * phone, with Dream Log's Whisper, and the words go into the note under the link.
+ * phone, with Dream Log's Whisper, and the words go into the note under the link. English
+ * unless another language was chosen in the settings; see [Speech].
  *
  * Hearing takes about as long as the recording did, on the Kompakt. It happens in the
  * background, one at a time, and whatever was waiting when the app last closed is picked up
@@ -51,6 +52,7 @@ object Voice {
     fun init(context: Context) {
         if (::app.isInitialized) return
         app = context.applicationContext
+        Speech.init(app)
         refreshHearing()
     }
 
@@ -144,11 +146,14 @@ object Voice {
         val stamp = target.name.removeSuffix(".target")
         val wav = File(dir, "$stamp.wav")
         val (notePath, audioPath) = target.readLines().let { (it.getOrNull(0) ?: "") to (it.getOrNull(1) ?: "") }
+        // The English model in the APK if the other one has gone missing, rather than nothing.
+        val model = Speech.modelFor(Speech.language)
+        val language = if (model == null) "en" else Speech.language
         val samples = runCatching { Wav.samples(wav.readBytes()) }.getOrNull()
         val text = when {
             samples == null -> ""
             !Listening.anythingSaid(samples) -> ""
-            else -> Whisper.transcribe(app.assets, Whisper.MODEL, samples, THREADS)
+            else -> Whisper.transcribe(app.assets, Whisper.MODEL, model?.path, language, samples, THREADS)
                 ?.let(Listening::tidy)
                 // Whisper could not run at all: left waiting, and tried again next time.
                 ?: return
