@@ -27,6 +27,7 @@ import com.wanderwildwood.oboegaki.notes.Keeping
 import com.wanderwildwood.oboegaki.notes.Move
 import com.wanderwildwood.oboegaki.notes.Notes
 import com.wanderwildwood.oboegaki.notes.Showing
+import com.wanderwildwood.oboegaki.notes.SyncApps
 import com.wanderwildwood.oboegaki.notes.sharedText
 import com.wanderwildwood.oboegaki.ui.PicturesDialog
 import com.wanderwildwood.oboegaki.ui.PicturesFailedDialog
@@ -102,8 +103,17 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         Notes.refresh()
         Notes.syncNow()
+        if (Notes.preferences.keeping == Keeping.FOLDER) {
+            if (Notes.preferences.wakeSyncthing) SyncApps.wakeSyncthing(this)
+            Notes.watch()
+        }
         // Anything left unheard because the app was closed partway is picked up on opening.
         Voice.catchUp(this)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        Notes.stopWatching()
     }
 
     /**

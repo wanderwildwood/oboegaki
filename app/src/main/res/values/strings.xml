@@ -273,6 +273,17 @@
     <!-- On the lock screen, through the Glance app -->
 
     <string name="settings_lock_screen">Pinned notes on the lock screen</string>
+    <!-- Settings, with the notes in a folder and Syncthing-Fork on the phone: a switch -->
+    <string name="settings_wake_syncthing">Wake Syncthing-Fork when Notes opens</string>
+    <!-- Under that switch: the Syncthing-Fork setting it needs, named as Syncthing-Fork names it -->
+    <string name="settings_wake_syncthing_note">So notes made on the computer come in without opening Syncthing-Fork. It listens only with Settings › Behavior › Service Control by Broadcast switched on.</string>
+    <!-- Settings, on a Kompakt with the notes in a folder. %1$s is the app or apps that carry the folder, e.g. "Syncthing-Fork" -->
+    <string name="settings_duraspeed">The phone\'s DuraSpeed setting can stop %1$s while the screen is off, and then notes made on the computer wait until you open it. Open DuraSpeed, tap Open, and switch %1$s on.</string>
+    <string name="settings_duraspeed_open">Open DuraSpeed</string>
+    <!-- Under the DuraSpeed row: pressing it says the app is now switched on there, and the row folds away -->
+    <string name="settings_duraspeed_done">It\'s switched on</string>
+    <!-- Joins two app names in the DuraSpeed row: "Syncthing-Fork and Obsidian" -->
+    <string name="settings_duraspeed_and">%1$s and %2$s</string>
     <string name="lock_heading">Notes</string>
     <!-- A pinned list on the lock screen: "Groceries · 3 to get" -->
     <plurals name="lock_left">
@@ -303,7 +314,7 @@
     <string name="obsidian_davx5_heading">A DAVx5 mount</string>
     <string name="obsidian_davx5">If you already use DAVx5, its WebDAV mounts put a WebDAV folder in the phone\'s folder picker, and Notes can keep its notes there as a folder on this phone. The mount reads from the server as files are opened, so there is no copy to open without a signal and no merging of two people\'s edits; a WebDAV server chosen in Notes itself keeps a copy here and merges.</string>
     <string name="obsidian_syncthing_heading">Syncthing</string>
-    <string name="obsidian_syncthing">Install Syncthing-Fork on the phone and Syncthing on the computer, and sync a folder on the phone with one on the computer, with no server between them. Keep the notes in the phone\'s folder and open the computer\'s as a vault; both have to be on for changes to cross.</string>
+    <string name="obsidian_syncthing">Install Syncthing-Fork on the phone and Syncthing on the computer, and sync a folder on the phone with one on the computer, with no server between them. Keep the notes in the phone\'s folder and open the computer\'s as a vault; both have to be on for changes to cross. Obsidian rewrites .obsidian/workspace.json all the time, so add the ignore pattern .obsidian/workspace* in Syncthing on both, or it makes conflict copies.</string>
     <string name="obsidian_nextcloud_heading">Nextcloud</string>
     <string name="obsidian_nextcloud">Keep the notes on your Nextcloud, and let the Nextcloud desktop app keep the folder on the computer. Open that folder as a vault.</string>
     <string name="obsidian_sync_heading">Obsidian Sync</string>

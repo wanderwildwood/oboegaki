@@ -44,6 +44,7 @@ import com.mudita.mmd.components.top_app_bar.TopAppBarMMD
 import com.wanderwildwood.oboegaki.R
 import com.wanderwildwood.oboegaki.notes.Keeping
 import com.wanderwildwood.oboegaki.notes.Notes
+import com.wanderwildwood.oboegaki.notes.SyncApps
 import com.wanderwildwood.oboegaki.notes.SyncState
 import com.wanderwildwood.oboegaki.notes.cleanFolder
 import com.wanderwildwood.oboegaki.notes.folders
@@ -83,6 +84,9 @@ fun SettingsScreen(
     val speech by Speech.state.collectAsState()
     val spoken by Speech.chosen.collectAsState()
     var newFolder by remember { mutableStateOf(preferences.newFolder) }
+    var duraSpeedDone by remember { mutableStateOf(preferences.duraSpeedDone) }
+    val carriers = remember { SyncApps.carriers(context) }
+    val hasDuraSpeed = remember { SyncApps.hasDuraSpeed(context) }
     val keptFolder = remember(preferences.folder) { folderName(preferences.folder, context.contentResolver) }
 
     Scaffold(
@@ -197,7 +201,54 @@ fun SettingsScreen(
                         }
                     }
                 }
-                Keeping.FOLDER, Keeping.NOWHERE -> Unit
+                Keeping.FOLDER -> {
+                    // A note made on the computer reaches the folder only while the app that
+                    // carries it is running, so these are about that app, not Notes.
+                    val syncthing = SyncApps.syncthingFork(context)
+                    if (syncthing != null) {
+                        item {
+                            var on by remember { mutableStateOf(preferences.wakeSyncthing) }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        on = !on
+                                        preferences.wakeSyncthing = on
+                                        if (on) SyncApps.wakeSyncthing(context)
+                                    }
+                                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    TextMMD(text = stringResource(R.string.settings_wake_syncthing), style = MaterialTheme.typography.bodyLarge)
+                                    TextMMD(text = stringResource(R.string.settings_wake_syncthing_note), style = MaterialTheme.typography.labelSmall)
+                                }
+                                SwitchMMD(checked = on, onCheckedChange = null)
+                            }
+                            HorizontalDividerMMD()
+                        }
+                    }
+                    // DuraSpeed's list cannot be read, so the second row is how the reader says
+                    // the app is on it; the row then folds away.
+                    if (carriers.isNotEmpty() && hasDuraSpeed && !duraSpeedDone) {
+                        item {
+                            val named = when (carriers.size) {
+                                1 -> carriers[0]
+                                else -> stringResource(R.string.settings_duraspeed_and, carriers.dropLast(1).joinToString(", "), carriers.last())
+                            }
+                            SettingRow(stringResource(R.string.settings_duraspeed, named), stringResource(R.string.settings_duraspeed_open)) {
+                                runCatching { context.startActivity(SyncApps.duraSpeedInfo().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                            }
+                        }
+                        item {
+                            SettingRow(stringResource(R.string.settings_duraspeed_done), "") {
+                                preferences.duraSpeedDone = true
+                                duraSpeedDone = true
+                            }
+                        }
+                    }
+                }
+                Keeping.NOWHERE -> Unit
             }
         }
     }

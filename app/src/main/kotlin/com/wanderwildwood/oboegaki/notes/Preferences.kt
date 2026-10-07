@@ -107,6 +107,16 @@ class Preferences(context: Context) {
         get() = store.getString(SPEECH_LANGUAGE, null) ?: "en"
         set(value) = store.edit().putString(SPEECH_LANGUAGE, value).apply()
 
+    /** Whether opening the app asks Syncthing-Fork to run, when the notes are in a folder. */
+    var wakeSyncthing: Boolean
+        get() = store.getBoolean(WAKE_SYNCTHING, true)
+        set(value) = store.edit().putBoolean(WAKE_SYNCTHING, value).apply()
+
+    /** The reader's word that the sync app is switched on in DuraSpeed's list. */
+    var duraSpeedDone: Boolean
+        get() = store.getBoolean(DURASPEED_DONE, false)
+        set(value) = store.edit().putBoolean(DURASPEED_DONE, value).apply()
+
     var lastSync: Long
         get() = store.getLong(LAST_SYNC, 0L)
         set(value) = store.edit().putLong(LAST_SYNC, value).apply()
@@ -129,5 +139,7 @@ class Preferences(context: Context) {
         const val CAMERA = "camera"
         const val LOCK_SCREEN = "lock_screen"
         const val SPEECH_LANGUAGE = "speech_language"
+        const val WAKE_SYNCTHING = "wake_syncthing"
+        const val DURASPEED_DONE = "duraspeed_done"
     }
 }

@@ -51,6 +51,13 @@ interface Shelf {
     fun files(): List<String>
 
     fun readBytes(path: String): ByteArray?
+
+    /**
+     * Something that changes whenever a note or the pins change here, cheap enough to ask
+     * for every few seconds: names and times only, nothing read. Null where only the app
+     * itself writes, so there is nothing to watch for.
+     */
+    fun stamp(): String? = null
 }
 
 /**
@@ -174,6 +181,28 @@ class FolderShelf(private val resolver: ContentResolver, private val tree: Uri) 
         val id = idOf(path) ?: return null
         runCatching { readId(id) }.getOrNull()
     }
+
+    // Another app may write into the folder at any time, Syncthing above all, and the
+    // provider tells no one, so the app asks.
+    override fun stamp(): String? = synchronized(notesLock) {
+        runCatching {
+            val out = StringBuilder()
+            val pending = ArrayDeque(listOf("" to rootId))
+            while (pending.isNotEmpty()) {
+                val (dir, id) = pending.removeFirst()
+                for (child in children(id).sortedBy { it.name }) {
+                    val path = if (dir.isEmpty()) child.name else "$dir/${child.name}"
+                    if (child.name.startsWith(".") && path != PINS) continue
+                    if (child.isFolder) pending += path to child.id
+                    else if (isNote(child.name) || path == PINS) out.append(path).append('\u0000').append(child.modified).append('\n')
+                }
+            }
+            out.toString()
+        }.getOrNull()
+    }
+
+    /** Whether the folder is on this phone, so a look every few seconds costs nothing. */
+    val isLocal: Boolean get() = tree.authority == "com.android.externalstorage.documents"
 
     override fun write(path: String, text: String) = synchronized(notesLock) {
         val id = idOf(path) ?: create(path)

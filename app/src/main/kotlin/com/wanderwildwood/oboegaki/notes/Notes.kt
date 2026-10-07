@@ -18,7 +18,10 @@ import com.wanderwildwood.oboegaki.sync.Unreachable
 import com.wanderwildwood.oboegaki.sync.merge
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -101,6 +104,35 @@ object Notes {
 
     fun refresh() {
         scope.launch { reload() }
+    }
+
+    private var watching: Job? = null
+
+    /**
+     * While the app is in front, with the notes in a folder, look every few seconds for what
+     * another app has written there, so a note made in Obsidian shows up once Syncthing brings
+     * it, with nothing to reopen. A folder on a server, such as a DAVx5 mount, is asked less often.
+     */
+    fun watch() {
+        if (watching?.isActive == true) return
+        val shelf = shelf() as? FolderShelf ?: return
+        watching = scope.launch {
+            var seen = shelf.stamp()
+            while (isActive) {
+                delay(if (shelf.isLocal) 10_000L else 60_000L)
+                val now = shelf.stamp() ?: continue
+                if (now != seen) {
+                    seen = now
+                    reload()
+                    _changed.value++
+                }
+            }
+        }
+    }
+
+    fun stopWatching() {
+        watching?.cancel()
+        watching = null
     }
 
     private val _pins = MutableStateFlow<Set<String>>(emptySet())

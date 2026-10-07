@@ -103,7 +103,12 @@ together.
 - **[Syncthing](https://syncthing.net/)**, free, from the phone to the computer with no server
   in between. On Android it is the Syncthing-Fork app. Sync a folder on the phone to one on the
   computer, choose the phone's in Notes, and open the computer's as a vault. Both have to be on
-  for the changes to cross.
+  for the changes to cross. Obsidian rewrites `.obsidian/workspace.json` all the time, so add the
+  ignore pattern `.obsidian/workspace*` in Syncthing on both, or it makes conflict copies.
+  If notes from the computer arrive only once Syncthing-Fork is opened, switch on
+  *Settings › Behavior › Service Control by Broadcast* in Syncthing-Fork, and Notes wakes it
+  each time it opens (*Wake Syncthing-Fork when Notes opens*, on by default). On a Kompakt,
+  also switch Syncthing-Fork on in DuraSpeed's list: Notes' settings have a button for it.
 - **Nextcloud.** Keep the notes on Nextcloud, and let the Nextcloud desktop app keep the folder
   on the computer, to open as a vault.
 - **A WebDAV service**, with no server of your own. [Koofr](https://koofr.eu/) has a free
