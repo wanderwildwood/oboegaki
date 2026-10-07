@@ -117,6 +117,16 @@ class Preferences(context: Context) {
         get() = store.getBoolean(DURASPEED_DONE, false)
         set(value) = store.edit().putBoolean(DURASPEED_DONE, value).apply()
 
+    /** The newest stop by the system already seen, so each is counted once. */
+    var stopSeen: Long
+        get() = store.getLong(STOP_SEEN, 0L)
+        set(value) = store.edit().putLong(STOP_SEEN, value).apply()
+
+    /** When the system last stopped Notes, which cancels its reminders, or 0. */
+    var stoppedAt: Long
+        get() = store.getLong(STOPPED_AT, 0L)
+        set(value) = store.edit().putLong(STOPPED_AT, value).apply()
+
     var lastSync: Long
         get() = store.getLong(LAST_SYNC, 0L)
         set(value) = store.edit().putLong(LAST_SYNC, value).apply()
@@ -141,5 +151,7 @@ class Preferences(context: Context) {
         const val SPEECH_LANGUAGE = "speech_language"
         const val WAKE_SYNCTHING = "wake_syncthing"
         const val DURASPEED_DONE = "duraspeed_done"
+        const val STOP_SEEN = "stop_seen"
+        const val STOPPED_AT = "stopped_at"
     }
 }

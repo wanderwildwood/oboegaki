@@ -457,6 +457,7 @@ fun preview(text: String): String {
 fun plain(line: String): String {
     var s = line.trim()
     while (s.startsWith(">")) s = s.removePrefix(">").trimStart()
+    if (s.contains('⏰')) s = withoutReminder(s)
     s = s.removePrefix("- [ ] ").removePrefix("- [x] ").removePrefix("- [X] ")
         .removePrefix("- ").removePrefix("* ").removePrefix("+ ")
     // A link reads as its words, "[Moss Gardens](https://…)" as "Moss Gardens".

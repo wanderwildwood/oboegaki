@@ -6,6 +6,8 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings as AndroidSettings
+import com.wanderwildwood.oboegaki.BuildConfig
+import java.io.File
 
 /**
  * The apps that carry a notes folder to and from a computer, when the notes are kept in one.
@@ -63,11 +65,17 @@ object SyncApps {
         runCatching { context.sendBroadcast(Intent("$pkg.action.FOLLOW").setPackage(pkg)) }
     }
 
-    /** Whether the DuraSpeed row belongs in Settings: a Kompakt with DuraSpeed on it. */
-    fun hasDuraSpeed(context: Context): Boolean = isKompakt() && runCatching {
-        context.packageManager.getApplicationInfo(DURASPEED, PackageManager.MATCH_SYSTEM_ONLY)
-        true
-    }.getOrDefault(false)
+    /**
+     * Whether the DuraSpeed row belongs in Settings: a Kompakt with DuraSpeed on it, or, in a
+     * debug build only, an emulator told to act as one by a file named `pretend-kompakt` in the
+     * app's files, so the row can be seen without the phone.
+     */
+    fun hasDuraSpeed(context: Context): Boolean =
+        (BuildConfig.DEBUG && File(context.filesDir, "pretend-kompakt").exists()) ||
+            isKompakt() && runCatching {
+                context.packageManager.getApplicationInfo(DURASPEED, PackageManager.MATCH_SYSTEM_ONLY)
+                true
+            }.getOrDefault(false)
 
     fun duraSpeedInfo(): Intent = Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS)
         .setData(Uri.parse("package:$DURASPEED"))

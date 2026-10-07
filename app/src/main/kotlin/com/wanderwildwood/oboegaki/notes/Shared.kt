@@ -51,9 +51,13 @@ private fun escapeLinkTarget(s: String): String =
 /**
  * A note's words for a calendar event's description: the lines that only embed a recording,
  * a scan or a picture left out, since a calendar cannot show them, and no longer than [limit].
+ * Front matter and reminder times are the note's business, not the event's.
  */
 fun reminderText(text: String, limit: Int = 1000): String {
+    val hidden = frontMatter(text)
     val kept = text.lines()
+        .filterIndexed { i, _ -> hidden == null || i !in hidden }
+        .map { if (it.contains('⏰')) withoutReminder(it) else it }
         .filterNot { line -> line.trim().let { it.startsWith("![[") && it.endsWith("]]") } }
         .joinToString("\n")
         .replace(Regex("\n{3,}"), "\n\n")

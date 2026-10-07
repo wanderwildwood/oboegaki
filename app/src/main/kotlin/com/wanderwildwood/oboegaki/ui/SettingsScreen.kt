@@ -42,6 +42,7 @@ import com.mudita.mmd.components.text.TextMMD
 import com.mudita.mmd.components.text_field.TextFieldMMD
 import com.mudita.mmd.components.top_app_bar.TopAppBarMMD
 import com.wanderwildwood.oboegaki.R
+import com.wanderwildwood.oboegaki.remind.Reminders
 import com.wanderwildwood.oboegaki.notes.Keeping
 import com.wanderwildwood.oboegaki.notes.Notes
 import com.wanderwildwood.oboegaki.notes.SyncApps
@@ -87,6 +88,7 @@ fun SettingsScreen(
     var duraSpeedDone by remember { mutableStateOf(preferences.duraSpeedDone) }
     val carriers = remember { SyncApps.carriers(context) }
     val hasDuraSpeed = remember { SyncApps.hasDuraSpeed(context) }
+    val hasReminders = remember { Reminders.load(context).isNotEmpty() }
     val keptFolder = remember(preferences.folder) { folderName(preferences.folder, context.contentResolver) }
 
     Scaffold(
@@ -228,27 +230,35 @@ fun SettingsScreen(
                             HorizontalDividerMMD()
                         }
                     }
-                    // DuraSpeed's list cannot be read, so the second row is how the reader says
-                    // the app is on it; the row then folds away.
-                    if (carriers.isNotEmpty() && hasDuraSpeed && !duraSpeedDone) {
-                        item {
-                            val named = when (carriers.size) {
-                                1 -> carriers[0]
-                                else -> stringResource(R.string.settings_duraspeed_and, carriers.dropLast(1).joinToString(", "), carriers.last())
-                            }
-                            SettingRow(stringResource(R.string.settings_duraspeed, named), stringResource(R.string.settings_duraspeed_open)) {
-                                runCatching { context.startActivity(SyncApps.duraSpeedInfo().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
-                            }
-                        }
-                        item {
-                            SettingRow(stringResource(R.string.settings_duraspeed_done), "") {
-                                preferences.duraSpeedDone = true
-                                duraSpeedDone = true
-                            }
-                        }
-                    }
                 }
                 Keeping.NOWHERE -> Unit
+            }
+            // One row for everything DuraSpeed can stop: Notes, when reminders are set here,
+            // and the apps carrying a folder of notes. Its list cannot be read, so the second
+            // row is how the reader says the apps are on it; the row then folds away.
+            val folderCarriers = if (preferences.keeping == Keeping.FOLDER) carriers else emptyList()
+            if (hasDuraSpeed && !duraSpeedDone && (folderCarriers.isNotEmpty() || hasReminders)) {
+                item {
+                    val named = when (folderCarriers.size) {
+                        0 -> ""
+                        1 -> folderCarriers[0]
+                        else -> stringResource(R.string.settings_duraspeed_and, folderCarriers.dropLast(1).joinToString(", "), folderCarriers.last())
+                    }
+                    val text = when {
+                        !hasReminders -> stringResource(R.string.settings_duraspeed, named)
+                        named.isEmpty() -> stringResource(R.string.settings_duraspeed_reminders)
+                        else -> stringResource(R.string.settings_duraspeed_both, named)
+                    }
+                    SettingRow(text, stringResource(R.string.settings_duraspeed_open)) {
+                        runCatching { context.startActivity(SyncApps.duraSpeedInfo().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                    }
+                }
+                item {
+                    SettingRow(stringResource(R.string.settings_duraspeed_done), "") {
+                        preferences.duraSpeedDone = true
+                        duraSpeedDone = true
+                    }
+                }
             }
         }
     }

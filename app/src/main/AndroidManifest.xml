@@ -12,6 +12,15 @@
     <!-- Keeps the processor, not the screen, awake while recording and while hearing. -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <!-- Reminders ring as an alarm clock does: exact, and through Doze. -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!-- An alarm does not survive a restart: this is how reminders are set again. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- A reminder fills the screen over the lock screen when the screen is off. -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <!-- Asked for by Android 13 and later; Android 12, the Kompakt's, has notifications on. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <!-- Lets the text-selection menu see other apps' text actions, such as Define from the
          Dictionary, beside Copy. Without it Android 11+ hides them from this app. -->
     <queries>
@@ -25,7 +34,7 @@
         <intent>
             <action android:name="android.media.action.IMAGE_CAPTURE" />
         </intent>
-        <!-- Remind me: a calendar app that makes a new event from a title and a description. -->
+        <!-- Add to a calendar: a calendar app that makes a new event from a title and a description. -->
         <intent>
             <action android:name="android.intent.action.INSERT" />
             <data android:mimeType="vnd.android.cursor.dir/event" />
@@ -136,6 +145,39 @@
             android:name=".capture.CaptureProvider"
             android:authorities="com.wanderwildwood.oboegaki.capture"
             android:exported="true" />
+
+        <!-- A reminder over the lock screen. Its own task, out of Recents, so answering it
+             leaves the phone where it was. -->
+        <activity
+            android:name=".remind.ReminderActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleInstance"
+            android:taskAffinity="com.wanderwildwood.oboegaki.reminder"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:screenOrientation="portrait"
+            android:configChanges="keyboardHidden|orientation|screenSize" />
+
+        <receiver
+            android:name=".remind.AlarmReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".remind.ActionReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".remind.SystemReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
+            </intent-filter>
+        </receiver>
 
         <service
             android:name=".hearing.RecordService"

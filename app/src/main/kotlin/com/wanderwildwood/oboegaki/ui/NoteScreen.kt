@@ -66,6 +66,17 @@ import com.mudita.mmd.components.buttons.OutlinedButtonMMD
 import com.wanderwildwood.oboegaki.notes.embeds
 import com.wanderwildwood.oboegaki.notes.isArchived
 import com.wanderwildwood.oboegaki.hearing.Voice
+import com.wanderwildwood.oboegaki.notes.Reminder
+import com.wanderwildwood.oboegaki.notes.frontMatter
+import com.wanderwildwood.oboegaki.notes.frontMatterHead
+import com.wanderwildwood.oboegaki.notes.itemReminder
+import com.wanderwildwood.oboegaki.notes.noteReminder
+import com.wanderwildwood.oboegaki.notes.withItemReminder
+import com.wanderwildwood.oboegaki.notes.withNoteReminder
+import com.wanderwildwood.oboegaki.notes.withoutReminder
+import com.wanderwildwood.oboegaki.remind.Reminders
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import kotlinx.coroutines.delay
 
 /**
@@ -99,9 +110,16 @@ fun NoteScreen(
     val hearing by Voice.hearing.collectAsStateWithLifecycle()
     val pins by Notes.pins.collectAsStateWithLifecycle()
 
+    val context = LocalContext.current
+
     fun save() {
         if (deleted) return
+        val from = at
+        val before = loaded
+        val edited = body.text
         val saved = Notes.save(at, loaded, body.text, title)
+        // What changed here, not what a merge brought in, says which reminders this phone set.
+        Reminders.edited(context, from, saved.path, before, edited)
         at = saved.path
         loaded = saved.text
         if (saved.text != body.text) body = body.copy(text = saved.text, selection = TextRange(saved.text.length.coerceAtMost(body.selection.end)))
@@ -165,7 +183,12 @@ fun NoteScreen(
     val armed = rememberArmed()
     var menuOpen by remember { mutableStateOf(false) }
     var noCalendar by remember { mutableStateOf(false) }
-    val context = LocalContext.current
+    // The note's own reminder being set (-1), or an item's, by its line.
+    var reminding by remember { mutableStateOf<Int?>(null) }
+    val reminderVersion by Reminders.version.collectAsStateWithLifecycle()
+    val hasCalendar = remember {
+        context.packageManager.resolveActivity(Intent(Intent.ACTION_INSERT, CalendarContract.Events.CONTENT_URI), 0) != null
+    }
 
     // A calendar app's new event, with the note's title and words already in it. Which app,
     // and when, are the reader's to choose there.
@@ -240,12 +263,17 @@ fun NoteScreen(
     ) { contentPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(contentPadding).padding(horizontal = 16.dp)) {
             if (writing) {
+                // The front matter is the file's, not the writer's: the editor holds the words
+                // under it, and the one line of it this app uses shows as the reminder's time.
+                val head = remember(body.text) { frontMatterHead(body.text) }
                 Writing(
                     title = title,
                     onTitle = { title = it },
-                    body = body,
-                    onBody = { body = it },
+                    body = body.without(head),
+                    onBody = { body = it.with(head) },
                     focus = fresh,
+                    reminder = remember(head) { noteReminder(body.text) },
+                    onRemind = { reminding = -1 },
                 )
             } else {
                 Reading(
@@ -255,6 +283,7 @@ fun NoteScreen(
                     text = body.text,
                     onToggle = { index -> body = body.copy(text = toggle(body.text, index)) },
                     onAdd = { item -> body = body.copy(text = addTask(body.text, item)) },
+                    onRemind = { line -> reminding = line },
                 )
             }
         }
@@ -264,7 +293,7 @@ fun NoteScreen(
         EInkDialog(onDismiss = { menuOpen = false }) {
             MenuRow(stringResource(R.string.note_remind)) {
                 menuOpen = false
-                remind()
+                reminding = -1
             }
             // Out of the way, not gone: archived, or brought back if it already is.
             if (!fresh || body.text.isNotBlank()) {
@@ -278,6 +307,34 @@ fun NoteScreen(
                 }
             }
         }
+    }
+
+    reminding?.let { line ->
+        val text = body.text
+        val name = title.ifBlank { at.substringAfterLast('/').substringBeforeLast('.') }
+        val item = if (line >= 0) lines(text).getOrNull(line) as? Line.Task else null
+        val current = if (item != null) itemReminder(item.text) else noteReminder(text)
+        val here = remember(reminderVersion, current, at) {
+            current != null && Reminders.isHere(context, at, Reminder(item?.let { withoutReminder(it.text) } ?: "", current))
+        }
+        fun put(value: String?) {
+            body = body.copy(text = if (item != null) withItemReminder(body.text, line, value) else withNoteReminder(body.text, value))
+            reminding = null
+            save()
+            if (value != null) Reminders.claim(context, at, item?.let { withoutReminder(it.text) } ?: "", value)
+        }
+        RemindDialog(
+            heading = item?.let { withoutReminder(it.text) } ?: name,
+            current = current,
+            here = here,
+            onSet = { put(it) },
+            onRemove = if (current != null) ({ put(null) }) else null,
+            onCalendar = if (item == null && hasCalendar) ({
+                reminding = null
+                remind()
+            }) else null,
+            onDismiss = { reminding = null },
+        )
     }
 
     if (noCalendar) {
@@ -308,6 +365,8 @@ private fun Writing(
     body: TextFieldValue,
     onBody: (TextFieldValue) -> Unit,
     focus: Boolean,
+    reminder: String?,
+    onRemind: () -> Unit,
 ) {
     val focusBody = remember { FocusRequester() }
     TextFieldMMD(
@@ -320,6 +379,9 @@ private fun Writing(
         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Next),
         keyboardActions = KeyboardActions(onNext = { focusBody.requestFocus() }),
     )
+    if (reminder != null) {
+        ReminderLabel(reminder, onClick = onRemind, modifier = Modifier.padding(start = 16.dp, top = 6.dp, bottom = 2.dp))
+    }
     Spacer(Modifier.height(8.dp))
     TextField(
         value = body,
@@ -341,6 +403,7 @@ private fun Writing(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun Reading(
     title: String,
@@ -349,12 +412,15 @@ private fun Reading(
     text: String,
     onToggle: (Int) -> Unit,
     onAdd: (String) -> Unit,
+    onRemind: (Int) -> Unit,
 ) {
     var adding by remember { mutableStateOf("") }
     // A first heading that only says the title again is the file's business, not the reader's:
     // Obsidian and others write one, and here the title is already at the top.
     val parsed = remember(text, title) {
-        val all = lines(text).dropLastWhile { it is Line.Text && it.text.isBlank() }
+        // Front matter is for other apps; its one line for this one, a reminder, shows under the title.
+        val hidden = frontMatter(text)
+        val all = lines(text).filterNot { hidden != null && it.index in hidden }.dropLastWhile { it is Line.Text && it.text.isBlank() }
         val first = all.firstOrNull { !(it is Line.Text && it.text.isBlank()) }
         if (first is Line.Text && first.text.trimStart('#', ' ').trim().equals(title.trim(), ignoreCase = true) && first.text.startsWith("#")) {
             all - first
@@ -363,13 +429,18 @@ private fun Reading(
         }
     }
 
+    val noteAt = remember(text) { noteReminder(text) }
+
     LazyColumnMMD(modifier = Modifier.fillMaxSize()) {
         item(key = "title") {
             TextMMD(
                 text = title,
                 style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(top = 8.dp, bottom = 12.dp),
+                modifier = Modifier.padding(top = 8.dp, bottom = if (noteAt == null) 12.dp else 2.dp),
             )
+            if (noteAt != null) {
+                ReminderLabel(noteAt, onClick = { onRemind(-1) }, modifier = Modifier.padding(bottom = 12.dp, top = 2.dp))
+            }
         }
         for (line in parsed) {
             item(key = line.index) {
@@ -377,7 +448,8 @@ private fun Reading(
                     is Line.Task -> Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onToggle(line.index) }
+                            // A long press sets the item's reminder.
+                            .combinedClickable(onClick = { onToggle(line.index) }, onLongClick = { onRemind(line.index) })
                             .padding(start = (line.indent.length * 8).dp, top = 2.dp, bottom = 2.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -386,7 +458,13 @@ private fun Reading(
                         // tap on the box itself and only the words ticked anything.
                         CheckboxMMD(checked = line.done, onCheckedChange = { onToggle(line.index) })
                         Spacer(Modifier.width(8.dp))
-                        TextMMD(text = line.text, style = MaterialTheme.typography.bodyLarge)
+                        val itemAt = itemReminder(line.text)
+                        TextMMD(text = withoutReminder(line.text), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f, fill = false))
+                        // The time it rings, while it still can: a ticked item's reminder is over.
+                        if (itemAt != null && !line.done) {
+                            Spacer(Modifier.width(8.dp))
+                            ReminderLabel(itemAt, onClick = { onRemind(line.index) }, modifier = Modifier.padding(vertical = 6.dp))
+                        }
                     }
                     is Line.Text -> if (scanOn(line.text) != null) {
                         val name = scanOn(line.text)!!
@@ -434,3 +512,28 @@ private fun Reading(
 
 /** A note opens to be read rather than written when it holds tasks to tick or a recording to play. */
 private fun readable(text: String): Boolean = hasTasks(text) || embeds(text).isNotEmpty()
+
+/** What the editor shows: the text after [head], with the cursor and the keyboard's word moved to match. */
+private fun TextFieldValue.without(head: String): TextFieldValue {
+    if (head.isEmpty()) return this
+    val n = head.length
+    fun at(i: Int) = (i - n).coerceIn(0, text.length - n)
+    return TextFieldValue(
+        text.substring(n),
+        TextRange(at(selection.start), at(selection.end)),
+        composition?.let { TextRange(at(it.start), at(it.end)) },
+    )
+}
+
+/** The editor's words back under [head], as the file has them. */
+private fun TextFieldValue.with(head: String): TextFieldValue {
+    if (head.isEmpty()) return this
+    // Front matter closing at the very end of the file keeps its own line when words follow it.
+    val top = if (head.endsWith("\n") || text.isEmpty()) head else head + "\n"
+    val n = top.length
+    return TextFieldValue(
+        top + text,
+        TextRange(selection.start + n, selection.end + n),
+        composition?.let { TextRange(it.start + n, it.end + n) },
+    )
+}

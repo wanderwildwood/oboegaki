@@ -55,8 +55,17 @@ a voice note heard and written down, a page photographed and handed to the scann
 - **Pictures** shared from a gallery, a camera app or Files become a note that shows them, in
   greys at the width of the screen, with the pictures beside it (`![[Picture 2026-10-05
   1412.jpg]]`); or they are scanned, each one a page of the same PDF.
-- **Remind me**, in the note's menu, opens a calendar app's new event with the note's title and
-  words already in it; the day and the time are chosen there.
+- **Reminders** ring on the phone, as an alarm clock does: *Remind me…* in a note's menu, or a
+  long press on one item of a list. With the screen off the reminder fills the screen over the
+  lock screen, with **Done** and **Snooze** on it and on its notification. Done ticks the item,
+  or takes a note's reminder off; ticking an item by hand ends its reminder too. The time is
+  written into the note, so it travels with it and reads plainly anywhere: at the end of an
+  item, `- [ ] milk ⏰ 2026-10-08 17:00`, the way the Obsidian Reminder plugin writes one, and
+  for a whole note a line in its front matter, `reminder: 2026-10-08 17:00`. A reminder rings
+  only on the phone it was set on: on a list shared between two phones, each rings for its own,
+  and one set somewhere else shows its time and can be made to ring here too. If the phone was
+  off, or Notes was stopped, when one was due, it rings as soon as it can and says it is late.
+  A note's reminder can still go to a calendar app instead, from the same place.
 - **On the lock screen**, through [Glance](https://github.com/wanderwildwood/hitome), the pinned
   notes, and how much of each list is left to do.
 
@@ -109,6 +118,8 @@ together.
   *Settings › Behavior › Service Control by Broadcast* in Syncthing-Fork, and Notes wakes it
   each time it opens (*Wake Syncthing-Fork when Notes opens*, on by default). On a Kompakt,
   also switch Syncthing-Fork on in DuraSpeed's list: Notes' settings have a button for it.
+  The same button is there whenever reminders are set, since DuraSpeed stopping Notes stops
+  its reminders; switch Notes on in the list too.
 - **Nextcloud.** Keep the notes on Nextcloud, and let the Nextcloud desktop app keep the folder
   on the computer, to open as a vault.
 - **A WebDAV service**, with no server of your own. [Koofr](https://koofr.eu/) has a free
@@ -159,6 +170,9 @@ and the SHA-256 of the certificate it is signed with; any other caller is `refus
   `FOREGROUND_SERVICE` and `WAKE_LOCK`, so a recording carries on with the screen off; Android
   shows a notification while it does.
 - No camera permission: a camera app takes the photograph.
+- `SCHEDULE_EXACT_ALARM`, so a reminder rings on the minute; `RECEIVE_BOOT_COMPLETED`, to set
+  reminders again after a restart; `USE_FULL_SCREEN_INTENT`, for the reminder over the lock
+  screen; `POST_NOTIFICATIONS`, which Android 13 and later ask for.
 
 The words are worked out on the phone. Recordings go nowhere but where the notes go.
 

@@ -67,7 +67,7 @@
     <!-- The three dots on a note, which open a short menu -->
     <string name="cd_more">More</string>
     <!-- In that menu: opens a calendar app's new event with the note's title and words -->
-    <string name="note_remind">Remind me</string>
+    <string name="note_remind">Remind me…</string>
     <string name="note_remind_none">No calendar app on this phone took it.</string>
 
     <!-- ============================================================ -->
@@ -279,6 +279,8 @@
     <string name="settings_wake_syncthing_note">So notes made on the computer come in without opening Syncthing-Fork. It listens only with Settings › Behavior › Service Control by Broadcast switched on.</string>
     <!-- Settings, on a Kompakt with the notes in a folder. %1$s is the app or apps that carry the folder, e.g. "Syncthing-Fork" -->
     <string name="settings_duraspeed">The phone\'s DuraSpeed setting can stop %1$s while the screen is off, and then notes made on the computer wait until you open it. Open DuraSpeed, tap Open, and switch %1$s on.</string>
+    <string name="settings_duraspeed_reminders">The phone\'s DuraSpeed setting can stop Notes while the screen is off, and then its reminders don\'t ring. Open DuraSpeed, tap Open, and switch Notes on.</string>
+    <string name="settings_duraspeed_both">The phone\'s DuraSpeed setting can stop Notes and %1$s while the screen is off: then reminders don\'t ring, and notes made on the computer wait until you open it. Open DuraSpeed, tap Open, and switch on Notes and %1$s.</string>
     <string name="settings_duraspeed_open">Open DuraSpeed</string>
     <!-- Under the DuraSpeed row: pressing it says the app is now switched on there, and the row folds away -->
     <string name="settings_duraspeed_done">It\'s switched on</string>
@@ -332,4 +334,34 @@
     <string name="about_feed_the_llamas">feed the llamas</string>
     <string name="about_no_browser">There is no browser on this phone to open that with.</string>
     <string name="about_close">Close</string>
+
+    <!-- Reminders: set from a note's ⋮ or a list item's long press, rung by this phone -->
+    <string name="remind_channel">Reminders</string>
+    <string name="remind_channel_about">Reminders set on notes and list items on this phone.</string>
+    <!-- On the lock screen, in place of the note's words -->
+    <string name="remind_public_title">Reminder</string>
+    <string name="remind_done">Done</string>
+    <string name="remind_snooze">Snooze %1$d min</string>
+    <!-- An item's reminder: "In Groceries · 17:00" -->
+    <string name="remind_in_note">In %1$s · %2$s</string>
+    <string name="remind_late_stopped">It could not ring on time: Notes was stopped (%1$s).</string>
+    <string name="remind_late">It could not ring on time: the phone was off, or Notes was stopped.</string>
+    <string name="remind_screen_title">Reminder</string>
+    <string name="remind_close">Close</string>
+    <string name="remind_today">Today</string>
+    <string name="remind_yesterday">Yesterday</string>
+    <string name="remind_tomorrow">Tomorrow</string>
+    <string name="remind_day">Day</string>
+    <string name="remind_time">Time</string>
+    <string name="remind_this_phone">It rings on this phone, not on any other the note is on.</string>
+    <string name="remind_elsewhere">This one was set on another phone or computer, so it doesn\'t ring on this one. Set it here to have it ring here too.</string>
+    <string name="remind_set">Set</string>
+    <string name="remind_set_here">Ring here</string>
+    <string name="remind_cancel">Cancel</string>
+    <string name="remind_remove">Take the reminder off</string>
+    <string name="remind_exact">Notes isn\'t allowed to set alarms, so a reminder may ring late.</string>
+    <string name="remind_allow">Allow alarms</string>
+    <string name="remind_past">That time has gone by.</string>
+    <!-- At the foot of a note's reminder: the old way, a calendar app's new event -->
+    <string name="remind_calendar">Add to a calendar instead</string>
 </resources>

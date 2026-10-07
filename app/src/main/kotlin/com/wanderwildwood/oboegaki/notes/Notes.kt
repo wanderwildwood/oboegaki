@@ -10,6 +10,7 @@ import com.wanderwildwood.oboegaki.sync.WebDavRemote
 import com.wanderwildwood.oboegaki.sync.nextcloudRemote
 import com.wanderwildwood.oboegaki.sync.Refused
 import com.wanderwildwood.oboegaki.glance.GlanceProvider
+import com.wanderwildwood.oboegaki.remind.Reminders
 import com.wanderwildwood.oboegaki.sync.PINS
 import com.wanderwildwood.oboegaki.sync.Sharing
 import com.wanderwildwood.oboegaki.sync.isNote
@@ -239,7 +240,11 @@ object Notes {
             preferences.lastSync = System.currentTimeMillis()
             _sync.value = SyncState.Idle
             if (sharing != null) runCatching { _shared.value = sharedPaths(sharing) } else _shared.value = emptySet()
-            if (result.received > 0 || result.kept.isNotEmpty()) _changed.value++
+            if (result.received > 0 || result.kept.isNotEmpty()) {
+                _changed.value++
+                // Someone else may have ticked an item that has a reminder here, or taken it off.
+                Reminders.sync(appContext)
+            }
         } catch (_: Unreachable) {
             _sync.value = SyncState.Unreachable
         } catch (_: Refused) {
@@ -457,6 +462,23 @@ object Notes {
 
     fun read(path: String): String? = shelf()?.read(path)
 
+    /**
+     * Change a note from outside its screen, as a reminder's Done does: [edit] is given what
+     * the note says now and returns what it should say. A note open on the screen sees it, as
+     * it sees what a sync brings. Returns false when the note is not there.
+     */
+    fun change(path: String, edit: (String) -> String): Boolean {
+        val shelf = shelf() ?: return false
+        synchronized(notesLock) {
+            val now = shelf.read(path) ?: return false
+            val after = edit(now)
+            if (after != now) shelf.write(path, after)
+        }
+        _changed.value++
+        afterEdit()
+        return true
+    }
+
     /** The folder new notes go in, as the reader set it in settings. */
     val newFolder: String get() = preferences.newFolder
 
@@ -565,6 +587,8 @@ object Notes {
         }
         // A note put away is not one to keep at the top; brought back, it is pinned again by hand.
         repin(path, null)
+        // Its reminders go with it.
+        Reminders.moved(appContext, path, moved)
         afterEdit()
         return moved
     }

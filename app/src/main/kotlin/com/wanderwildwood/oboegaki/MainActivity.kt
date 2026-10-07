@@ -44,6 +44,7 @@ import com.wanderwildwood.oboegaki.ui.ScanScreen
 import com.wanderwildwood.oboegaki.ui.OutsideScreen
 import com.wanderwildwood.oboegaki.hearing.RecordService
 import com.wanderwildwood.oboegaki.hearing.Voice
+import com.wanderwildwood.oboegaki.remind.Reminders
 import com.wanderwildwood.oboegaki.ui.SetupScreen
 import com.wanderwildwood.oboegaki.ui.SignInScreen
 import com.wanderwildwood.oboegaki.ui.ObsidianScreen
@@ -58,6 +59,8 @@ data class Capture(
     val open: Uri? = null,
     /** Pictures shared in, to become a note that shows them or a scan. */
     val pictures: List<Uri> = emptyList(),
+    /** A note to open, from a reminder's notification. */
+    val note: String? = null,
 )
 
 private sealed interface Screen {
@@ -79,6 +82,12 @@ private const val NEW_NOTE = "com.wanderwildwood.oboegaki.NEW_NOTE"
 private const val RECORD = "com.wanderwildwood.oboegaki.RECORD"
 
 class MainActivity : ComponentActivity() {
+
+    companion object {
+        /** A reminder's notification, pressed: open its note. */
+        const val OPEN_NOTE = "com.wanderwildwood.oboegaki.OPEN_NOTE"
+        const val EXTRA_PATH = "path"
+    }
 
     private val capture: MutableState<Capture?> = mutableStateOf(null)
 
@@ -109,6 +118,8 @@ class MainActivity : ComponentActivity() {
         }
         // Anything left unheard because the app was closed partway is picked up on opening.
         Voice.catchUp(this)
+        // A reminder the app could not ring, because it was stopped, rings now and says so.
+        Reminders.syncSoon(this)
     }
 
     override fun onPause() {
@@ -123,6 +134,7 @@ class MainActivity : ComponentActivity() {
     private fun captureFrom(intent: Intent?): Capture? {
         intent ?: return null
         return when {
+            intent.action == OPEN_NOTE -> intent.getStringExtra(EXTRA_PATH)?.let { Capture("", "", note = it) }
             intent.action == NEW_NOTE -> Capture("", "")
             intent.action == RECORD -> Capture("", "", record = true)
             intent.action == Intent.ACTION_VIEW && intent.data != null -> Capture("", "", open = intent.data)
@@ -222,7 +234,11 @@ private fun App(capture: MutableState<Capture?>) {
 
     // A capture waits for somewhere to keep it, and then opens straight into a new note.
     val pending = capture.value
-    if (pending?.open != null) {
+    if (pending?.note != null) {
+        capture.value = null
+        val text = Notes.read(pending.note)
+        screen = if (text != null) Screen.Note(pending.note, text, fresh = false) else Screen.List
+    } else if (pending?.open != null) {
         // A file to read needs nowhere to keep notes; keeping it does, and is offered only then.
         capture.value = null
         screen = Screen.Outside(pending.open)
