@@ -2,6 +2,9 @@ package com.wanderwildwood.oboegaki.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -46,4 +49,26 @@ fun rememberArmed(): MutableState<Boolean> {
         }
     }
     return armed
+}
+
+/** The dotted rule between rows, inset to where the text starts and ends. The same rule as Contacts'. */
+@Composable
+internal fun DottedRule(modifier: Modifier = Modifier, start: androidx.compose.ui.unit.Dp = 16.dp, end: androidx.compose.ui.unit.Dp = 16.dp) {
+    val ink = MaterialTheme.colorScheme.onSurface
+    androidx.compose.foundation.Canvas(
+        modifier
+            .fillMaxWidth()
+            .padding(start = start, end = end)
+            .height(1.dp),
+    ) {
+        drawLine(
+            color = ink,
+            start = androidx.compose.ui.geometry.Offset(0f, size.height / 2),
+            end = androidx.compose.ui.geometry.Offset(size.width, size.height / 2),
+            strokeWidth = 1.dp.toPx().coerceAtMost(1.5f),
+            pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(
+                floatArrayOf(2.3.dp.toPx(), 1.5.dp.toPx()),
+            ),
+        )
+    }
 }

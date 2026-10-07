@@ -2,6 +2,7 @@ package com.wanderwildwood.oboegaki.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -165,18 +166,23 @@ fun ListScreen(
                 )
             } else {
                 LazyColumnMMD(modifier = Modifier.fillMaxSize()) {
+                    // A dotted rule under every row but the last, as Contacts draws its list.
+                    val lastRow = shown.lastOrNull()?.path?.let { "note:$it" }
+                        ?: inside.lastOrNull()?.let { "folder:$it" }
+                        ?: "up"
                     if (current != null) {
                         val parent = parentFolder(current)
                         item(key = "up") {
                             FolderRow(
                                 if (parent.isEmpty()) stringResource(R.string.list_up_all) else stringResource(R.string.list_up, parent.substringAfterLast('/')),
                                 null,
+                                ruled = lastRow != "up",
                             ) { onView(if (parent.isEmpty()) Showing.ALL else Showing.folder(parent), order) }
                         }
                         for (folder in inside) {
                             item(key = "folder:$folder") {
                                 val count = notes.count { it.folder == folder || it.folder.startsWith("$folder/") }
-                                FolderRow(folder.substringAfterLast('/'), pluralStringResource(R.plurals.list_folder, count, count)) {
+                                FolderRow(folder.substringAfterLast('/'), pluralStringResource(R.plurals.list_folder, count, count), ruled = lastRow != "folder:$folder") {
                                     onView(Showing.folder(folder), order)
                                 }
                             }
@@ -193,7 +199,7 @@ fun ListScreen(
                     }
                     for (note in shown) {
                         item(key = note.path) {
-                            NoteRow(note, note.path in shared, note.path in pinned, showFolder = Showing.folderOf(showing) == null) { onOpen(note) }
+                            NoteRow(note, note.path in shared, note.path in pinned, showFolder = Showing.folderOf(showing) == null, ruled = lastRow != "note:${note.path}") { onOpen(note) }
                         }
                     }
                     // Room under the last row for the buttons that float over it.
@@ -319,9 +325,21 @@ private fun syncLine(sync: SyncState): String? = when (sync) {
     is SyncState.Failed -> stringResource(R.string.sync_failed, sync.why)
 }
 
+/**
+ * A row with the dotted rule under it, drawn over the foot of its padding so a row stands as tall
+ * as it did without one.
+ */
+@Composable
+private fun Ruled(ruled: Boolean, row: @Composable () -> Unit) {
+    Box(Modifier.fillMaxWidth()) {
+        row()
+        if (ruled) DottedRule(Modifier.align(Alignment.BottomStart), start = 20.dp, end = 20.dp)
+    }
+}
+
 /** A folder in the list: its name, and how many notes are in it; or the way back up. */
 @Composable
-private fun FolderRow(name: String, line: String?, onClick: () -> Unit) {
+private fun FolderRow(name: String, line: String?, ruled: Boolean, onClick: () -> Unit) = Ruled(ruled) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -340,7 +358,7 @@ private fun FolderRow(name: String, line: String?, onClick: () -> Unit) {
 }
 
 @Composable
-private fun NoteRow(note: Note, isShared: Boolean, isPinned: Boolean, showFolder: Boolean, onClick: () -> Unit) {
+private fun NoteRow(note: Note, isShared: Boolean, isPinned: Boolean, showFolder: Boolean, ruled: Boolean, onClick: () -> Unit) = Ruled(ruled) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
