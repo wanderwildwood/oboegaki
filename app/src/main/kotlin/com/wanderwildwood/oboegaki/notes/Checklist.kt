@@ -60,6 +60,14 @@ fun addTask(text: String, task: String): String {
     return if (text.endsWith("\n")) "$text$item\n" else "$text\n$item"
 }
 
+/** The note with line [index] taken out, as when an item is moved to Tasks. */
+fun removeLine(text: String, index: Int): String {
+    val all = text.split('\n').toMutableList()
+    if (index !in all.indices) return text
+    all.removeAt(index)
+    return all.joinToString("\n")
+}
+
 /**
  * Turn the line the cursor is on into a task, or back into plain text. Returns the new text and
  * how far the cursor moved, so it stays on the same word.

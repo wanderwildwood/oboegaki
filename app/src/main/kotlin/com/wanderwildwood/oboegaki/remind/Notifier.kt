@@ -62,8 +62,8 @@ object Notifier {
 
     /** "In Groceries · 17:00", and when it is late, that it is, and why if that is known. */
     fun said(context: Context, rec: Record, due: Long, late: Boolean, stopped: Long?): String {
-        val note = rec.path.substringAfterLast('/').substringBeforeLast('.')
-        val first = if (rec.key.isEmpty()) Times.whenShort(context, due)
+        val note = Reminders.where(context, rec)
+        val first = if (rec.key.isEmpty() || note.isEmpty()) Times.whenShort(context, due)
         else context.getString(R.string.remind_in_note, note, Times.whenShort(context, due))
         return when {
             !late -> first

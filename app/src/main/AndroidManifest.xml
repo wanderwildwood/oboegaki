@@ -4,6 +4,8 @@
     <!-- To reach a Nextcloud, when the notes are kept on one. Kept in a folder, nothing
          leaves the phone. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- To hear that the phone is back on a network, so tasks and notes changed offline go up. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <!-- Voice notes. Asked for the first time the microphone is pressed, never before. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />

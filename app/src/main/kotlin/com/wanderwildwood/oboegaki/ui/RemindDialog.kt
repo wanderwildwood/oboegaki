@@ -172,7 +172,7 @@ fun RemindDialog(
 }
 
 @Composable
-private fun PickRow(label: String, value: String, onClick: () -> Unit) {
+internal fun PickRow(label: String, value: String, onClick: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -190,7 +190,7 @@ private fun PickRow(label: String, value: String, onClick: () -> Unit) {
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TimeDialog(initial: LocalTime, onPick: (LocalTime) -> Unit, onDismiss: () -> Unit) {
+internal fun TimeDialog(initial: LocalTime, onPick: (LocalTime) -> Unit, onDismiss: () -> Unit) {
     val state = rememberTimeInputMMDState(initialHour = initial.hour, initialMinute = initial.minute, is24Hour = true)
     EInkDialog(onDismiss = onDismiss) {
         TimeInputMMD(state = state, modifier = Modifier.align(Alignment.CenterHorizontally))
@@ -208,7 +208,7 @@ private fun TimeDialog(initial: LocalTime, onPick: (LocalTime) -> Unit, onDismis
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DateDialog(initial: LocalDate, onPick: (LocalDate) -> Unit, onDismiss: () -> Unit) {
+internal fun DateDialog(initial: LocalDate, onPick: (LocalDate) -> Unit, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val state = rememberDatePickerMMDState(
         initialSelectedDateMillis = initial.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),

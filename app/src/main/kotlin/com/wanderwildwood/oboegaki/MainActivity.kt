@@ -45,6 +45,12 @@ import com.wanderwildwood.oboegaki.ui.OutsideScreen
 import com.wanderwildwood.oboegaki.hearing.RecordService
 import com.wanderwildwood.oboegaki.hearing.Voice
 import com.wanderwildwood.oboegaki.remind.Reminders
+import com.wanderwildwood.oboegaki.remind.TASK
+import com.wanderwildwood.oboegaki.tasks.Tasks
+import com.wanderwildwood.oboegaki.ui.TaskScreen
+import com.wanderwildwood.oboegaki.ui.TasksScreen
+import android.net.ConnectivityManager
+import android.net.Network
 import com.wanderwildwood.oboegaki.ui.SetupScreen
 import com.wanderwildwood.oboegaki.ui.SignInScreen
 import com.wanderwildwood.oboegaki.ui.ObsidianScreen
@@ -59,8 +65,10 @@ data class Capture(
     val open: Uri? = null,
     /** Pictures shared in, to become a note that shows them or a scan. */
     val pictures: List<Uri> = emptyList(),
-    /** A note to open, from a reminder's notification. */
+    /** A note to open, from a reminder's notification; or "task:<uid>", a task's. */
     val note: String? = null,
+    /** The Tasks page, from its shortcut. */
+    val tasks: Boolean = false,
 )
 
 private sealed interface Screen {
@@ -75,11 +83,15 @@ private sealed interface Screen {
     /** [pictures]: shared in to be scanned, one page each, rather than photographed. */
     data class Scan(val pictures: kotlin.collections.List<Uri> = emptyList()) : Screen
     data class Outside(val uri: Uri) : Screen
+    data object Tasks : Screen
+    /** One task; [name] null for a new one in [list]. */
+    data class Task(val list: String, val name: String?) : Screen
 }
 
 /** The actions of the New note and Record shortcuts (res/xml/shortcuts.xml). */
 private const val NEW_NOTE = "com.wanderwildwood.oboegaki.NEW_NOTE"
 private const val RECORD = "com.wanderwildwood.oboegaki.RECORD"
+private const val TASKS = "com.wanderwildwood.oboegaki.TASKS"
 
 class MainActivity : ComponentActivity() {
 
@@ -94,6 +106,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Notes.init(this)
+        Tasks.init(this)
         Voice.init(this)
         if (savedInstanceState == null) capture.value = captureFrom(intent)
         setContent {
@@ -108,10 +121,21 @@ class MainActivity : ComponentActivity() {
         captureFrom(intent)?.let { capture.value = it }
     }
 
+    /** Back on a network after none: whatever waited here goes up. */
+    private val online = object : ConnectivityManager.NetworkCallback() {
+        override fun onAvailable(network: Network) {
+            Tasks.syncNow()
+            Notes.syncNow()
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         Notes.refresh()
         Notes.syncNow()
+        Tasks.refresh()
+        Tasks.syncNow()
+        runCatching { getSystemService(ConnectivityManager::class.java).registerDefaultNetworkCallback(online) }
         if (Notes.preferences.keeping == Keeping.FOLDER) {
             if (Notes.preferences.wakeSyncthing) SyncApps.wakeSyncthing(this)
             Notes.watch()
@@ -125,6 +149,7 @@ class MainActivity : ComponentActivity() {
     override fun onPause() {
         super.onPause()
         Notes.stopWatching()
+        runCatching { getSystemService(ConnectivityManager::class.java).unregisterNetworkCallback(online) }
     }
 
     /**
@@ -137,6 +162,7 @@ class MainActivity : ComponentActivity() {
             intent.action == OPEN_NOTE -> intent.getStringExtra(EXTRA_PATH)?.let { Capture("", "", note = it) }
             intent.action == NEW_NOTE -> Capture("", "")
             intent.action == RECORD -> Capture("", "", record = true)
+            intent.action == TASKS -> Capture("", "", tasks = true)
             intent.action == Intent.ACTION_VIEW && intent.data != null -> Capture("", "", open = intent.data)
             (intent.action == Intent.ACTION_SEND || intent.action == Intent.ACTION_SEND_MULTIPLE) &&
                 intent.type?.startsWith("image/") == true -> {
@@ -234,7 +260,14 @@ private fun App(capture: MutableState<Capture?>) {
 
     // A capture waits for somewhere to keep it, and then opens straight into a new note.
     val pending = capture.value
-    if (pending?.note != null) {
+    if (pending?.note != null && pending.note.startsWith(TASK)) {
+        capture.value = null
+        val item = Tasks.store.find(pending.note.removePrefix(TASK))
+        screen = if (item != null) Screen.Task(item.list, item.name) else Screen.Tasks
+    } else if (pending?.tasks == true && keeping != Keeping.NOWHERE) {
+        capture.value = null
+        screen = Screen.Tasks
+    } else if (pending?.note != null) {
         capture.value = null
         val text = Notes.read(pending.note)
         screen = if (text != null) Screen.Note(pending.note, text, fresh = false) else Screen.List
@@ -292,7 +325,19 @@ private fun App(capture: MutableState<Capture?>) {
                 onScan = { screen = Screen.Scan() },
                 onSettings = { screen = Screen.Settings },
                 onAbout = { aboutOpen = true },
+                onTasks = { screen = Screen.Tasks },
             )
+            Screen.Tasks -> {
+                BackHandler { screen = Screen.List }
+                TasksScreen(
+                    onOpen = { screen = Screen.Task(it.list, it.name) },
+                    onNew = { screen = Screen.Task(it, null) },
+                    onBack = { screen = Screen.List },
+                )
+            }
+            is Screen.Task -> key(now.list, now.name) {
+                TaskScreen(list = now.list, name = now.name, onClose = { screen = Screen.Tasks })
+            }
             // Keyed by path so a second capture while one is open starts a new screen.
             is Screen.Note -> key(now.path) {
                 NoteScreen(

@@ -75,6 +75,11 @@ import com.wanderwildwood.oboegaki.notes.withItemReminder
 import com.wanderwildwood.oboegaki.notes.withNoteReminder
 import com.wanderwildwood.oboegaki.notes.withoutReminder
 import com.wanderwildwood.oboegaki.remind.Reminders
+import com.wanderwildwood.oboegaki.notes.reminderTime
+import com.wanderwildwood.oboegaki.notes.removeLine
+import com.wanderwildwood.oboegaki.tasks.Due
+import com.wanderwildwood.oboegaki.tasks.Fields
+import com.wanderwildwood.oboegaki.tasks.Tasks
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import kotlinx.coroutines.delay
@@ -185,6 +190,8 @@ fun NoteScreen(
     var noCalendar by remember { mutableStateOf(false) }
     // The note's own reminder being set (-1), or an item's, by its line.
     var reminding by remember { mutableStateOf<Int?>(null) }
+    // The item held down, by its line: what to do with it.
+    var holding by remember { mutableStateOf<Int?>(null) }
     val reminderVersion by Reminders.version.collectAsStateWithLifecycle()
     val hasCalendar = remember {
         context.packageManager.resolveActivity(Intent(Intent.ACTION_INSERT, CalendarContract.Events.CONTENT_URI), 0) != null
@@ -284,6 +291,7 @@ fun NoteScreen(
                     onToggle = { index -> body = body.copy(text = toggle(body.text, index)) },
                     onAdd = { item -> body = body.copy(text = addTask(body.text, item)) },
                     onRemind = { line -> reminding = line },
+                    onHold = { line -> holding = line },
                 )
             }
         }
@@ -304,6 +312,36 @@ fun NoteScreen(
                     deleted = true
                     if (archived) Notes.unarchive(at) else Notes.archive(at)
                     onClose()
+                }
+            }
+        }
+    }
+
+    holding?.let { line ->
+        val item = lines(body.text).getOrNull(line) as? Line.Task
+        if (item == null) {
+            holding = null
+        } else {
+            val toList = remember { Tasks.init(context); Tasks.defaultList() }
+            EInkDialog(onDismiss = { holding = null }) {
+                TextMMD(text = withoutReminder(item.text), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(4.dp))
+                MenuRow(stringResource(R.string.note_remind)) {
+                    holding = null
+                    reminding = line
+                }
+                // The item leaves the note and becomes a task: moved, not copied, so it is never
+                // on both lists, and its reminder goes with it rather than ringing twice.
+                MenuRow(stringResource(R.string.item_to_tasks, toList.name)) {
+                    holding = null
+                    val words = withoutReminder(item.text)
+                    val time = itemReminder(item.text)
+                    // It rings as a task where it rang as an item: on this phone if it was set here.
+                    val ringsHere = time != null && Reminders.isHere(context, at, Reminder(words, time))
+                    body = body.copy(text = removeLine(body.text, line))
+                    save()
+                    val due = time?.let(::reminderTime)?.let { Due.At(it, java.time.ZoneId.systemDefault()) }
+                    Tasks.add(toList.id, Fields(words, due = due, done = item.done), ring = ringsHere)
                 }
             }
         }
@@ -413,6 +451,7 @@ private fun Reading(
     onToggle: (Int) -> Unit,
     onAdd: (String) -> Unit,
     onRemind: (Int) -> Unit,
+    onHold: (Int) -> Unit,
 ) {
     var adding by remember { mutableStateOf("") }
     // A first heading that only says the title again is the file's business, not the reader's:
@@ -448,8 +487,8 @@ private fun Reading(
                     is Line.Task -> Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            // A long press sets the item's reminder.
-                            .combinedClickable(onClick = { onToggle(line.index) }, onLongClick = { onRemind(line.index) })
+                            // A long press asks what to do with the item: a reminder, or to make it a task.
+                            .combinedClickable(onClick = { onToggle(line.index) }, onLongClick = { onHold(line.index) })
                             .padding(start = (line.indent.length * 8).dp, top = 2.dp, bottom = 2.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {

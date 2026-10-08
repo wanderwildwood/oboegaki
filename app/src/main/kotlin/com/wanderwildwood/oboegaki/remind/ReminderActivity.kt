@@ -84,15 +84,15 @@ private fun Ringing(onDone: () -> Unit) {
 @Composable
 private fun RingingOne(r: Record) {
     val context = LocalContext.current
-    val note = r.path.substringAfterLast('/').substringBeforeLast('.')
+    val note = remember(r.path) { Reminders.where(context, r) }
     Column(Modifier.padding(vertical = 12.dp)) {
         TextMMD(text = Reminders.title(r), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        if (r.key.isNotEmpty()) TextMMD(text = note, style = MaterialTheme.typography.titleMedium)
+        if (r.key.isNotEmpty() && note.isNotEmpty()) TextMMD(text = note, style = MaterialTheme.typography.titleMedium)
         reminderTime(r.at)?.let {
             TextMMD(text = Times.whenShort(context, it), style = MaterialTheme.typography.bodyMedium)
         }
         // A note's reminder: the start of what it says, which is what it is a reminder of.
-        if (r.key.isEmpty()) {
+        if (r.key.isEmpty() && !r.isTask) {
             val words by produceState("", r.path) {
                 value = withContext(Dispatchers.IO) { runCatching { Notes.init(context); Notes.read(r.path)?.let(::preview) }.getOrNull().orEmpty() }
             }

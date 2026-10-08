@@ -43,6 +43,7 @@ import com.mudita.mmd.components.text_field.TextFieldMMD
 import com.mudita.mmd.components.top_app_bar.TopAppBarMMD
 import com.wanderwildwood.oboegaki.R
 import com.wanderwildwood.oboegaki.remind.Reminders
+import com.wanderwildwood.oboegaki.tasks.Tasks
 import com.wanderwildwood.oboegaki.notes.Keeping
 import com.wanderwildwood.oboegaki.notes.Notes
 import com.wanderwildwood.oboegaki.notes.SyncApps
@@ -82,6 +83,9 @@ fun SettingsScreen(
     var choosing by remember { mutableStateOf(false) }
     var choosingFolder by remember { mutableStateOf(false) }
     var choosingSpeech by remember { mutableStateOf(false) }
+    var choosingTasks by remember { mutableStateOf(false) }
+    val taskLists = remember { Tasks.writableLists() }
+    var tasksIn by remember { mutableStateOf(Tasks.defaultList().id) }
     val speech by Speech.state.collectAsState()
     val spoken by Speech.chosen.collectAsState()
     var newFolder by remember { mutableStateOf(preferences.newFolder) }
@@ -117,6 +121,13 @@ fun SettingsScreen(
                     stringResource(R.string.settings_new_in),
                     newFolder.ifEmpty { stringResource(R.string.settings_new_top) },
                 ) { choosingFolder = true }
+            }
+            // Where new tasks go, once there is more than one list they could go in.
+            if (taskLists.size > 1) item {
+                SettingRow(
+                    stringResource(R.string.settings_tasks_in),
+                    taskLists.firstOrNull { it.id == tasksIn }?.name ?: Tasks.defaultList().name,
+                ) { choosingTasks = true }
             }
             item {
                 SettingRow(stringResource(R.string.obsidian_title), "", onClick = onObsidian)
@@ -273,6 +284,27 @@ fun SettingsScreen(
         )
     }
 
+    if (choosingTasks) {
+        EInkDialog(onDismiss = { choosingTasks = false }) {
+            TextMMD(text = stringResource(R.string.settings_tasks_in), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.height(4.dp))
+            for (l in taskLists) {
+                TextMMD(
+                    text = l.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = if (l.id == tasksIn) FontWeight.Bold else null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            preferences.tasksList = l.id
+                            tasksIn = l.id
+                            choosingTasks = false
+                        }
+                        .padding(vertical = 12.dp),
+                )
+            }
+        }
+    }
     if (choosingSpeech) {
         SpeechDialog(
             current = (speech as? Speech.State.Downloading)?.language ?: spoken,
@@ -351,7 +383,7 @@ fun folderName(uri: Uri?, resolver: android.content.ContentResolver): String {
 }
 
 @Composable
-private fun SettingRow(label: String, value: String, onClick: () -> Unit) {
+internal fun SettingRow(label: String, value: String, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -366,7 +398,7 @@ private fun SettingRow(label: String, value: String, onClick: () -> Unit) {
 
 /** A row that asks first, in its own face: "<the action> — tap again". */
 @Composable
-private fun Leave(label: String, confirm: String, onConfirm: () -> Unit) {
+internal fun Leave(label: String, confirm: String, onConfirm: () -> Unit) {
     val armed = rememberArmed()
     TextMMD(
         text = if (armed.value) confirm else label,

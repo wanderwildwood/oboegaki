@@ -16,6 +16,10 @@ import com.wanderwildwood.oboegaki.notes.reminderTime
 import com.wanderwildwood.oboegaki.notes.reminders
 import com.wanderwildwood.oboegaki.notes.toggle
 import com.wanderwildwood.oboegaki.notes.withNoteReminder
+import com.wanderwildwood.oboegaki.notes.reminderAt
+import com.wanderwildwood.oboegaki.tasks.Tasks
+import com.wanderwildwood.oboegaki.tasks.local
+import java.time.LocalDateTime
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.io.File
@@ -97,6 +101,50 @@ object Reminders {
         syncSoon(context)
     }
 
+    /**
+     * A task's reminder set on this phone: it rings here at the task's due time, wherever the
+     * task was made, and follows the due time if it is moved, here or on the server.
+     */
+    fun claimTask(context: Context, uid: String, title: String, at: LocalDateTime) {
+        val when_ = reminderAt(at)
+        synchronized(lock) {
+            val old = load(context)
+            val mine = old.firstOrNull { it.path == TASK + uid }
+            val new = when {
+                mine == null -> old + Record((old.maxOfOrNull { it.id } ?: 0) + 1, TASK + uid, title, when_)
+                mine.at == when_ && mine.key == title -> return@synchronized
+                mine.at == when_ -> old.map { if (it.id == mine.id) it.copy(key = title) else it }
+                else -> old.map { if (it.id == mine.id) it.copy(key = title, at = when_, rang = 0, snooze = 0) else it }
+            }
+            store(context, new)
+        }
+        syncSoon(context)
+    }
+
+    /** A task's reminder taken off this phone. */
+    fun unclaimTask(context: Context, uid: String) {
+        val gone = synchronized(lock) {
+            val old = load(context)
+            val gone = old.filter { it.path == TASK + uid }
+            if (gone.isNotEmpty()) store(context, old - gone.toSet())
+            gone
+        }
+        for (r in gone) Notifier.cancel(context, r.id)
+        if (gone.isNotEmpty()) syncSoon(context)
+    }
+
+    /** Whether the task with [uid] rings on this phone. */
+    fun isTaskHere(context: Context, uid: String): Boolean = load(context).any { it.path == TASK + uid }
+
+    /** Where a reminder is from: its note's name, or for a task, its list's. */
+    fun where(context: Context, rec: Record): String {
+        if (rec.isTask) {
+            Tasks.init(context)
+            return runCatching { Tasks.store.find(rec.uid)?.let { Tasks.listName(it.list) } }.getOrNull().orEmpty()
+        }
+        return rec.path.substringAfterLast('/').substringBeforeLast('.')
+    }
+
     /** A note moved, by archiving or bringing it back: its reminders go with it. */
     fun moved(context: Context, from: String, to: String) = synchronized(lock) {
         val old = load(context)
@@ -114,43 +162,67 @@ object Reminders {
     /** Reads each reminder from its note, rings what is due, and sets the next alarm. */
     fun sync(context: Context, now: Long = System.currentTimeMillis()) = synchronized(lock) {
         Notes.init(context)
+        Tasks.init(context)
         val stop = newStop(context)
         val records = load(context)
         val shelf = Notes.shelf()
-        if (records.isEmpty() || shelf == null) {
+        if (records.isEmpty()) {
             schedule(context, null, now)
             return@synchronized
         }
         val zone = ZoneId.systemDefault()
         val texts = HashMap<String, String?>()
-        fun text(path: String) = texts.getOrPut(path) { runCatching { shelf.read(path) }.getOrNull() }
-        val everyNote by lazy { runCatching { shelf.list() }.getOrDefault(emptyList()) }
+        fun text(path: String) = texts.getOrPut(path) { runCatching { shelf?.read(path) }.getOrNull() }
+        val everyNote by lazy { runCatching { shelf?.list() }.getOrNull().orEmpty() }
 
         val out = mutableListOf<Record>()
         var next: Long? = null
         for (r in records) {
             var rec = r
-            var found = text(r.path)?.let { findReminder(it, r.key, r.at) }
-            if (found == null) {
-                // Renamed or moved somewhere else, perhaps on another device: the one note that
-                // has this reminder, if only one does.
-                val elsewhere = everyNote.filter { n -> findReminder(n.text, r.key, r.at) != null }
-                if (elsewhere.size == 1 && records.none { it.path == elsewhere[0].path && it.key == r.key && it.at == r.at }) {
-                    rec = rec.copy(path = elsewhere[0].path)
-                    found = findReminder(elsewhere[0].text, r.key, r.at)
+            val done: Boolean
+            if (r.isTask) {
+                // A task's reminder rings at the task's due time as it is now, wherever it was
+                // moved to; a task deleted, or no longer due at a time, rings no more.
+                val item = runCatching { Tasks.store.find(r.uid) }.getOrNull()
+                val atNow = item?.task?.fields?.due?.local()?.let(::reminderAt)
+                if (item == null || atNow == null) {
+                    Notifier.cancel(context, r.id)
+                    continue
                 }
-            }
-            if (found == null) {
-                // Taken off, here or on another device, or the note is gone.
-                Notifier.cancel(context, r.id)
+                if (atNow != rec.at) {
+                    Notifier.cancel(context, r.id)
+                    rec = rec.copy(at = atNow, rang = 0, snooze = 0)
+                }
+                if (item.task.fields.summary != rec.key) rec = rec.copy(key = item.task.fields.summary)
+                done = item.task.fields.done
+            } else if (shelf == null) {
+                // The notes cannot be read just now: their reminders are kept as they are.
+                out += r
                 continue
+            } else {
+                var found = text(r.path)?.let { findReminder(it, r.key, r.at) }
+                if (found == null) {
+                    // Renamed or moved somewhere else, perhaps on another device: the one note that
+                    // has this reminder, if only one does.
+                    val elsewhere = everyNote.filter { n -> findReminder(n.text, r.key, r.at) != null }
+                    if (elsewhere.size == 1 && records.none { it.path == elsewhere[0].path && it.key == r.key && it.at == r.at }) {
+                        rec = rec.copy(path = elsewhere[0].path)
+                        found = findReminder(elsewhere[0].text, r.key, r.at)
+                    }
+                }
+                if (found == null) {
+                    // Taken off, here or on another device, or the note is gone.
+                    Notifier.cancel(context, r.id)
+                    continue
+                }
+                done = found.done
             }
-            val at = reminderTime(r.at)?.atZone(zone)?.toInstant()?.toEpochMilli()
+            val at = reminderTime(rec.at)?.atZone(zone)?.toInstant()?.toEpochMilli()
             if (at == null) {
                 Notifier.cancel(context, r.id)
                 continue
             }
-            if (found.done) {
+            if (done) {
                 // Ticked, here or by someone sharing the list: it does not ring.
                 Notifier.cancel(context, r.id)
                 if (rec.snooze != 0L) rec = rec.copy(snooze = 0)
@@ -165,13 +237,14 @@ object Reminders {
             if (due != null && due <= now) {
                 val late = now - due > LATE_MS
                 Log.i(TAG, "reminder ${rec.id} due $due rings at $now")
-                val words = if (rec.key.isEmpty()) text(rec.path)?.let(::preview).orEmpty() else ""
+                val words = if (rec.key.isEmpty() && !rec.isTask) text(rec.path)?.let(::preview).orEmpty() else ""
                 Notifier.ring(context, rec, title(rec), words, due, late, stoppedBetween(context, stop, due, now))
                 rec = rec.copy(rang = now, snooze = 0)
             } else if (due != null) {
                 next = minOf(next ?: due, due)
             }
-            if (rec.rang > 0 && rec.snooze == 0L && now - at > KEEP_MS) continue
+            // A task's stays while the task does: its due time may be moved on.
+            if (!rec.isTask && rec.rang > 0 && rec.snooze == 0L && now - at > KEEP_MS) continue
             out += rec
         }
         if (out != records) store(context, out)
@@ -179,7 +252,7 @@ object Reminders {
     }
 
     /** What a reminder is called: the item's words, or the note's name. */
-    fun title(rec: Record): String = rec.key.ifEmpty { rec.path.substringAfterLast('/').substringBeforeLast('.') }
+    fun title(rec: Record): String = if (rec.isTask) rec.key else rec.key.ifEmpty { rec.path.substringAfterLast('/').substringBeforeLast('.') }
 
     private fun stoppedBetween(context: Context, stop: Long?, due: Long, now: Long): Long? {
         val at = stop ?: Notes.preferences.stoppedAt.takeIf { it > 0 } ?: return null
@@ -215,6 +288,18 @@ object Reminders {
         Notifier.cancel(context, id)
         _version.value++
         if (rec == null) return
+        if (rec.isTask) {
+            // The task ticked, here and, with the next sync, on the server.
+            Tasks.init(context)
+            Tasks.doneFromReminder(rec.uid)
+            synchronized(lock) {
+                val old = load(context)
+                val new = old.map { if (it.id == id) it.copy(snooze = 0) else it }
+                if (new != old) store(context, new)
+            }
+            syncSoon(context)
+            return
+        }
         Notes.init(context)
         Notes.change(rec.path) { text ->
             val found = findReminder(text, rec.key, rec.at)

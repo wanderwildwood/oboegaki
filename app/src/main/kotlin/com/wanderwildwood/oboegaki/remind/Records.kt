@@ -20,6 +20,14 @@ data class Record(
     fun matches(path: String, r: Reminder) = this.path == path && key == r.key && at == r.at
 }
 
+/** How a task's reminder names it, in place of a note's path: "task:" and the task's UID. */
+const val TASK = "task:"
+
+/** A task's reminder, not a note's: [Record.key] is then the task's title. */
+val Record.isTask: Boolean get() = path.startsWith(TASK)
+
+val Record.uid: String get() = path.removePrefix(TASK)
+
 /** A line each, tab-separated; a tab or line break in an item's words is a space here. */
 fun encode(records: List<Record>): String = records.joinToString("") { r ->
     listOf(r.id.toString(), clean(r.path), clean(r.key), r.at, r.rang.toString(), r.snooze.toString()).joinToString("\t") + "\n"

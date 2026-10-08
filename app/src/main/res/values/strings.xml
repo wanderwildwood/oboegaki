@@ -364,4 +364,53 @@
     <string name="remind_past">That time has gone by.</string>
     <!-- At the foot of a note's reminder: the old way, a calendar app's new event -->
     <string name="remind_calendar">Add to a calendar instead</string>
+    <!-- Tasks: Nextcloud task lists over CalDAV, or a list kept on the phone -->
+    <string name="tasks_title">Tasks</string>
+    <string name="cd_tasks">Tasks</string>
+    <string name="cd_new_task">New task</string>
+    <string name="cd_delete_task">Delete the task</string>
+    <string name="cd_rings_here">Rings on this phone</string>
+    <string name="tasks_on_phone">On this phone</string>
+    <string name="tasks_kept_here">Kept on this phone only</string>
+    <string name="tasks_not_synced">Not synced yet</string>
+    <string name="tasks_synced">Synced %1$s</string>
+    <string name="tasks_read_only">read only</string>
+    <string name="tasks_none">No tasks.</string>
+    <string name="tasks_all_done">Everything here is done.</string>
+    <string name="tasks_done_show">Done · %1$d</string>
+    <string name="tasks_done_hide">Done · %1$d · hide</string>
+    <string name="tasks_unreachable">Couldn\'t reach the Nextcloud. Changes wait here and go when it can be reached.</string>
+    <string name="tasks_failed">Some lists didn\'t sync: %1$s</string>
+    <string name="tasks_move_to_nextcloud">Move these to %1$s on the Nextcloud</string>
+    <string name="tasks_move_to_nextcloud_confirm">Move them to %1$s — tap again</string>
+    <string name="tasks_new_list">New list</string>
+    <string name="tasks_new_list_hint">Name</string>
+    <string name="tasks_new_list_make">Make</string>
+    <string name="tasks_new_list_failed">The Nextcloud didn\'t make it. Try again when it can be reached.</string>
+    <!-- Kept in a task's notes when the phone and the server both changed one field -->
+    <string name="tasks_conflict_kept">This phone had %1$s: %2$s</string>
+    <string name="task_untitled">(no title)</string>
+    <string name="task_title_hint">Task</string>
+    <string name="task_read_only">This list is shared with you read only.</string>
+    <string name="task_done">Done</string>
+    <string name="task_field_title">the title</string>
+    <string name="task_field_notes">Notes</string>
+    <string name="task_field_due">Due</string>
+    <string name="task_field_priority">Priority</string>
+    <string name="task_field_list">List</string>
+    <string name="task_due_none">None</string>
+    <string name="task_due_remove">No due date</string>
+    <string name="task_no_time">None</string>
+    <string name="task_no_time_choose">Just the day, no time</string>
+    <string name="task_ring_here">Ring on this phone when it\'s due</string>
+    <string name="task_priority_none">None</string>
+    <string name="task_priority_low">Low</string>
+    <string name="task_priority_medium">Medium</string>
+    <string name="task_priority_high">High</string>
+    <string name="task_repeats_short">Repeats</string>
+    <string name="task_repeats_moves_on">It repeats. Ticking it moves it on to the next time.</string>
+    <string name="task_repeats_finishes">It repeats in a way Notes can\'t follow, so ticking it here finishes it.</string>
+    <!-- On a list item held down: it leaves the note and becomes a task in that list -->
+    <string name="item_to_tasks">Move to Tasks · %1$s</string>
+    <string name="settings_tasks_in">New tasks go in</string>
 </resources>

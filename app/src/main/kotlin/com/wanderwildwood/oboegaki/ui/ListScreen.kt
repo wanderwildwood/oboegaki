@@ -74,6 +74,7 @@ fun ListScreen(
     onScan: () -> Unit,
     onSettings: () -> Unit,
     onAbout: () -> Unit,
+    onTasks: () -> Unit,
 ) {
     var searching by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
@@ -94,6 +95,7 @@ fun ListScreen(
             TopAppBarMMD(
                 title = { TextMMD(text = stringResource(R.string.app_name)) },
                 actions = {
+                    BarButton(Icons.Tasks, stringResource(R.string.cd_tasks), onTasks)
                     BarButton(Icons.Search, stringResource(R.string.cd_search)) {
                         searching = !searching
                         if (!searching) query = ""

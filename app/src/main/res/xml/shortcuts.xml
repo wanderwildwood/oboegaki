@@ -18,4 +18,13 @@
             android:targetPackage="com.wanderwildwood.oboegaki"
             android:targetClass="com.wanderwildwood.oboegaki.MainActivity" />
     </shortcut>
+    <shortcut
+        android:shortcutId="tasks"
+        android:enabled="true"
+        android:shortcutShortLabel="@string/tasks_title">
+        <intent
+            android:action="com.wanderwildwood.oboegaki.TASKS"
+            android:targetPackage="com.wanderwildwood.oboegaki"
+            android:targetClass="com.wanderwildwood.oboegaki.MainActivity" />
+    </shortcut>
 </shortcuts>

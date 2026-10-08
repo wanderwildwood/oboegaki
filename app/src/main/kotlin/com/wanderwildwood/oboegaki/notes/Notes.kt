@@ -11,6 +11,7 @@ import com.wanderwildwood.oboegaki.sync.nextcloudRemote
 import com.wanderwildwood.oboegaki.sync.Refused
 import com.wanderwildwood.oboegaki.glance.GlanceProvider
 import com.wanderwildwood.oboegaki.remind.Reminders
+import com.wanderwildwood.oboegaki.tasks.Tasks
 import com.wanderwildwood.oboegaki.sync.PINS
 import com.wanderwildwood.oboegaki.sync.Sharing
 import com.wanderwildwood.oboegaki.sync.isNote
@@ -293,6 +294,8 @@ object Notes {
     /** Stop keeping notes on the server on this phone. What is on the server is not touched. */
     fun signOut() {
         scope.launch {
+            // The tasks, too, send what they have before they are let go.
+            if (preferences.keeping == Keeping.NEXTCLOUD) runCatching { Tasks.finalSync() }
             afterSync {
                 syncDir(preferences.keeping).deleteRecursively()
                 forget(preferences.keeping)
@@ -307,7 +310,12 @@ object Notes {
     /** Let go of a server's sign-in: its password, and the shares it saw. */
     private fun forget(place: Keeping) {
         when (place) {
-            Keeping.NEXTCLOUD -> preferences.account = null
+            Keeping.NEXTCLOUD -> {
+                preferences.account = null
+                // Its task lists are its own; the ones kept on this phone stay.
+                Tasks.init(appContext)
+                Tasks.forgetServer()
+            }
             Keeping.WEBDAV -> preferences.dav = null
             else -> Unit
         }
@@ -387,6 +395,7 @@ object Notes {
             if (leavingServer) {
                 syncing.withLock { runSync(from.keeping) }
                 wentUp = _sync.value == SyncState.Idle
+                if (from.keeping == Keeping.NEXTCLOUD) runCatching { Tasks.finalSync() }
             }
             if (preferences.keeping.isServer) syncAndWait()
             val old = when (from.keeping) {

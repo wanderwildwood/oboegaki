@@ -127,6 +127,11 @@ class Preferences(context: Context) {
         get() = store.getLong(STOPPED_AT, 0L)
         set(value) = store.edit().putLong(STOPPED_AT, value).apply()
 
+    /** The task list new tasks go in, by its id here, once one has been chosen. */
+    var tasksList: String?
+        get() = store.getString(TASKS_LIST, null)
+        set(value) = store.edit().putString(TASKS_LIST, value).apply()
+
     var lastSync: Long
         get() = store.getLong(LAST_SYNC, 0L)
         set(value) = store.edit().putLong(LAST_SYNC, value).apply()
@@ -153,5 +158,6 @@ class Preferences(context: Context) {
         const val DURASPEED_DONE = "duraspeed_done"
         const val STOP_SEEN = "stop_seen"
         const val STOPPED_AT = "stopped_at"
+        const val TASKS_LIST = "tasks_list"
     }
 }
