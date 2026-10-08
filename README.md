@@ -66,6 +66,9 @@ a voice note heard and written down, a page photographed and handed to the scann
   and one set somewhere else shows its time and can be made to ring here too. If the phone was
   off, or Notes was stopped, when one was due, it rings as soon as it can and says it is late.
   A note's reminder can still go to a calendar app instead, from the same place.
+- **Tasks** that are real tasks: on a Nextcloud, the same ones its Tasks app, Thunderbird or any
+  CalDAV app shows, on a page of their own (the tick-in-a-circle at the top of the list). See
+  [Tasks](#tasks).
 - **On the lock screen**, through [Glance](https://github.com/wanderwildwood/hitome), the pinned
   notes, and how much of each list is left to do.
 
@@ -140,6 +143,38 @@ On Nextcloud, and only there, a note can be shared with anyone else on the same 
 It is the server's own sharing, so both people's phones sync the one file. A note shared with
 you is moved into your notes folder and marked as shared.
 
+## Tasks
+
+With the notes on a Nextcloud, the Tasks page shows that Nextcloud's task lists, one section
+each: every calendar of yours that holds tasks, and the ones others have shared with you. They
+sync both ways over CalDAV with the sign-in Notes already has, so a task ticked on the phone is
+ticked in Nextcloud's Tasks app and in Thunderbird, and one added there turns up here. Nothing
+else is needed on the phone, DAVx5 included.
+
+- A task has a title, a due day or day and time, a priority, notes, and its list. A tick is one
+  tap; a task opens to be changed; Delete asks twice. *New list* makes another list on the
+  Nextcloud, and *New tasks go in*, in the settings, says which one new tasks go to.
+- Anything else in a task that another app put there (subtasks, categories, alarms, colours)
+  is kept exactly as it was when Notes writes the task back.
+- Changes made with no signal wait on the phone and go when there is one. Each list says when it
+  last synced. If the same task was changed on the phone and somewhere else meanwhile, each
+  field changed on only one side keeps that change; where both changed the same field, the
+  server's stands and the phone's is written into the task's notes, so neither is lost.
+- **Reminders.** A task due at a time rings on the phone as a note's reminder does, on the phone
+  it was set on: a time set here rings here, which the task's page shows and can turn off. A
+  task made somewhere else rings here once you turn it on. Alarms other apps put in a task are
+  kept, for those apps, but Notes rings only by its own rule, so it never rings one task twice.
+- **Move to Tasks.** A long press on an item of a list offers *Move to Tasks*. The item leaves the
+  note and becomes a task, its ⏰ time becoming the task's due time, and its reminder moves with
+  it: it rings as the task, not as the item as well.
+- **Repeating tasks** made in another app are shown with *Repeats*. Ticking one that repeats every
+  so many days, weeks, months or years moves it on to its next time, as Tasks.org does; one with
+  any other rule (a count, "the second Tuesday") is finished by the tick, which its page says.
+- **Without a Nextcloud**, tasks are kept in one list on the phone. Once Notes is on a Nextcloud,
+  that list offers to move them there.
+
+Tasks are Nextcloud's only: a plain WebDAV server or a folder keeps notes, not tasks.
+
 ## For other apps
 
 Other apps can write notes in through a content provider, `com.wanderwildwood.oboegaki.capture`.
@@ -162,10 +197,12 @@ and the SHA-256 of the certificate it is signed with; any other caller is `refus
 
 ## Permissions
 
-- `INTERNET`, to reach a Nextcloud or a WebDAV server. Kept in a folder, nothing leaves the phone. Plain `http` is
+- `INTERNET`, to reach a Nextcloud (notes, and tasks over CalDAV) or a WebDAV server. Kept in a folder, nothing leaves the phone. Plain `http` is
   allowed, for a server at home or on Tailscale; over `http` on an ordinary network the notes
   and the app password can be read by anyone else on it, so give a server that has `https`
   as `https`.
+- `ACCESS_NETWORK_STATE`, to notice the phone is back on a network, so what was changed
+  without one goes up then.
 - `RECORD_AUDIO`, asked the first time the microphone is pressed and not before.
   `FOREGROUND_SERVICE` and `WAKE_LOCK`, so a recording carries on with the screen off; Android
   shows a notification while it does.
