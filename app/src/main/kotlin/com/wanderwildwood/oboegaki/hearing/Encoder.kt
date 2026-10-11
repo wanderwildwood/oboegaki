@@ -15,13 +15,16 @@ import java.io.RandomAccessFile
  */
 object Encoder {
     private const val BITRATE = 32_000
+    /** Full quality: music sounds like music at this, and an hour is about 55 MB. */
+    private const val FULL_BITRATE = 128_000
 
-    /** Writes [wav] into [m4a]. Throws if the phone has no AAC encoder or the file is not ours. */
+    /** Writes [wav] into [m4a], at the rate its header says. Throws if the phone has no AAC encoder or the file is not ours. */
     fun toM4a(wav: File, m4a: File) {
-        val format = MediaFormat.createAudioFormat(MediaFormat.MIMETYPE_AUDIO_AAC, Wav.RATE, 1).apply {
+        val rate = Wav.rateOf(wav)
+        val format = MediaFormat.createAudioFormat(MediaFormat.MIMETYPE_AUDIO_AAC, rate, 1).apply {
             setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC)
-            setInteger(MediaFormat.KEY_BIT_RATE, BITRATE)
-            setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, Wav.RATE * 2)
+            setInteger(MediaFormat.KEY_BIT_RATE, if (rate == Wav.RATE) BITRATE else FULL_BITRATE)
+            setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, rate * 2)
         }
         val codec = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_AUDIO_AAC)
         codec.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
@@ -44,7 +47,7 @@ object Encoder {
                         val buffer = codec.getInputBuffer(index)!!
                         buffer.clear()
                         val n = input.read(chunk, 0, minOf(chunk.size, buffer.remaining()))
-                        val time = fed * 1_000_000L / (Wav.RATE * 2)
+                        val time = fed * 1_000_000L / (rate * 2)
                         if (n <= 0) {
                             codec.queueInputBuffer(index, 0, 0, time, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
                             inputDone = true

@@ -197,6 +197,13 @@
     <string name="cd_record">Record a voice note</string>
     <string name="record_title">Recording</string>
     <string name="record_stop">Stop</string>
+    <string name="record_paused">Paused</string>
+    <string name="record_pause">Pause</string>
+    <string name="record_resume">Go on recording</string>
+    <string name="record_write_down">Write down what is said</string>
+    <string name="quality_title">Recording quality</string>
+    <string name="quality_speech">Speech: small, clear for voices, and what is written down</string>
+    <string name="quality_full">Full: music and rooms as they sound, about 1 MB a minute</string>
     <string name="record_note">It keeps recording with the screen off. Stopping makes it a note.</string>
     <string name="record_channel">Recording</string>
     <string name="record_notification">Recording a voice note</string>

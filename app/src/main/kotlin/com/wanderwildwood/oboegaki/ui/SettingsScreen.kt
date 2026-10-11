@@ -52,6 +52,7 @@ import com.wanderwildwood.oboegaki.notes.cleanFolder
 import com.wanderwildwood.oboegaki.notes.folders
 import com.wanderwildwood.oboegaki.glance.GlanceProvider
 import com.wanderwildwood.oboegaki.hearing.Speech
+import com.wanderwildwood.oboegaki.hearing.Voice
 import com.wanderwildwood.oboegaki.sync.LoginFlow
 import com.wanderwildwood.oboegaki.sync.Refused
 import kotlinx.coroutines.Dispatchers
@@ -165,6 +166,16 @@ fun SettingsScreen(
                 ) {
                     val now = speech
                     if (now is Speech.State.Failed) Speech.choose(context, now.language) else choosingSpeech = true
+                }
+            }
+            item {
+                var full by remember { mutableStateOf(Voice.full(context)) }
+                SettingRow(
+                    stringResource(R.string.quality_title),
+                    stringResource(if (full) R.string.quality_full else R.string.quality_speech),
+                ) {
+                    full = !full
+                    Voice.setFull(context, full)
                 }
             }
             when (preferences.keeping) {

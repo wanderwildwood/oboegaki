@@ -216,6 +216,7 @@ private fun App(capture: MutableState<Capture?>) {
     val scope = rememberCoroutineScope()
     var keeping by remember { mutableStateOf(Notes.preferences.keeping) }
     val recordingSeconds by Voice.recording.collectAsStateWithLifecycle()
+    val recordingPaused by Voice.paused.collectAsStateWithLifecycle()
     val made by Voice.made.collectAsStateWithLifecycle()
     val moving by Notes.moving.collectAsStateWithLifecycle()
     // Where the notes were, while the reader picks somewhere new for them.
@@ -370,6 +371,7 @@ private fun App(capture: MutableState<Capture?>) {
             )
             Screen.Recording -> RecordScreen(
                 seconds = recordingSeconds,
+                paused = recordingPaused,
                 onStop = {
                     RecordService.stop(context)
                     screen = Screen.List

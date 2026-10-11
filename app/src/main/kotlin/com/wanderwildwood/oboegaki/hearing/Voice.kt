@@ -39,6 +39,10 @@ object Voice {
     private val _hearing = MutableStateFlow<Set<String>>(emptySet())
     val hearing: StateFlow<Set<String>> = _hearing
 
+    /** True while the recording under way is paused. */
+    private val _paused = MutableStateFlow(false)
+    val paused: StateFlow<Boolean> = _paused
+
     /** Set when the microphone could not be opened, or the recording could not be kept. */
     private val _failed = MutableStateFlow(false)
     val failed: StateFlow<Boolean> = _failed
@@ -48,6 +52,19 @@ object Voice {
     private val worker = Executors.newSingleThreadExecutor { Thread(it, "voice") }
 
     private val dir get() = File(app.filesDir, "voice")
+
+    /**
+     * Recording quality, from the settings: speech (16 kHz, as Whisper hears, small) or full
+     * (48 kHz through the least-processed microphone, for music, rooms and voices as they are).
+     */
+    fun full(context: Context): Boolean = prefs(context).getBoolean(FULL, false)
+
+    fun setFull(context: Context, on: Boolean) = prefs(context).edit().putBoolean(FULL, on).apply()
+
+    private fun prefs(context: Context) = context.getSharedPreferences("hearing", Context.MODE_PRIVATE)
+
+    /** Whether the recording under way is to be written down; asked on the recording screen. */
+    @Volatile var writeDown = true
 
     fun init(context: Context) {
         if (::app.isInitialized) return
@@ -61,10 +78,21 @@ object Voice {
         init(context)
         if (recorder != null) return true
         _failed.value = false
-        val stamp = SimpleDateFormat("yyyy-MM-dd HHmm", Locale.ROOT).format(Date())
-        val wav = File(dir, "$stamp.wav")
-        val r = Recorder(onSecond = { _recording.value = it }, onFinished = { file, ok -> worker.execute { keep(file, ok) } })
-        if (!r.start(wav)) {
+        // To the second, and never one already there: the sound of a recording still waiting
+        // to be written down sits under this name, and a second recording begun in the same
+        // minute used to write over it. The note's title keeps the minute.
+        val stamp = SimpleDateFormat("yyyy-MM-dd HHmmss", Locale.ROOT).format(Date())
+        var wav = File(dir, "$stamp.wav")
+        var n = 2
+        while (wav.exists()) wav = File(dir, "$stamp-${n++}.wav")
+        writeDown = true
+        _paused.value = false
+        val r = Recorder(
+            full = full(context),
+            onSecond = { _recording.value = it },
+            onFinished = { file, ok -> worker.execute { keep(file, ok) } },
+        )
+        if (!r.start(wav, context.getSystemService(android.media.AudioManager::class.java))) {
             _failed.value = true
             return false
         }
@@ -76,8 +104,16 @@ object Voice {
     fun end() {
         val r = recorder ?: return
         recorder = null
+        r.paused = false
         r.stop()
         _recording.value = null
+        _paused.value = false
+    }
+
+    fun pause(on: Boolean) {
+        val r = recorder ?: return
+        r.paused = on
+        _paused.value = on
     }
 
     fun opened() {
@@ -88,14 +124,14 @@ object Voice {
     private fun keep(wav: File, ok: Boolean) {
         _recording.value = null
         recorder = null
-        if (!ok && (!wav.exists() || Wav.seconds(wav.length()) < 1)) {
+        if (!ok && (!wav.exists() || Wav.seconds(wav.length(), Wav.rateOf(wav)) < 1)) {
             wav.delete()
             _failed.value = true
             return
         }
         val stamp = wav.nameWithoutExtension
         val folder = Notes.newFolder
-        val notePath = Notes.newPath(folder, "Voice $stamp")
+        val notePath = Notes.newPath(folder, "Voice ${stamp.take(TITLE_STAMP)}")
         val stem = notePath.substringAfterLast('/').substringBeforeLast('.')
         // The link names it as it sits beside the note, which is how Obsidian finds it too.
         val audioPath = "$stem.m4a"
@@ -110,6 +146,14 @@ object Voice {
             return
         } finally {
             m4a.delete()
+        }
+        // Not to be written down: the sound is kept in the note, and that is all.
+        if (!writeDown) {
+            wav.delete()
+            _made.value = notePath
+            refreshHearing()
+            Notes.afterEdit()
+            return
         }
         // What is left to do: hear the WAV, and put the words in this note under this link.
         File(dir, "$stamp.target").writeText("$notePath\n$audioPath\n")
@@ -174,4 +218,7 @@ object Voice {
 
     /** Three of the Kompakt's four cores, so the phone stays usable while it listens. */
     private const val THREADS = 3
+    private const val FULL = "full"
+    /** "2026-10-05 0214": the date and the minute, as voice notes have always been titled. */
+    private const val TITLE_STAMP = 15
 }
