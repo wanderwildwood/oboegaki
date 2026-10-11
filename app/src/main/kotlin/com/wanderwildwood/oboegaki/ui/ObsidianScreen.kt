@@ -47,7 +47,7 @@ fun ObsidianScreen(onBack: () -> Unit) {
             )
         },
     ) { contentPadding ->
-        LazyColumnMMD(modifier = Modifier.fillMaxSize().padding(contentPadding).padding(horizontal = 20.dp)) {
+        LazyColumnMMD(modifier = Modifier.fillMaxSize().padding(contentPadding).padding(horizontal = 20.dp), isScrollbarVisible = false) {
             item {
                 Column {
                     Spacer(Modifier.height(16.dp))

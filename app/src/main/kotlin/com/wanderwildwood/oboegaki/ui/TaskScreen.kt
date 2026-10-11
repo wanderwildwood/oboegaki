@@ -189,7 +189,7 @@ fun TaskScreen(list: String, name: String?, onClose: () -> Unit) {
             )
         },
     ) { contentPadding ->
-        LazyColumnMMD(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
+        LazyColumnMMD(modifier = Modifier.fillMaxSize().padding(contentPadding), isScrollbarVisible = false) {
             item(key = "title") {
                 val focus = remember { FocusRequester() }
                 TextFieldMMD(

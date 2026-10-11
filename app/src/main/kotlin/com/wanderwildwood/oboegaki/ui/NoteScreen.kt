@@ -470,7 +470,7 @@ private fun Reading(
 
     val noteAt = remember(text) { noteReminder(text) }
 
-    LazyColumnMMD(modifier = Modifier.fillMaxSize()) {
+    LazyColumnMMD(modifier = Modifier.fillMaxSize(), isScrollbarVisible = false) {
         item(key = "title") {
             TextMMD(
                 text = title,

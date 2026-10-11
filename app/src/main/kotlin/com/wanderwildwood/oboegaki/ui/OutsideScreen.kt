@@ -80,7 +80,7 @@ fun OutsideScreen(uri: Uri, canKeep: Boolean, onKeep: (name: String, text: Strin
                 failed -> TextMMD(text = stringResource(R.string.outside_unreadable), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 12.dp))
                 body == null -> Unit
                 else -> {
-                    LazyColumnMMD(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                    LazyColumnMMD(modifier = Modifier.weight(1f).fillMaxWidth(), isScrollbarVisible = false) {
                         item { Spacer(Modifier.height(8.dp)) }
                         body.split('\n').forEachIndexed { i, line ->
                             item(key = i) {

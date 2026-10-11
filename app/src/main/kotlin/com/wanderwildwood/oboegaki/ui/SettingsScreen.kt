@@ -105,7 +105,7 @@ fun SettingsScreen(
             )
         },
     ) { contentPadding ->
-        LazyColumnMMD(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
+        LazyColumnMMD(modifier = Modifier.fillMaxSize().padding(contentPadding), isScrollbarVisible = false) {
             item {
                 SettingRow(
                     stringResource(R.string.settings_kept),
@@ -475,7 +475,7 @@ private fun SpeechDialog(current: String, onDone: (String?) -> Unit) {
             TextMMD(text = stringResource(R.string.speech_title), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
             Spacer(Modifier.height(4.dp))
             TextMMD(text = stringResource(R.string.speech_note), style = MaterialTheme.typography.labelSmall)
-            LazyColumnMMD(modifier = Modifier.fillMaxWidth().heightIn(max = 260.dp)) {
+            LazyColumnMMD(modifier = Modifier.fillMaxWidth().heightIn(max = 260.dp), isScrollbarVisible = false) {
                 for (language in Speech.languages) {
                     item(key = language.code) {
                         FolderChoice(language.name, language.code == current) {
@@ -512,7 +512,7 @@ private fun NewFolderDialog(current: String, folders: List<String>, onDone: (Str
         TextMMD(text = stringResource(R.string.settings_new_in), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
         Spacer(Modifier.height(4.dp))
         TextMMD(text = stringResource(R.string.settings_new_note), style = MaterialTheme.typography.labelSmall)
-        LazyColumnMMD(modifier = Modifier.fillMaxWidth().heightIn(max = 220.dp)) {
+        LazyColumnMMD(modifier = Modifier.fillMaxWidth().heightIn(max = 220.dp), isScrollbarVisible = false) {
             item { FolderChoice(stringResource(R.string.settings_new_top), current.isEmpty()) { onDone("") } }
             for (folder in folders) {
                 item(key = folder) { FolderChoice(folder, folder == current) { onDone(folder) } }
@@ -593,7 +593,7 @@ fun SetupScreen(onNextcloud: () -> Unit, onWebDav: () -> Unit, onFolder: () -> U
             )
         },
     ) { contentPadding ->
-        LazyColumnMMD(modifier = Modifier.fillMaxSize().padding(contentPadding).padding(horizontal = 20.dp)) {
+        LazyColumnMMD(modifier = Modifier.fillMaxSize().padding(contentPadding).padding(horizontal = 20.dp), isScrollbarVisible = false) {
             item {
                 Spacer(Modifier.height(20.dp))
                 TextMMD(text = stringResource(R.string.setup_where), style = MaterialTheme.typography.titleMedium)

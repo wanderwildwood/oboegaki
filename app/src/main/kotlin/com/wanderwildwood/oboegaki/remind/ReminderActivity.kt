@@ -71,7 +71,7 @@ private fun Ringing(onDone: () -> Unit) {
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 24.dp)) {
         TextMMD(text = stringResource(R.string.remind_screen_title), style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.height(8.dp))
-        LazyColumnMMD(modifier = Modifier.weight(1f).fillMaxWidth()) {
+        LazyColumnMMD(modifier = Modifier.weight(1f).fillMaxWidth(), isScrollbarVisible = false) {
             for (r in ringing) item(key = r.id) { RingingOne(r) }
         }
         Spacer(Modifier.height(12.dp))

@@ -167,7 +167,7 @@ fun ListScreen(
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
                 )
             } else {
-                LazyColumnMMD(modifier = Modifier.fillMaxSize()) {
+                LazyColumnMMD(modifier = Modifier.fillMaxSize(), isScrollbarVisible = false) {
                     // A dotted rule under every row but the last, as Contacts draws its list.
                     val lastRow = shown.lastOrNull()?.path?.let { "note:$it" }
                         ?: inside.lastOrNull()?.let { "folder:$it" }
@@ -263,7 +263,7 @@ private fun ViewDialog(
     onDismiss: () -> Unit,
 ) {
     EInkDialog(onDismiss = onDismiss) {
-        LazyColumnMMD(modifier = Modifier.fillMaxWidth().height(440.dp)) {
+        LazyColumnMMD(modifier = Modifier.fillMaxWidth().height(440.dp), isScrollbarVisible = false) {
             item { DialogHeading(stringResource(R.string.view_show)) }
             item { Choice(stringResource(R.string.view_all), showing == Showing.ALL) { onChoose(Showing.ALL, order) } }
             item { Choice(stringResource(R.string.view_lists), showing == Showing.LISTS) { onChoose(Showing.LISTS, order) } }

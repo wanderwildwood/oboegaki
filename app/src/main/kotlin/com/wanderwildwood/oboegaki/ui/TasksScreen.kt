@@ -114,7 +114,7 @@ fun TasksScreen(
                 )
                 HorizontalDividerMMD()
             }
-            LazyColumnMMD(modifier = Modifier.fillMaxSize()) {
+            LazyColumnMMD(modifier = Modifier.fillMaxSize(), isScrollbarVisible = false) {
                 val nextcloud = Tasks.onNextcloud
                 for (section in shown) {
                     val list = section.list

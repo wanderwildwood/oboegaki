@@ -101,7 +101,7 @@ fun ShareScreen(path: String, title: String, onBack: () -> Unit) {
             else -> null
         }
 
-        LazyColumnMMD(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
+        LazyColumnMMD(modifier = Modifier.fillMaxSize().padding(contentPadding), isScrollbarVisible = false) {
             item(key = "title") {
                 TextMMD(
                     text = title,
