@@ -33,6 +33,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mudita.mmd.components.buttons.FloatingActionButtonMMD
 import com.mudita.mmd.components.divider.HorizontalDividerMMD
+import androidx.compose.foundation.lazy.rememberLazyListState
 import com.mudita.mmd.components.lazy.LazyColumnMMD
 import com.mudita.mmd.components.text.TextMMD
 import com.mudita.mmd.components.text_field.TextFieldMMD
@@ -80,6 +81,7 @@ fun ListScreen(
     var query by remember { mutableStateOf("") }
     var choosing by remember { mutableStateOf(false) }
     val shown = arrange(notes, shared, showing, order, if (searching) query else "", pinned)
+    val listState = rememberLazyListState()
     val allFolders = folders(notes)
 
     if (searching) {
@@ -167,45 +169,49 @@ fun ListScreen(
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
                 )
             } else {
-                LazyColumnMMD(modifier = Modifier.fillMaxSize(), isScrollbarVisible = false) {
-                    // A dotted rule under every row but the last, as Contacts draws its list.
-                    val lastRow = shown.lastOrNull()?.path?.let { "note:$it" }
-                        ?: inside.lastOrNull()?.let { "folder:$it" }
-                        ?: "up"
-                    if (current != null) {
-                        val parent = parentFolder(current)
-                        item(key = "up") {
-                            FolderRow(
-                                if (parent.isEmpty()) stringResource(R.string.list_up_all) else stringResource(R.string.list_up, parent.substringAfterLast('/')),
-                                null,
-                                ruled = lastRow != "up",
-                            ) { onView(if (parent.isEmpty()) Showing.ALL else Showing.folder(parent), order) }
-                        }
-                        for (folder in inside) {
-                            item(key = "folder:$folder") {
-                                val count = notes.count { it.folder == folder || it.folder.startsWith("$folder/") }
-                                FolderRow(folder.substringAfterLast('/'), pluralStringResource(R.plurals.list_folder, count, count), ruled = lastRow != "folder:$folder") {
-                                    onView(Showing.folder(folder), order)
+                // Page dots, whatever the order: by title, a column of letters would have to
+                // squeeze into the space above the three buttons and would not read.
+                ListJumpBox(listState, ListJump.Pages, clearBelow = FOOT) {
+                    LazyColumnMMD(modifier = Modifier.fillMaxSize(), state = listState, isScrollbarVisible = false) {
+                        // A dotted rule under every row but the last, as Contacts draws its list.
+                        val lastRow = shown.lastOrNull()?.path?.let { "note:$it" }
+                            ?: inside.lastOrNull()?.let { "folder:$it" }
+                            ?: "up"
+                        if (current != null) {
+                            val parent = parentFolder(current)
+                            item(key = "up") {
+                                FolderRow(
+                                    if (parent.isEmpty()) stringResource(R.string.list_up_all) else stringResource(R.string.list_up, parent.substringAfterLast('/')),
+                                    null,
+                                    ruled = lastRow != "up",
+                                ) { onView(if (parent.isEmpty()) Showing.ALL else Showing.folder(parent), order) }
+                            }
+                            for (folder in inside) {
+                                item(key = "folder:$folder") {
+                                    val count = notes.count { it.folder == folder || it.folder.startsWith("$folder/") }
+                                    FolderRow(folder.substringAfterLast('/'), pluralStringResource(R.plurals.list_folder, count, count), ruled = lastRow != "folder:$folder") {
+                                        onView(Showing.folder(folder), order)
+                                    }
+                                }
+                            }
+                            if (shown.isEmpty()) {
+                                item(key = "none") {
+                                    TextMMD(
+                                        text = stringResource(R.string.list_none_here),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                                    )
                                 }
                             }
                         }
-                        if (shown.isEmpty()) {
-                            item(key = "none") {
-                                TextMMD(
-                                    text = stringResource(R.string.list_none_here),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-                                )
+                        for (note in shown) {
+                            item(key = note.path) {
+                                NoteRow(note, note.path in shared, note.path in pinned, showFolder = Showing.folderOf(showing) == null, ruled = lastRow != "note:${note.path}") { onOpen(note) }
                             }
                         }
+                        // Room under the last row for the buttons that float over it.
+                        item(key = "foot") { Spacer(Modifier.height(FOOT)) }
                     }
-                    for (note in shown) {
-                        item(key = note.path) {
-                            NoteRow(note, note.path in shared, note.path in pinned, showFolder = Showing.folderOf(showing) == null, ruled = lastRow != "note:${note.path}") { onOpen(note) }
-                        }
-                    }
-                    // Room under the last row for the buttons that float over it.
-                    item(key = "foot") { Spacer(Modifier.height(232.dp)) }
                 }
             }
         }
@@ -391,3 +397,6 @@ private fun NoteRow(note: Note, isShared: Boolean, isPinned: Boolean, showFolder
         }
     }
 }
+
+/** Room under the list for the three buttons that float over its foot; the page dots stop above it. */
+private val FOOT = 232.dp

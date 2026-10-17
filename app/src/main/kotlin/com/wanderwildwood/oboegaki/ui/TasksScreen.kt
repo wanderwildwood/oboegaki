@@ -32,6 +32,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mudita.mmd.components.buttons.FloatingActionButtonMMD
 import com.mudita.mmd.components.checkbox.CheckboxMMD
 import com.mudita.mmd.components.divider.HorizontalDividerMMD
+import androidx.compose.foundation.lazy.rememberLazyListState
 import com.mudita.mmd.components.lazy.LazyColumnMMD
 import com.mudita.mmd.components.text.TextMMD
 import com.mudita.mmd.components.top_app_bar.TopAppBarMMD
@@ -114,73 +115,76 @@ fun TasksScreen(
                 )
                 HorizontalDividerMMD()
             }
-            LazyColumnMMD(modifier = Modifier.fillMaxSize(), isScrollbarVisible = false) {
-                val nextcloud = Tasks.onNextcloud
-                for (section in shown) {
-                    val list = section.list
-                    item(key = "list:${list.id}") { ListHeading(list) }
-                    val open = section.items.filter { !it.task.fields.done }.sortedWith(openOrder)
-                    val done = section.items.filter { it.task.fields.done }.sortedBy { it.task.fields.summary.lowercase() }
-                    if (open.isEmpty()) {
-                        item(key = "none:${list.id}") {
-                            TextMMD(
-                                text = stringResource(if (done.isEmpty()) R.string.tasks_none else R.string.tasks_all_done),
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-                            )
+            val listState = rememberLazyListState()
+            ListJumpBox(listState, ListJump.Pages, clearBelow = FOOT) {
+                LazyColumnMMD(modifier = Modifier.fillMaxSize(), state = listState, isScrollbarVisible = false) {
+                    val nextcloud = Tasks.onNextcloud
+                    for (section in shown) {
+                        val list = section.list
+                        item(key = "list:${list.id}") { ListHeading(list) }
+                        val open = section.items.filter { !it.task.fields.done }.sortedWith(openOrder)
+                        val done = section.items.filter { it.task.fields.done }.sortedBy { it.task.fields.summary.lowercase() }
+                        if (open.isEmpty()) {
+                            item(key = "none:${list.id}") {
+                                TextMMD(
+                                    text = stringResource(if (done.isEmpty()) R.string.tasks_none else R.string.tasks_all_done),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                                )
+                            }
                         }
-                    }
-                    for (item in open) {
-                        item(key = "task:${list.id}/${item.name}") {
-                            TaskRow(item, list.readOnly, item.task.uid in ringing, onOpen = { onOpen(item) })
+                        for (item in open) {
+                            item(key = "task:${list.id}/${item.name}") {
+                                TaskRow(item, list.readOnly, item.task.uid in ringing, onOpen = { onOpen(item) })
+                            }
                         }
-                    }
-                    if (done.isNotEmpty()) {
-                        val isOpen = list.id in opened
-                        item(key = "done:${list.id}") {
-                            TextMMD(
-                                text = stringResource(if (isOpen) R.string.tasks_done_hide else R.string.tasks_done_show, done.size),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { opened = if (isOpen) opened - list.id else opened + list.id }
-                                    .padding(horizontal = 20.dp, vertical = 12.dp),
-                            )
-                        }
-                        if (isOpen) {
-                            for (item in done) {
-                                item(key = "task:${list.id}/${item.name}") {
-                                    TaskRow(item, list.readOnly, false, onOpen = { onOpen(item) })
+                        if (done.isNotEmpty()) {
+                            val isOpen = list.id in opened
+                            item(key = "done:${list.id}") {
+                                TextMMD(
+                                    text = stringResource(if (isOpen) R.string.tasks_done_hide else R.string.tasks_done_show, done.size),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { opened = if (isOpen) opened - list.id else opened + list.id }
+                                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                                )
+                            }
+                            if (isOpen) {
+                                for (item in done) {
+                                    item(key = "task:${list.id}/${item.name}") {
+                                        TaskRow(item, list.readOnly, false, onOpen = { onOpen(item) })
+                                    }
                                 }
                             }
                         }
+                        if (list.onPhone && nextcloud && section.items.isNotEmpty()) {
+                            val to = Tasks.defaultList().takeIf { !it.onPhone } ?: Tasks.writableLists().firstOrNull { !it.onPhone }
+                            if (to != null) item(key = "move:${list.id}") {
+                                Leave(
+                                    stringResource(R.string.tasks_move_to_nextcloud, to.name),
+                                    stringResource(R.string.tasks_move_to_nextcloud_confirm, to.name),
+                                ) { Tasks.moveToNextcloud(to.id) }
+                            }
+                        }
+                        item(key = "rule:${list.id}") { HorizontalDividerMMD() }
                     }
-                    if (list.onPhone && nextcloud && section.items.isNotEmpty()) {
-                        val to = Tasks.defaultList().takeIf { !it.onPhone } ?: Tasks.writableLists().firstOrNull { !it.onPhone }
-                        if (to != null) item(key = "move:${list.id}") {
-                            Leave(
-                                stringResource(R.string.tasks_move_to_nextcloud, to.name),
-                                stringResource(R.string.tasks_move_to_nextcloud_confirm, to.name),
-                            ) { Tasks.moveToNextcloud(to.id) }
+                    if (nextcloud) {
+                        item(key = "new-list") {
+                            TextMMD(
+                                text = stringResource(R.string.tasks_new_list),
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { making = true }
+                                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                            )
                         }
                     }
-                    item(key = "rule:${list.id}") { HorizontalDividerMMD() }
+                    // Room under the last row for the button that floats over it.
+                    item(key = "foot") { Spacer(Modifier.height(FOOT)) }
                 }
-                if (nextcloud) {
-                    item(key = "new-list") {
-                        TextMMD(
-                            text = stringResource(R.string.tasks_new_list),
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { making = true }
-                                .padding(horizontal = 20.dp, vertical = 16.dp),
-                        )
-                    }
-                }
-                // Room under the last row for the button that floats over it.
-                item(key = "foot") { Spacer(Modifier.height(96.dp)) }
             }
         }
     }
@@ -331,3 +335,6 @@ private fun NewListDialog(onDismiss: () -> Unit) {
 
 /** Whether ticking this repeating task moves it on (true) or finishes it (false). */
 fun movesOn(item: Item): Boolean = item.task.repeats != null && nextOccurrence(item.text) != null
+
+/** Room under the list for the button that floats over its foot; the page dots stop above it. */
+private val FOOT = 96.dp
