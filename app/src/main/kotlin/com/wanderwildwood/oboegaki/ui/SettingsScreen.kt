@@ -93,6 +93,16 @@ fun SettingsScreen(
     val carriers = remember { SyncApps.carriers(context) }
     val hasDuraSpeed = remember { SyncApps.hasDuraSpeed(context) }
     val hasReminders = remember { Reminders.load(context).isNotEmpty() }
+    // Read again on every return from the phone's settings, where it is changed.
+    var checks by remember { mutableStateOf(0) }
+    androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
+        checks++
+        onPauseOrDispose { }
+    }
+    val fullScreenOn = remember(checks) {
+        android.os.Build.VERSION.SDK_INT < 34 ||
+            context.getSystemService(android.app.NotificationManager::class.java).canUseFullScreenIntent()
+    }
     val keptFolder = remember(preferences.folder) { folderName(preferences.folder, context.contentResolver) }
 
     Scaffold(
@@ -271,6 +281,19 @@ fun SettingsScreen(
                     }
                 }
                 Keeping.NOWHERE -> Unit
+            }
+            // Android 14 on takes the full screen away from an app installed from a file.
+            if (hasReminders && !fullScreenOn) {
+                item {
+                    SettingRow(stringResource(R.string.remind_full_screen), stringResource(R.string.remind_allow_full_screen)) {
+                        runCatching {
+                            context.startActivity(
+                                Intent(android.provider.Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, android.net.Uri.parse("package:" + context.packageName))
+                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                            )
+                        }
+                    }
+                }
             }
             // One row for everything DuraSpeed can stop: Notes, when reminders are set here,
             // and the apps carrying a folder of notes. Its list cannot be read, so the second

@@ -85,11 +85,18 @@ fun RemindDialog(
     var pickingTime by remember { mutableStateOf(false) }
     var past by remember { mutableStateOf(false) }
     var exact by remember { mutableStateOf(context.getSystemService(AlarmManager::class.java).canScheduleExactAlarms()) }
+    // Android 14 on takes the full screen away from an app installed from a file.
+    fun fullScreenAllowed() = android.os.Build.VERSION.SDK_INT < 34 ||
+        context.getSystemService(android.app.NotificationManager::class.java).canUseFullScreenIntent()
+    var fullScreen by remember { mutableStateOf(fullScreenAllowed()) }
     // Read again on coming back from the permission's page.
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     DisposableEffect(lifecycle) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) exact = context.getSystemService(AlarmManager::class.java).canScheduleExactAlarms()
+            if (event == Lifecycle.Event.ON_RESUME) {
+                exact = context.getSystemService(AlarmManager::class.java).canScheduleExactAlarms()
+                fullScreen = fullScreenAllowed()
+            }
         }
         lifecycle.addObserver(observer)
         onDispose { lifecycle.removeObserver(observer) }
@@ -120,6 +127,22 @@ fun RemindDialog(
                 },
                 modifier = Modifier.fillMaxWidth().height(48.dp),
             ) { TextMMD(text = stringResource(R.string.remind_allow), style = MaterialTheme.typography.bodySmall) }
+        }
+        if (!fullScreen) {
+            Spacer(Modifier.height(8.dp))
+            TextMMD(text = stringResource(R.string.remind_full_screen), style = MaterialTheme.typography.labelSmall)
+            Spacer(Modifier.height(6.dp))
+            OutlinedButtonMMD(
+                onClick = {
+                    runCatching {
+                        context.startActivity(
+                            Intent(AndroidSettings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, Uri.parse("package:" + context.packageName))
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                        )
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+            ) { TextMMD(text = stringResource(R.string.remind_allow_full_screen), style = MaterialTheme.typography.bodySmall) }
         }
         if (past) {
             Spacer(Modifier.height(8.dp))

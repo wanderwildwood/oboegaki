@@ -368,6 +368,8 @@
     <string name="remind_remove">Take the reminder off</string>
     <string name="remind_exact">Notes isn\'t allowed to set alarms, so a reminder may ring late.</string>
     <string name="remind_allow">Allow alarms</string>
+    <string name="remind_full_screen">Notes isn\'t allowed to fill the screen, so a reminder won\'t wake the phone.</string>
+    <string name="remind_allow_full_screen">Allow full screen</string>
     <string name="remind_past">That time has gone by.</string>
     <!-- At the foot of a note's reminder: the old way, a calendar app's new event -->
     <string name="remind_calendar">Add to a calendar instead</string>
