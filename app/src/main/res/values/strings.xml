@@ -420,4 +420,7 @@
     <!-- On a list item held down: it leaves the note and becomes a task in that list -->
     <string name="item_to_tasks">Move to Tasks · %1$s</string>
     <string name="settings_tasks_in">New tasks go in</string>
+    <string name="list_jump_setting">Letters and page dots</string>
+    <string name="list_jump_shown">Shown</string>
+    <string name="list_jump_hidden">Hidden</string>
 </resources>

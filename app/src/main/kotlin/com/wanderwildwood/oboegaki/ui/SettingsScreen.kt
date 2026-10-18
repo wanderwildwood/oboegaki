@@ -155,6 +155,24 @@ fun SettingsScreen(
                 HorizontalDividerMMD()
             }
             item {
+                val jumpShown by rememberListJumpShown()
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { ListJumpPrefs.setShown(context, !jumpShown) }
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    TextMMD(
+                        text = stringResource(R.string.list_jump_setting),
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.weight(1f),
+                    )
+                    SwitchMMD(checked = jumpShown, onCheckedChange = null)
+                }
+                HorizontalDividerMMD()
+            }
+            item {
                 SettingRow(
                     stringResource(R.string.speech_title),
                     when (val now = speech) {
