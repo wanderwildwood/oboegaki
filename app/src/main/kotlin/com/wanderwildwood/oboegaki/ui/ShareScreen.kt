@@ -23,7 +23,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.mudita.mmd.components.lazy.LazyColumnMMD
 import com.mudita.mmd.components.switcher.SwitchMMD
 import com.mudita.mmd.components.text.TextMMD
 import com.mudita.mmd.components.top_app_bar.TopAppBarMMD
@@ -101,7 +100,7 @@ fun ShareScreen(path: String, title: String, onBack: () -> Unit) {
             else -> null
         }
 
-        LazyColumnMMD(modifier = Modifier.fillMaxSize().padding(contentPadding), isScrollbarVisible = false) {
+        PagedColumn(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
             item(key = "title") {
                 TextMMD(
                     text = title,

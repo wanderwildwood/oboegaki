@@ -45,7 +45,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mudita.mmd.components.checkbox.CheckboxMMD
-import com.mudita.mmd.components.lazy.LazyColumnMMD
 import com.mudita.mmd.components.text.TextMMD
 import com.mudita.mmd.components.text_field.TextFieldMMD
 import com.mudita.mmd.components.top_app_bar.TopAppBarMMD
@@ -470,7 +469,7 @@ private fun Reading(
 
     val noteAt = remember(text) { noteReminder(text) }
 
-    LazyColumnMMD(modifier = Modifier.fillMaxSize(), isScrollbarVisible = false) {
+    PagedColumn(modifier = Modifier.fillMaxSize()) {
         item(key = "title") {
             TextMMD(
                 text = title,

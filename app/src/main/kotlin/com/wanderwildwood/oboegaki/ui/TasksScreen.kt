@@ -33,7 +33,6 @@ import com.mudita.mmd.components.buttons.FloatingActionButtonMMD
 import com.mudita.mmd.components.checkbox.CheckboxMMD
 import com.mudita.mmd.components.divider.HorizontalDividerMMD
 import androidx.compose.foundation.lazy.rememberLazyListState
-import com.mudita.mmd.components.lazy.LazyColumnMMD
 import com.mudita.mmd.components.text.TextMMD
 import com.mudita.mmd.components.top_app_bar.TopAppBarMMD
 import com.wanderwildwood.oboegaki.R
@@ -117,7 +116,7 @@ fun TasksScreen(
             }
             val listState = rememberLazyListState()
             ListJumpBox(listState, ListJump.Pages, clearBelow = FOOT) {
-                LazyColumnMMD(modifier = Modifier.fillMaxSize(), state = listState, isScrollbarVisible = false) {
+                PagedColumn(modifier = Modifier.fillMaxSize(), state = listState) {
                     val nextcloud = Tasks.onNextcloud
                     for (section in shown) {
                         val list = section.list
@@ -182,8 +181,6 @@ fun TasksScreen(
                             )
                         }
                     }
-                    // Room under the last row for the button that floats over it.
-                    item(key = "foot") { Spacer(Modifier.height(FOOT)) }
                 }
             }
         }

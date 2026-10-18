@@ -34,7 +34,6 @@ import androidx.compose.ui.unit.dp
 import com.mudita.mmd.components.buttons.FloatingActionButtonMMD
 import com.mudita.mmd.components.divider.HorizontalDividerMMD
 import androidx.compose.foundation.lazy.rememberLazyListState
-import com.mudita.mmd.components.lazy.LazyColumnMMD
 import com.mudita.mmd.components.text.TextMMD
 import com.mudita.mmd.components.text_field.TextFieldMMD
 import com.mudita.mmd.components.top_app_bar.TopAppBarMMD
@@ -172,7 +171,7 @@ fun ListScreen(
                 // Page dots, whatever the order: by title, a column of letters would have to
                 // squeeze into the space above the three buttons and would not read.
                 ListJumpBox(listState, ListJump.Pages, clearBelow = FOOT) {
-                    LazyColumnMMD(modifier = Modifier.fillMaxSize(), state = listState, isScrollbarVisible = false) {
+                    PagedColumn(modifier = Modifier.fillMaxSize(), state = listState) {
                         // A dotted rule under every row but the last, as Contacts draws its list.
                         val lastRow = shown.lastOrNull()?.path?.let { "note:$it" }
                             ?: inside.lastOrNull()?.let { "folder:$it" }
@@ -209,8 +208,6 @@ fun ListScreen(
                                 NoteRow(note, note.path in shared, note.path in pinned, showFolder = Showing.folderOf(showing) == null, ruled = lastRow != "note:${note.path}") { onOpen(note) }
                             }
                         }
-                        // Room under the last row for the buttons that float over it.
-                        item(key = "foot") { Spacer(Modifier.height(FOOT)) }
                     }
                 }
             }
@@ -269,7 +266,7 @@ private fun ViewDialog(
     onDismiss: () -> Unit,
 ) {
     EInkDialog(onDismiss = onDismiss) {
-        LazyColumnMMD(modifier = Modifier.fillMaxWidth().height(440.dp), isScrollbarVisible = false) {
+        PagedColumn(modifier = Modifier.fillMaxWidth().height(440.dp)) {
             item { DialogHeading(stringResource(R.string.view_show)) }
             item { Choice(stringResource(R.string.view_all), showing == Showing.ALL) { onChoose(Showing.ALL, order) } }
             item { Choice(stringResource(R.string.view_lists), showing == Showing.LISTS) { onChoose(Showing.LISTS, order) } }

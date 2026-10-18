@@ -36,7 +36,6 @@ import androidx.compose.ui.unit.dp
 import com.mudita.mmd.components.buttons.ButtonMMD
 import com.mudita.mmd.components.buttons.OutlinedButtonMMD
 import com.mudita.mmd.components.divider.HorizontalDividerMMD
-import com.mudita.mmd.components.lazy.LazyColumnMMD
 import com.mudita.mmd.components.switcher.SwitchMMD
 import com.mudita.mmd.components.text.TextMMD
 import com.mudita.mmd.components.text_field.TextFieldMMD
@@ -105,7 +104,7 @@ fun SettingsScreen(
             )
         },
     ) { contentPadding ->
-        LazyColumnMMD(modifier = Modifier.fillMaxSize().padding(contentPadding), isScrollbarVisible = false) {
+        PagedColumn(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
             item {
                 SettingRow(
                     stringResource(R.string.settings_kept),
@@ -475,7 +474,7 @@ private fun SpeechDialog(current: String, onDone: (String?) -> Unit) {
             TextMMD(text = stringResource(R.string.speech_title), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
             Spacer(Modifier.height(4.dp))
             TextMMD(text = stringResource(R.string.speech_note), style = MaterialTheme.typography.labelSmall)
-            LazyColumnMMD(modifier = Modifier.fillMaxWidth().heightIn(max = 260.dp), isScrollbarVisible = false) {
+            PagedColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 260.dp)) {
                 for (language in Speech.languages) {
                     item(key = language.code) {
                         FolderChoice(language.name, language.code == current) {
@@ -512,7 +511,7 @@ private fun NewFolderDialog(current: String, folders: List<String>, onDone: (Str
         TextMMD(text = stringResource(R.string.settings_new_in), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
         Spacer(Modifier.height(4.dp))
         TextMMD(text = stringResource(R.string.settings_new_note), style = MaterialTheme.typography.labelSmall)
-        LazyColumnMMD(modifier = Modifier.fillMaxWidth().heightIn(max = 220.dp), isScrollbarVisible = false) {
+        PagedColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 220.dp)) {
             item { FolderChoice(stringResource(R.string.settings_new_top), current.isEmpty()) { onDone("") } }
             for (folder in folders) {
                 item(key = folder) { FolderChoice(folder, folder == current) { onDone(folder) } }
@@ -593,7 +592,7 @@ fun SetupScreen(onNextcloud: () -> Unit, onWebDav: () -> Unit, onFolder: () -> U
             )
         },
     ) { contentPadding ->
-        LazyColumnMMD(modifier = Modifier.fillMaxSize().padding(contentPadding).padding(horizontal = 20.dp), isScrollbarVisible = false) {
+        PagedColumn(modifier = Modifier.fillMaxSize().padding(contentPadding).padding(horizontal = 20.dp)) {
             item {
                 Spacer(Modifier.height(20.dp))
                 TextMMD(text = stringResource(R.string.setup_where), style = MaterialTheme.typography.titleMedium)

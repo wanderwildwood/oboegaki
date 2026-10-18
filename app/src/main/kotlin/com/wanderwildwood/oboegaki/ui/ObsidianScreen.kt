@@ -16,7 +16,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.mudita.mmd.components.lazy.LazyColumnMMD
 import com.mudita.mmd.components.text.TextMMD
 import com.mudita.mmd.components.top_app_bar.TopAppBarMMD
 import com.wanderwildwood.oboegaki.R
@@ -47,7 +46,7 @@ fun ObsidianScreen(onBack: () -> Unit) {
             )
         },
     ) { contentPadding ->
-        LazyColumnMMD(modifier = Modifier.fillMaxSize().padding(contentPadding).padding(horizontal = 20.dp), isScrollbarVisible = false) {
+        PagedColumn(modifier = Modifier.fillMaxSize().padding(contentPadding).padding(horizontal = 20.dp)) {
             item {
                 Column {
                     Spacer(Modifier.height(16.dp))
@@ -62,7 +61,6 @@ fun ObsidianScreen(onBack: () -> Unit) {
             item { Way(stringResource(R.string.obsidian_syncthing_heading), stringResource(R.string.obsidian_syncthing)) }
             item { Way(stringResource(R.string.obsidian_nextcloud_heading), stringResource(R.string.obsidian_nextcloud)) }
             item { Way(stringResource(R.string.obsidian_sync_heading), stringResource(R.string.obsidian_sync)) }
-            item { Spacer(Modifier.height(20.dp)) }
         }
     }
 }
