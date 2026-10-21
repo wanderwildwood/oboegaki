@@ -9,6 +9,10 @@
 
     <!-- Voice notes. Asked for the first time the microphone is pressed, never before. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Neither the microphone nor a camera is needed to install: a tablet without them
+         (Supernote's have no camera) gets notes without the buttons for voice or scanning. -->
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
     <!-- So a recording carries on with the screen off; Android requires a notification. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <!-- Keeps the processor, not the screen, awake while recording and while hearing. -->

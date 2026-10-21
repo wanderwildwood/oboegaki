@@ -1,5 +1,6 @@
 package com.wanderwildwood.oboegaki.ui
 
+import android.content.pm.PackageManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -25,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -82,6 +84,10 @@ fun ListScreen(
     val shown = arrange(notes, shared, showing, order, if (searching) query else "", pinned)
     val listState = rememberLazyListState()
     val allFolders = folders(notes)
+    // Supernote's tablets have no camera, and some have no microphone: no button for either then.
+    val context = LocalContext.current
+    val hasCamera = remember { context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY) }
+    val hasMicrophone = remember { context.packageManager.hasSystemFeature(PackageManager.FEATURE_MICROPHONE) }
 
     if (searching) {
         BackHandler {
@@ -109,14 +115,18 @@ fun ListScreen(
         floatingActionButton = {
             // Paper, voice, and the pen: one tap from the list to each way of taking a note.
             Column(horizontalAlignment = Alignment.End) {
-                FloatingActionButtonMMD(onClick = onScan) {
-                    Icon(Icons.Scan, contentDescription = stringResource(R.string.cd_scan), modifier = Modifier.size(28.dp))
+                if (hasCamera) {
+                    FloatingActionButtonMMD(onClick = onScan) {
+                        Icon(Icons.Scan, contentDescription = stringResource(R.string.cd_scan), modifier = Modifier.size(28.dp))
+                    }
+                    Spacer(Modifier.height(14.dp))
                 }
-                Spacer(Modifier.height(14.dp))
-                FloatingActionButtonMMD(onClick = onRecord) {
-                    Icon(Icons.Mic, contentDescription = stringResource(R.string.cd_record), modifier = Modifier.size(28.dp))
+                if (hasMicrophone) {
+                    FloatingActionButtonMMD(onClick = onRecord) {
+                        Icon(Icons.Mic, contentDescription = stringResource(R.string.cd_record), modifier = Modifier.size(28.dp))
+                    }
+                    Spacer(Modifier.height(14.dp))
                 }
-                Spacer(Modifier.height(14.dp))
                 FloatingActionButtonMMD(onClick = { onNew(Showing.folderOf(showing) ?: "") }) {
                     Icon(Icons.Add, contentDescription = stringResource(R.string.cd_new_note), modifier = Modifier.size(28.dp))
                 }

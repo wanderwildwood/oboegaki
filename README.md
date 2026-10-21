@@ -2,7 +2,8 @@
 
 Notes, lists, voice notes and scanned paper, kept as plain Markdown files in a folder you
 choose: on your own Nextcloud, or anywhere on the phone. Built for the
-[Mudita Kompakt](https://mudita.com/products/kompakt/) and its E Ink screen.
+[Mudita Kompakt](https://mudita.com/products/kompakt/) and its E Ink screen, and it will install
+on any device with Android 11 or later, Supernote's tablets among them.
 
 *Oboegaki* is 覚書, a memorandum: a thing written down so that it is not forgotten.
 
