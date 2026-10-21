@@ -268,7 +268,8 @@ object Reminders {
             return
         }
         val at = maxOf(wake, now + 1_000L)
-        if (am.canScheduleExactAlarms()) {
+        // Below Android 12 every app may set exact alarms.
+        if (android.os.Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms()) {
             // An alarm clock is exact, is let through Doze, and wakes the phone to deliver it.
             am.setAlarmClock(AlarmManager.AlarmClockInfo(at, open(context)), pending)
             Log.i(TAG, "reminder alarm set for $at")

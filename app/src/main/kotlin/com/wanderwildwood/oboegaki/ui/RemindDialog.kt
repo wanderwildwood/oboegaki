@@ -84,7 +84,10 @@ fun RemindDialog(
     var pickingDay by remember { mutableStateOf(false) }
     var pickingTime by remember { mutableStateOf(false) }
     var past by remember { mutableStateOf(false) }
-    var exact by remember { mutableStateOf(context.getSystemService(AlarmManager::class.java).canScheduleExactAlarms()) }
+    // Below Android 12 every app may set exact alarms; there is no permission to ask for.
+    fun exactAllowed() = android.os.Build.VERSION.SDK_INT < 31 ||
+        context.getSystemService(AlarmManager::class.java).canScheduleExactAlarms()
+    var exact by remember { mutableStateOf(exactAllowed()) }
     // Android 14 on takes the full screen away from an app installed from a file.
     fun fullScreenAllowed() = android.os.Build.VERSION.SDK_INT < 34 ||
         context.getSystemService(android.app.NotificationManager::class.java).canUseFullScreenIntent()
@@ -94,7 +97,7 @@ fun RemindDialog(
     DisposableEffect(lifecycle) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                exact = context.getSystemService(AlarmManager::class.java).canScheduleExactAlarms()
+                exact = exactAllowed()
                 fullScreen = fullScreenAllowed()
             }
         }
