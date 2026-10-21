@@ -77,7 +77,11 @@ fun ListScreen(
     onSettings: () -> Unit,
     onAbout: () -> Unit,
     onTasks: () -> Unit,
+    // A sync to run when the list is pulled down from its top, returning the state it left;
+    // null when the notes live only on this phone.
+    onPull: (suspend () -> SyncState)? = null,
 ) {
+    val pull = rememberPull { onPull?.invoke() ?: SyncState.Idle }
     var searching by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     var choosing by remember { mutableStateOf(false) }
@@ -134,7 +138,7 @@ fun ListScreen(
         },
     ) { contentPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
-            (movingLine(moving) ?: syncLine(sync))?.let { line ->
+            (movingLine(moving) ?: pulledWords(pull.pulled) { syncLine(it) } ?: syncLine(sync))?.let { line ->
                 TextMMD(
                     text = line,
                     style = MaterialTheme.typography.labelSmall,
@@ -181,7 +185,11 @@ fun ListScreen(
                 // Page dots, whatever the order: by title, a column of letters would have to
                 // squeeze into the space above the three buttons and would not read.
                 ListJumpBox(listState, ListJump.Pages, clearBelow = FOOT) {
-                    PagedColumn(modifier = Modifier.fillMaxSize(), state = listState) {
+                    PagedColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        state = listState,
+                        onPullAtTop = if (onPull != null) pull::pull else null,
+                    ) {
                         // A dotted rule under every row but the last, as Contacts draws its list.
                         val lastRow = shown.lastOrNull()?.path?.let { "note:$it" }
                             ?: inside.lastOrNull()?.let { "folder:$it" }

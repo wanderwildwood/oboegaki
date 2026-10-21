@@ -77,6 +77,9 @@ fun TasksScreen(
     val shown by Tasks.shown.collectAsStateWithLifecycle()
     val sync by Tasks.sync.collectAsStateWithLifecycle()
     val reminders by Reminders.version.collectAsStateWithLifecycle()
+    // A pull at the top asks the Nextcloud now, as the minute's ask below does; the phone's own
+    // list has nowhere to ask.
+    val pull = rememberPull { Tasks.syncAndWait(); Tasks.sync.value }
     var making by remember { mutableStateOf(false) }
     var opened by remember { mutableStateOf(setOf<String>()) }
     val ringing = remember(reminders, shown) {
@@ -106,7 +109,7 @@ fun TasksScreen(
         },
     ) { contentPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
-            tasksSyncLine(sync)?.let { line ->
+            (pulledWords(pull.pulled) { tasksSyncLine(it) } ?: tasksSyncLine(sync))?.let { line ->
                 TextMMD(
                     text = line,
                     style = MaterialTheme.typography.labelSmall,
@@ -116,7 +119,11 @@ fun TasksScreen(
             }
             val listState = rememberLazyListState()
             ListJumpBox(listState, ListJump.Pages, clearBelow = FOOT) {
-                PagedColumn(modifier = Modifier.fillMaxSize(), state = listState) {
+                PagedColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    state = listState,
+                    onPullAtTop = if (Tasks.onNextcloud) pull::pull else null,
+                ) {
                     val nextcloud = Tasks.onNextcloud
                     for (section in shown) {
                         val list = section.list

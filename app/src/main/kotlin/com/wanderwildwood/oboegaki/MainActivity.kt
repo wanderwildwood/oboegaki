@@ -327,6 +327,7 @@ private fun App(capture: MutableState<Capture?>) {
                 onSettings = { screen = Screen.Settings },
                 onAbout = { aboutOpen = true },
                 onTasks = { screen = Screen.Tasks },
+                onPull = if (keeping.isServer) ({ Notes.syncAndWait(); Notes.sync.value }) else null,
             )
             Screen.Tasks -> {
                 BackHandler { screen = Screen.List }

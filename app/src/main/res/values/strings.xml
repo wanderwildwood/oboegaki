@@ -137,6 +137,8 @@
     <string name="settings_remote_folder_use">Use this folder</string>
     <string name="settings_sync_now">Sync now</string>
     <string name="settings_syncing">Syncing…</string>
+    <string name="pull_syncing">Syncing…</string>
+    <string name="pull_up_to_date">Up to date</string>
     <string name="settings_never_synced">Not synced yet</string>
     <!-- %1$s is a time, e.g. "14:32" -->
     <string name="settings_synced_at">Last synced at %1$s</string>
