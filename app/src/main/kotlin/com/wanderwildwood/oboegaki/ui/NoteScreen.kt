@@ -511,7 +511,7 @@ private fun Reading(
                     } else if (pictureOn(line.text) != null) {
                         val name = pictureOn(line.text)!!
                         val path = if (folder.isEmpty()) name else "$folder/$name"
-                        Picture(uri = Notes.shelf()?.uriOf(path))
+                        Picture(uri = Notes.shelf()?.uriOf(path), name = name)
                     } else if (recordingOn(line.text) != null) {
                         val name = recordingOn(line.text)!!
                         val path = if (folder.isEmpty()) name else "$folder/$name"

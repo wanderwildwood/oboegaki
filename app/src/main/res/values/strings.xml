@@ -265,6 +265,7 @@
         <item quantity="other">Scan them, as the pages of one PDF</item>
     </plurals>
     <string name="picture_missing">The picture is not here yet.</string>
+    <string name="picture_open_elsewhere">Open in another app</string>
     <string name="picture_unreadable">That picture could not be read.</string>
 
     <!-- ============================================================ -->

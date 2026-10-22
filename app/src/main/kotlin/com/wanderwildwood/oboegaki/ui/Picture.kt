@@ -43,10 +43,10 @@ private const val WIDTH = 480
 /**
  * A picture in a note, at the width of the screen, in greys: the panel shows nothing else,
  * and a colour photograph dithered by the panel is muddier than one turned grey first. A tap
- * opens it whole in whatever shows pictures on the phone.
+ * opens it full screen, to pinch and double-tap into.
  */
 @Composable
-fun Picture(uri: Uri?) {
+fun Picture(uri: Uri?, name: String = "") {
     val context = LocalContext.current
     var bitmap by remember(uri) { mutableStateOf<Bitmap?>(null) }
     var failed by remember(uri) { mutableStateOf(false) }
@@ -55,6 +55,7 @@ fun Picture(uri: Uri?) {
         val read = withContext(Dispatchers.IO) { runCatching { decode(context.contentResolver, uri) }.getOrNull() }
         if (read == null) failed = true else bitmap = read
     }
+    var open by remember(uri) { mutableStateOf(false) }
     val grey = remember { ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) }) }
 
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
@@ -71,19 +72,27 @@ fun Picture(uri: Uri?) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .border(1.dp, MaterialTheme.colorScheme.onSurface)
-                        .clickable {
-                            runCatching {
-                                context.startActivity(
-                                    Intent(Intent.ACTION_VIEW)
-                                        .setDataAndType(uri, "image/*")
-                                        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION),
-                                )
-                            }
-                        },
+                        .clickable { open = true },
                 )
                 Spacer(Modifier.height(2.dp))
             }
         }
+    }
+    if (open && uri != null) {
+        PictureViewer(
+            uri = uri,
+            name = name,
+            onOpenElsewhere = {
+                runCatching {
+                    context.startActivity(
+                        Intent(Intent.ACTION_VIEW)
+                            .setDataAndType(uri, "image/*")
+                            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION),
+                    )
+                }
+            },
+            onClose = { open = false },
+        )
     }
 }
 
