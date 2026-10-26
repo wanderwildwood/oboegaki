@@ -118,7 +118,8 @@ fun ListScreen(
         },
         floatingActionButton = {
             // Paper, voice, and the pen: one tap from the list to each way of taking a note.
-            Column(horizontalAlignment = Alignment.End) {
+            // Not while searching: with the keyboard up they stood over the search field.
+            if (!searching) Column(horizontalAlignment = Alignment.End) {
                 if (hasCamera) {
                     FloatingActionButtonMMD(onClick = onScan) {
                         Icon(Icons.Scan, contentDescription = stringResource(R.string.cd_scan), modifier = Modifier.size(28.dp))

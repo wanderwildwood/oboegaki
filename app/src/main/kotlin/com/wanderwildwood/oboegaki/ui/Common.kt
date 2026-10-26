@@ -36,7 +36,7 @@ fun BarButton(icon: ImageVector, description: String, onClick: () -> Unit) {
 }
 
 /**
- * Whether a destructive row is armed. It disarms itself after four seconds, so a stray tap does
+ * Whether a destructive row is armed. It disarms itself after six seconds, so a stray tap does
  * not leave a live trigger for whoever picks the phone up next.
  */
 @Composable
@@ -44,7 +44,7 @@ fun rememberArmed(): MutableState<Boolean> {
     val armed = remember { mutableStateOf(false) }
     LaunchedEffect(armed.value) {
         if (armed.value) {
-            delay(4000)
+            delay(6000)
             armed.value = false
         }
     }

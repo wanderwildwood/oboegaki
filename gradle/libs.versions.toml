@@ -10,6 +10,7 @@ androidx-core = "1.17.0"
 androidx-lifecycle = "2.10.0"
 androidx-compose = "1.9.5"
 androidx-material3 = "1.4.0"
+androidx-material-icons = "1.7.8"
 
 okhttp = "4.12.0"
 
@@ -23,6 +24,7 @@ androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-ru
 
 compose-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "androidx-compose" }
 compose-material3 = { module = "androidx.compose.material3:material3", version.ref = "androidx-material3" }
+compose-material-icons-core = { module = "androidx.compose.material:material-icons-core", version.ref = "androidx-material-icons" }
 compose-ui = { module = "androidx.compose.ui:ui", version.ref = "androidx-compose" }
 compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling", version.ref = "androidx-compose" }
 compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview", version.ref = "androidx-compose" }
