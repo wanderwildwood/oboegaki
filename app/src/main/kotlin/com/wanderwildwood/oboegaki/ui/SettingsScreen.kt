@@ -1,6 +1,7 @@
 package com.wanderwildwood.oboegaki.ui
 
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.width
 import android.content.Intent
 import android.net.Uri
 import android.provider.DocumentsContract
@@ -161,6 +162,7 @@ fun SettingsScreen(
                             TextMMD(text = stringResource(R.string.settings_lock_screen_needs), style = MaterialTheme.typography.labelSmall)
                         }
                     }
+                    Spacer(Modifier.width(16.dp))
                     SwitchMMD(checked = on, onCheckedChange = null)
                 }
             }
@@ -256,6 +258,7 @@ fun SettingsScreen(
                                     TextMMD(text = stringResource(R.string.settings_wake_syncthing), style = MaterialTheme.typography.bodyLarge)
                                     TextMMD(text = stringResource(R.string.settings_wake_syncthing_note), style = MaterialTheme.typography.labelSmall)
                                 }
+                                Spacer(Modifier.width(16.dp))
                                 SwitchMMD(checked = on, onCheckedChange = null)
                             }
                         }
@@ -478,6 +481,7 @@ private fun KeptDialog(onDone: (to: Keeping, bring: Boolean) -> Unit, onDismiss:
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.weight(1f),
             )
+            Spacer(Modifier.width(16.dp))
             SwitchMMD(checked = bring, onCheckedChange = null)
         }
         TextMMD(text = stringResource(R.string.settings_bring_note), style = MaterialTheme.typography.labelSmall)

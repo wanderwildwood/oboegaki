@@ -1,6 +1,8 @@
 package com.wanderwildwood.oboegaki.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -138,6 +140,7 @@ fun ShareScreen(path: String, title: String, onBack: () -> Unit) {
                                     style = MaterialTheme.typography.labelSmall,
                                 )
                             }
+                            Spacer(Modifier.width(16.dp))
                             SwitchMMD(checked = share.canEdit, onCheckedChange = null)
                         }
                     }

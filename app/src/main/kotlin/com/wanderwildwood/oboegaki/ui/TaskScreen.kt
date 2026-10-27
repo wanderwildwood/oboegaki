@@ -238,6 +238,7 @@ fun TaskScreen(list: String, name: String?, onClose: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     TextMMD(text = stringResource(R.string.task_ring_here), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                    Spacer(Modifier.width(16.dp))
                     SwitchMMD(checked = ring, onCheckedChange = null)
                 }
             }
