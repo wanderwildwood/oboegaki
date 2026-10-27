@@ -1,5 +1,7 @@
 package com.wanderwildwood.oboegaki.ui
 
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import android.content.pm.PackageManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
@@ -183,49 +185,45 @@ fun ListScreen(
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
                 )
             } else {
-                // Page dots, whatever the order: by title, a column of letters would have to
-                // squeeze into the space above the three buttons and would not read.
-                ListJumpBox(listState, ListJump.Pages, clearBelow = FOOT) {
-                    PagedColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        state = listState,
-                        onPullAtTop = if (onPull != null) pull::pull else null,
-                    ) {
-                        // A dotted rule under every row but the last, as Contacts draws its list.
-                        val lastRow = shown.lastOrNull()?.path?.let { "note:$it" }
-                            ?: inside.lastOrNull()?.let { "folder:$it" }
-                            ?: "up"
-                        if (current != null) {
-                            val parent = parentFolder(current)
-                            item(key = "up") {
-                                FolderRow(
-                                    if (parent.isEmpty()) stringResource(R.string.list_up_all) else stringResource(R.string.list_up, parent.substringAfterLast('/')),
-                                    null,
-                                    ruled = lastRow != "up",
-                                ) { onView(if (parent.isEmpty()) Showing.ALL else Showing.folder(parent), order) }
-                            }
-                            for (folder in inside) {
-                                item(key = "folder:$folder") {
-                                    val count = notes.count { it.folder == folder || it.folder.startsWith("$folder/") }
-                                    FolderRow(folder.substringAfterLast('/'), pluralStringResource(R.plurals.list_folder, count, count), ruled = lastRow != "folder:$folder") {
-                                        onView(Showing.folder(folder), order)
-                                    }
-                                }
-                            }
-                            if (shown.isEmpty()) {
-                                item(key = "none") {
-                                    TextMMD(
-                                        text = stringResource(R.string.list_none_here),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-                                    )
+                PagedColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    state = listState,
+                    onPullAtTop = if (onPull != null) pull::pull else null,
+                ) {
+                    // A dotted rule under every row but the last, as Contacts draws its list.
+                    val lastRow = shown.lastOrNull()?.path?.let { "note:$it" }
+                        ?: inside.lastOrNull()?.let { "folder:$it" }
+                        ?: "up"
+                    if (current != null) {
+                        val parent = parentFolder(current)
+                        item(key = "up") {
+                            FolderRow(
+                                if (parent.isEmpty()) stringResource(R.string.list_up_all) else stringResource(R.string.list_up, parent.substringAfterLast('/')),
+                                null,
+                                ruled = lastRow != "up",
+                            ) { onView(if (parent.isEmpty()) Showing.ALL else Showing.folder(parent), order) }
+                        }
+                        for (folder in inside) {
+                            item(key = "folder:$folder") {
+                                val count = notes.count { it.folder == folder || it.folder.startsWith("$folder/") }
+                                FolderRow(folder.substringAfterLast('/'), pluralStringResource(R.plurals.list_folder, count, count), ruled = lastRow != "folder:$folder") {
+                                    onView(Showing.folder(folder), order)
                                 }
                             }
                         }
-                        for (note in shown) {
-                            item(key = note.path) {
-                                NoteRow(note, note.path in shared, note.path in pinned, showFolder = Showing.folderOf(showing) == null, ruled = lastRow != "note:${note.path}") { onOpen(note) }
+                        if (shown.isEmpty()) {
+                            item(key = "none") {
+                                TextMMD(
+                                    text = stringResource(R.string.list_none_here),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                                )
                             }
+                        }
+                    }
+                    for (note in shown) {
+                        item(key = note.path) {
+                            NoteRow(note, note.path in shared, note.path in pinned, showFolder = Showing.folderOf(showing) == null, ruled = lastRow != "note:${note.path}") { onOpen(note) }
                         }
                     }
                 }
@@ -330,7 +328,7 @@ private fun Choice(label: String, chosen: Boolean, onClick: () -> Unit) {
         fontWeight = if (chosen) FontWeight.Bold else null,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 10.dp),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).heightIn(min = 48.dp).wrapContentHeight(Alignment.CenterVertically),
     )
 }
 
@@ -415,4 +413,3 @@ private fun NoteRow(note: Note, isShared: Boolean, isPinned: Boolean, showFolder
 }
 
 /** Room under the list for the three buttons that float over its foot; the page dots stop above it. */
-private val FOOT = 232.dp

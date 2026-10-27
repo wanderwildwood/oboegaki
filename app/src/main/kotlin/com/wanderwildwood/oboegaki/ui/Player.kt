@@ -96,7 +96,7 @@ fun Player(uri: Uri?, hearing: Boolean) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            modifier = Modifier.size(44.dp).border(2.dp, MaterialTheme.colorScheme.onSurface, CircleShape),
+            modifier = Modifier.size(48.dp).border(2.dp, MaterialTheme.colorScheme.onSurface, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(

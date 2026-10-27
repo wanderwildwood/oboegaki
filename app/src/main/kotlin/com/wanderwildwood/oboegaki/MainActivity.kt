@@ -11,6 +11,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalCursorBlinkEnabled
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
@@ -111,7 +113,11 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null) capture.value = captureFrom(intent)
         setContent {
             ThemeMMD(colorScheme = monochrome) {
-                App(capture)
+                // A blinking cursor repaints its field twice a second for as long as it has
+                // focus, a refresh nobody asked for on an E Ink screen. Dialogs are inside this.
+                CompositionLocalProvider(LocalCursorBlinkEnabled provides false) {
+                    App(capture)
+                }
             }
         }
     }

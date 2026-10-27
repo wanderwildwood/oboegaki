@@ -11,3 +11,7 @@ Notes collects nothing about you and has no analytics, ads or tracking of any ki
 - **The Nextcloud app password** and a WebDAV password are kept in the app's private storage,
   and backups are turned off, so they leave the phone only for the server they belong to.
 - **Reminders** are set on the phone's own alarm clock and ring only on the phone.
+- **Pinned notes on the lock screen** are handed to Glance, only when it is on the phone and the
+  setting is on; they go no further.
+- **The microphone** is used only while you are recording.
+- **Terms:** free software under the GNU General Public License v3, with no warranty.

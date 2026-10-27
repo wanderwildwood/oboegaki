@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -16,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -34,34 +37,50 @@ import com.wanderwildwood.oboegaki.R
  */
 @Composable
 fun AboutDialog(onDismiss: () -> Unit) {
+    // The words run to more than a dialog holds, so they turn over by whole rows like any list.
+    val height = (LocalConfiguration.current.screenHeightDp * 0.62f).dp
     EInkDialog(onDismiss = onDismiss) {
         TextMMD(
             text = stringResource(R.string.about_title, BuildConfig.VERSION_NAME),
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Medium,
         )
-
-        Spacer(Modifier.height(14.dp))
-        TextMMD(text = stringResource(R.string.about_privacy), style = MaterialTheme.typography.labelSmall)
-
-        Spacer(Modifier.height(14.dp))
-        TextMMD(text = stringResource(R.string.about_licence), style = MaterialTheme.typography.labelSmall)
-        TextMMD(text = stringResource(R.string.about_okhttp), style = MaterialTheme.typography.labelSmall)
-        TextMMD(text = stringResource(R.string.about_whisper), style = MaterialTheme.typography.labelSmall)
-        TextMMD(text = stringResource(R.string.about_icons), style = MaterialTheme.typography.labelSmall)
-
-        Spacer(Modifier.height(14.dp))
-        TextMMD(text = "github.com/wanderwildwood/oboegaki", style = MaterialTheme.typography.labelSmall)
-
-        Spacer(Modifier.height(14.dp))
-        Llama()
-
-        Spacer(Modifier.height(18.dp))
+        PagedColumn(Modifier.fillMaxWidth().height(height)) {
+            item { Heading(R.string.about_privacy_heading) }
+            item { Paragraph(R.string.about_privacy) }
+            item { Paragraph(R.string.about_privacy_voice) }
+            item { Paragraph(R.string.about_privacy_close) }
+            item { Heading(R.string.about_terms_heading) }
+            item { Paragraph(R.string.about_terms) }
+            item { Heading(R.string.about_licences_heading) }
+            item { Paragraph(R.string.about_licence) }
+            item { Paragraph(R.string.about_okhttp) }
+            item { Paragraph(R.string.about_whisper) }
+            item { Paragraph(R.string.about_icons) }
+            item { Paragraph(R.string.about_source) }
+            item { Llama() }
+        }
+        Spacer(Modifier.height(8.dp))
         OutlinedButtonMMD(
             onClick = onDismiss,
             modifier = Modifier.fillMaxWidth().height(48.dp),
         ) { TextMMD(text = stringResource(R.string.about_close), style = MaterialTheme.typography.bodySmall) }
     }
+}
+
+@Composable
+private fun Heading(text: Int) {
+    TextMMD(
+        text = stringResource(text),
+        style = MaterialTheme.typography.bodyMedium,
+        fontWeight = FontWeight.Medium,
+        modifier = Modifier.padding(top = 10.dp, bottom = 2.dp),
+    )
+}
+
+@Composable
+private fun Paragraph(text: Int) {
+    TextMMD(text = stringResource(text), style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(vertical = 4.dp))
 }
 
 /**
@@ -94,7 +113,8 @@ private fun Llama() {
                         Toast.makeText(context, context.getString(R.string.about_no_browser), Toast.LENGTH_SHORT).show()
                     }
                 }
-                .padding(vertical = 4.dp),
+                .heightIn(min = 48.dp)
+                .wrapContentHeight(Alignment.CenterVertically),
         )
         Spacer(Modifier.width(6.dp))
         Row(
@@ -109,7 +129,7 @@ private fun Llama() {
                         Toast.makeText(context, context.getString(R.string.about_no_browser), Toast.LENGTH_SHORT).show()
                     }
                 }
-                .padding(vertical = 4.dp),
+                .heightIn(min = 48.dp),
         ) {
             Image(
                 painter = painterResource(R.drawable.llama),

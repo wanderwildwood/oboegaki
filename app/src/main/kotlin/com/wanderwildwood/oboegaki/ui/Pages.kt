@@ -1,5 +1,8 @@
 package com.wanderwildwood.oboegaki.ui
 
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
@@ -89,7 +92,8 @@ fun Pages(uri: Uri?, name: String) {
                             )
                         }
                     }
-                    .padding(vertical = 8.dp),
+                    .heightIn(min = 48.dp)
+                    .wrapContentHeight(Alignment.CenterVertically),
             )
         }
     }

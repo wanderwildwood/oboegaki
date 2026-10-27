@@ -48,6 +48,8 @@
         <!-- The apps allowed to write notes in through the capture provider, whose signing
              certificates it checks. -->
         <package android:name="com.wanderwildwood.yumecho" />
+        <!-- Glance draws the pinned notes on the lock screen; Settings says so when it is missing. -->
+        <package android:name="com.wanderwildwood.hitome" />
         <!-- With the notes in a folder: the apps that carry it to a computer, which Settings
              names in its DuraSpeed row, Syncthing-Fork to ask it to run when Notes opens, and
              DuraSpeed itself, whose App info page is the only way into its list. -->

@@ -40,7 +40,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mudita.mmd.components.buttons.ButtonMMD
 import com.mudita.mmd.components.buttons.OutlinedButtonMMD
 import com.mudita.mmd.components.checkbox.CheckboxMMD
-import com.mudita.mmd.components.divider.HorizontalDividerMMD
 import com.mudita.mmd.components.switcher.SwitchMMD
 import com.mudita.mmd.components.text.TextMMD
 import com.mudita.mmd.components.text_field.TextFieldMMD
@@ -223,7 +222,6 @@ fun TaskScreen(list: String, name: String?, onClose: () -> Unit) {
                     Spacer(Modifier.width(4.dp))
                     TextMMD(text = stringResource(R.string.task_done), style = MaterialTheme.typography.bodyLarge)
                 }
-                HorizontalDividerMMD()
             }
             item(key = "due") {
                 SettingRow(
@@ -242,7 +240,6 @@ fun TaskScreen(list: String, name: String?, onClose: () -> Unit) {
                     TextMMD(text = stringResource(R.string.task_ring_here), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
                     SwitchMMD(checked = ring, onCheckedChange = null)
                 }
-                HorizontalDividerMMD()
             }
             item(key = "priority") {
                 SettingRow(stringResource(R.string.task_field_priority), stringResource(priorityWord(priority))) {
@@ -261,7 +258,6 @@ fun TaskScreen(list: String, name: String?, onClose: () -> Unit) {
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
                     )
-                    HorizontalDividerMMD()
                 }
             }
             item(key = "notes") {

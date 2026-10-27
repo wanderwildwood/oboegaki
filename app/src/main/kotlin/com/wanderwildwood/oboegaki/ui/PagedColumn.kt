@@ -57,9 +57,6 @@ import kotlinx.coroutines.launch
  * list: no row is drawn in them. [isScrollbarVisible] is taken so a call written for MMD's
  * list still reads the same, and does nothing: no list in the house apps draws a scrollbar.
  *
- * Inside a [ListJumpBox] the letters and page dots move the same [state], and the next swipe
- * goes on from wherever they left it.
- *
  * [onPullAtTop] is for a list fed from somewhere else: a swipe down while the first page is
  * already showing, its first row at the very top, calls it once for that swipe, so the list can
  * ask for its rows again. Left null, as in a list that lives only on the phone, that swipe does
@@ -132,7 +129,7 @@ fun PagedColumn(
                     }
                 },
             state = state,
-            // One pixel after the tail tells ListJump the last item is room, not a row.
+            // One pixel after the tail marks the last item as room, not a row.
             contentPadding = PaddingValues(
                 start = contentPadding.calculateStartPadding(direction),
                 end = contentPadding.calculateEndPadding(direction),
@@ -168,7 +165,7 @@ internal fun swipeTurn(drag: Float, atTop: Boolean, canPull: Boolean): SwipeTurn
     else -> SwipeTurn.None
 }
 
-/** The padding after the tail, in pixels; ListJump knows a paged list by it. */
+/** The padding after the tail, in pixels. */
 private const val TAIL_MARK_PX = 1
 
 private fun LazyListState.hasTail(): Boolean = layoutInfo.afterContentPadding == TAIL_MARK_PX

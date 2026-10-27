@@ -1,5 +1,7 @@
 package com.wanderwildwood.oboegaki.ui
 
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import android.app.AlarmManager
 import android.content.Intent
 import android.net.Uri
@@ -185,7 +187,7 @@ fun RemindDialog(
             TextMMD(
                 text = stringResource(R.string.remind_calendar),
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.fillMaxWidth().clickable(onClick = onCalendar).padding(top = 14.dp, bottom = 4.dp),
+                modifier = Modifier.fillMaxWidth().clickable(onClick = onCalendar).heightIn(min = 48.dp).wrapContentHeight(Alignment.CenterVertically),
             )
         }
     }
@@ -201,7 +203,7 @@ fun RemindDialog(
 @Composable
 internal fun PickRow(label: String, value: String, onClick: () -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 10.dp),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).heightIn(min = 48.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         TextMMD(text = label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))

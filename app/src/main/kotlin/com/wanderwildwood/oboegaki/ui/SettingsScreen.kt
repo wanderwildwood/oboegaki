@@ -1,5 +1,6 @@
 package com.wanderwildwood.oboegaki.ui
 
+import androidx.compose.foundation.layout.wrapContentHeight
 import android.content.Intent
 import android.net.Uri
 import android.provider.DocumentsContract
@@ -35,7 +36,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mudita.mmd.components.buttons.ButtonMMD
 import com.mudita.mmd.components.buttons.OutlinedButtonMMD
-import com.mudita.mmd.components.divider.HorizontalDividerMMD
 import com.mudita.mmd.components.switcher.SwitchMMD
 import com.mudita.mmd.components.text.TextMMD
 import com.mudita.mmd.components.text_field.TextFieldMMD
@@ -155,32 +155,14 @@ fun SettingsScreen(
                         .padding(horizontal = 20.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    TextMMD(
-                        text = stringResource(R.string.settings_lock_screen),
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.weight(1f),
-                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        TextMMD(text = stringResource(R.string.settings_lock_screen), style = MaterialTheme.typography.bodyLarge)
+                        if (!remember { SyncApps.glanceInstalled(context) }) {
+                            TextMMD(text = stringResource(R.string.settings_lock_screen_needs), style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
                     SwitchMMD(checked = on, onCheckedChange = null)
                 }
-                HorizontalDividerMMD()
-            }
-            item {
-                val jumpShown by rememberListJumpShown()
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { ListJumpPrefs.setShown(context, !jumpShown) }
-                        .padding(horizontal = 20.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    TextMMD(
-                        text = stringResource(R.string.list_jump_setting),
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.weight(1f),
-                    )
-                    SwitchMMD(checked = jumpShown, onCheckedChange = null)
-                }
-                HorizontalDividerMMD()
             }
             item {
                 SettingRow(
@@ -276,7 +258,6 @@ fun SettingsScreen(
                                 }
                                 SwitchMMD(checked = on, onCheckedChange = null)
                             }
-                            HorizontalDividerMMD()
                         }
                     }
                 }
@@ -351,6 +332,7 @@ fun SettingsScreen(
                             tasksIn = l.id
                             choosingTasks = false
                         }
+                        .heightIn(min = 48.dp)
                         .padding(vertical = 12.dp),
                 )
             }
@@ -444,7 +426,6 @@ internal fun SettingRow(label: String, value: String, onClick: () -> Unit) {
         TextMMD(text = label, style = MaterialTheme.typography.bodyLarge)
         if (value.isNotEmpty()) TextMMD(text = value, style = MaterialTheme.typography.labelSmall)
     }
-    HorizontalDividerMMD()
 }
 
 /** A row that asks first, in its own face: "<the action> — tap again". */
@@ -488,6 +469,7 @@ private fun KeptDialog(onDone: (to: Keeping, bring: Boolean) -> Unit, onDismiss:
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { bring = !bring }
+                .heightIn(min = 48.dp)
                 .padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -590,7 +572,7 @@ private fun FolderChoice(label: String, chosen: Boolean, onClick: () -> Unit) {
         fontWeight = if (chosen) FontWeight.Bold else null,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 10.dp),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).heightIn(min = 48.dp).wrapContentHeight(Alignment.CenterVertically),
     )
 }
 

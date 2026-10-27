@@ -283,6 +283,8 @@
     <!-- On the lock screen, through the Glance app -->
 
     <string name="settings_lock_screen">Pinned notes on the lock screen</string>
+    <!-- Under that switch while Glance, which draws the lock screen, is not on the phone -->
+    <string name="settings_lock_screen_needs">Needs Glance, which is not on this phone</string>
     <!-- Settings, with the notes in a folder and Syncthing-Fork on the phone: a switch -->
     <string name="settings_wake_syncthing">Wake Syncthing-Fork when Notes opens</string>
     <!-- Under that switch: the Syncthing-Fork setting it needs, named as Syncthing-Fork names it -->
@@ -336,7 +338,14 @@
     <!-- About -->
 
     <string name="about_title">Notes %1$s</string>
-    <string name="about_privacy">Notes are plain files. On a server they go to that server and nowhere else; in a folder, they stay in it. Recordings are turned into words on this phone.</string>
+    <string name="about_privacy_heading">Privacy</string>
+    <string name="about_privacy">Your notes, lists, recordings and scans stay on this phone, or go to the place you chose for them: a folder on the phone, your own Nextcloud, or a WebDAV server you named. The app connects only to the servers you set up, and your sign-in details are kept on this phone. Nothing is sent to the app\'s maker.</string>
+    <string name="about_privacy_voice">The microphone is used only while you are recording, and recordings are turned into words on this phone. For a language other than English, the speech model is downloaded once from Hugging Face when you choose it; nothing you have recorded is sent. Reminders ring on this phone only.</string>
+    <string name="about_privacy_close">There are no ads, no analytics and no tracking. Backups and exports go only where you choose to save them.</string>
+    <string name="about_terms_heading">Terms</string>
+    <string name="about_terms">This app is free software under the GNU General Public License v3. It comes with no warranty: use it at your own risk.</string>
+    <string name="about_licences_heading">Licences</string>
+    <string name="about_source">Source code: github.com/wanderwildwood/oboegaki</string>
     <string name="about_licence">GNU General Public License v3</string>
     <string name="about_okhttp">OkHttp, Apache 2.0</string>
     <string name="about_whisper">Speech recognition by whisper.cpp, MIT, with OpenAI\'s Whisper model, MIT</string>
@@ -425,7 +434,4 @@
     <!-- On a list item held down: it leaves the note and becomes a task in that list -->
     <string name="item_to_tasks">Move to Tasks · %1$s</string>
     <string name="settings_tasks_in">New tasks go in</string>
-    <string name="list_jump_setting">Letters and page dots</string>
-    <string name="list_jump_shown">Shown</string>
-    <string name="list_jump_hidden">Hidden</string>
 </resources>

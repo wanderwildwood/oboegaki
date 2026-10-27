@@ -43,6 +43,9 @@ object SyncApps {
         context.packageManager.getApplicationInfo(pkg, 0).enabled
     }.getOrDefault(false)
 
+    /** Glance (hitome), which draws the pinned notes on the lock screen, is on the phone. */
+    fun glanceInstalled(context: Context): Boolean = installed(context, "com.wanderwildwood.hitome")
+
     /** Syncthing-Fork's package, if it is on the phone. */
     fun syncthingFork(context: Context): String? = SYNCTHING_FORK.firstOrNull { installed(context, it) }
 

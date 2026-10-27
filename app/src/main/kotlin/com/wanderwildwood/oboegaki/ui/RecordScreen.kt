@@ -1,5 +1,6 @@
 package com.wanderwildwood.oboegaki.ui
 
+import androidx.compose.foundation.layout.heightIn
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -66,6 +67,7 @@ fun RecordScreen(seconds: Int?, paused: Boolean, onStop: () -> Unit) {
                     writeDown = !writeDown
                     Voice.writeDown = writeDown
                 }
+                .heightIn(min = 48.dp)
                 .padding(vertical = 10.dp),
         ) {
             TextMMD(text = stringResource(R.string.record_write_down), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
