@@ -57,6 +57,14 @@ import kotlinx.coroutines.launch
  * list: no row is drawn in them. [isScrollbarVisible] is taken so a call written for MMD's
  * list still reads the same, and does nothing: no list in the house apps draws a scrollbar.
  *
+ * The [state] may be shared, and the next swipe
+ * goes on from wherever it stands.
+ *
+ * [rowStep], for text that runs through a row taller than the screen, says how far to go to bring
+ * the first line the foot cut to the top, or null when it knows of none. Without it such a row is
+ * read a screen at a time, and the line on the edge is the page's loss. Taken by a swipe here, and
+ * by [pageForward] for the keys and edges of a reader.
+ *
  * [onPullAtTop] is for a list fed from somewhere else: a swipe down while the first page is
  * already showing, its first row at the very top, calls it once for that swipe, so the list can
  * ask for its rows again. Left null, as in a list that lives only on the phone, that swipe does
@@ -71,12 +79,14 @@ fun PagedColumn(
     horizontalAlignment: Alignment.Horizontal = Alignment.Start,
     @Suppress("UNUSED_PARAMETER") isScrollbarVisible: Boolean = false,
     onPullAtTop: (() -> Unit)? = null,
+    rowStep: (() -> Float?)? = null,
     content: LazyListScope.() -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     // The gesture below is set up once for the list; read the caller's latest action, not the
     // one it was handed first.
     val pull by rememberUpdatedState(onPullAtTop)
+    val through by rememberUpdatedState(rowStep)
     val direction = LocalLayoutDirection.current
     val mark = with(LocalDensity.current) { TAIL_MARK_PX.toDp() }
     // Only a list longer than its screen pages, and only that one gets the blank tail: a list
@@ -121,7 +131,7 @@ fun PagedColumn(
                         turned = true
                         val atTop = state.firstVisibleItemIndex == 0 && state.firstVisibleItemScrollOffset == 0
                         when (swipeTurn(drag, atTop, pull != null)) {
-                            SwipeTurn.Forward -> scope.launch { state.pageForward() }
+                            SwipeTurn.Forward -> scope.launch { state.pageForward(through) }
                             SwipeTurn.Back -> scope.launch { state.pageBack() }
                             SwipeTurn.Pull -> pull?.invoke()
                             SwipeTurn.None -> Unit
@@ -129,7 +139,7 @@ fun PagedColumn(
                     }
                 },
             state = state,
-            // One pixel after the tail marks the last item as room, not a row.
+            // One pixel after the tail marks that the last item is room, not a row.
             contentPadding = PaddingValues(
                 start = contentPadding.calculateStartPadding(direction),
                 end = contentPadding.calculateEndPadding(direction),
@@ -269,8 +279,8 @@ private class SpreadScope(
     }
 }
 
-/** The first row that did not fit, brought to the top. */
-private suspend fun LazyListState.pageForward() {
+/** The first row that did not fit, brought to the top. [through] is the [PagedColumn]'s `rowStep`. */
+internal suspend fun LazyListState.pageForward(through: (() -> Float?)? = null) {
     val bottom = layoutInfo.viewportSize.height
     val rows = rows()
     if (rows.isEmpty()) return
@@ -282,8 +292,9 @@ private suspend fun LazyListState.pageForward() {
             val next = rows.last().index + 1
             if (next < rowCount()) scrollToItem(next)
         }
-        // One row taller than the screen: through it a screen at a time.
-        cut.offset <= 0 -> scrollBy(bottom.toFloat())
+        // One row taller than the screen: through it a page at a time, from the first line the
+        // foot cut where that is known, or else a screen.
+        cut.offset <= 0 -> scrollBy(through?.invoke()?.takeIf { it > 0f && it < bottom } ?: bottom.toFloat())
         else -> scrollToItem(cut.index)
     }
 }
@@ -292,7 +303,7 @@ private suspend fun LazyListState.pageForward() {
  * Back a page: the row before the top one comes to rest whole at the foot, with as many whole
  * rows above it as fit.
  */
-private suspend fun LazyListState.pageBack() {
+internal suspend fun LazyListState.pageBack() {
     if (firstVisibleItemIndex == 0 && firstVisibleItemScrollOffset == 0) return
     val from = firstVisibleItemIndex
     scrollBy(-layoutInfo.viewportSize.height.toFloat())

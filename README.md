@@ -18,7 +18,7 @@ Not a fork. Written from scratch in Kotlin and Jetpack Compose, using Mudita's o
 
 ## Where this is up to
 
-Version 0.2.11. On a Kompakt: notes and lists syncing through Nextcloud
+Version 0.2.13. On a Kompakt: notes and lists syncing through Nextcloud
 between two phones, a list shared between them and ticked on one while added to on the other,
 a voice note heard and written down, a page photographed and handed to the scanner.
 
