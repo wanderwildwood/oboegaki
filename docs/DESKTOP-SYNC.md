@@ -19,7 +19,9 @@ Two independent gates, checked on every request (and on the WebSocket upgrade):
 1. **Where from.** *VPN only* (on by default): the peer address must be loopback, in Tailscale's
    ranges (`100.64.0.0/10`, `fd7a:115c:a1e0::/48`), or inside the subnet of another VPN interface
    the phone has up (not one that overlaps Wi-Fi/Ethernet). Anything else gets an empty 404
-   before the token is looked at. Off: LAN peers are accepted too.
+   before the token is looked at. Off: still only private peers (loopback, `10/8`, `172.16/12`,
+   `192.168/16`, link-local, unique-local `fc00::/7`, Tailscale's `100.64/10`), by `isPrivatePeer`;
+   a global IPv6 or cellular address gets the same empty 404.
 2. **Token.** 24 characters from Crockford's alphabet, made on first start, kept in the app's
    private preferences. Sent as `Authorization: Bearer <token>` (HTTP) or `?token=` (WebSocket,
    which cannot set headers). Compared in constant time. *Reset link* mints a new one and
@@ -29,6 +31,10 @@ Two independent gates, checked on every request (and on the WebSocket upgrade):
 code: valid 3 minutes, one use, 5 wrong tries kill it, a new *Show link* replaces it. The browser
 posts it to `POST /api/pair` (the only route that answers without a token; needs header
 `X-Notes-Pairing: 1`, body at most 512 bytes) and gets the token back, then remembers it.
+
+The server speaks plain `http`; over a VPN the tunnel encrypts it, on a home network it is
+readable by others on it, and Settings and About say so. *Copy link* marks the clipboard entry
+sensitive (`EXTRA_IS_SENSITIVE`, Android 13+) and clears it after 60 s if nothing else was copied.
 
 Every response carries `Cache-Control: no-store`, a strict CSP (a per-response nonce for the one
 inline script and stylesheet; `default-src 'none'`; images only from the page itself and `blob:`;

@@ -1,8 +1,6 @@
 package com.wanderwildwood.oboegaki.ui
 
 import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import androidx.annotation.RawRes
 import com.wanderwildwood.oboegaki.R
 
@@ -20,6 +18,7 @@ object Licences {
     const val APACHE = "Apache-2.0"
     const val MIT = "MIT"
     const val BSD3 = "BSD-3-Clause"
+    const val OFL = "OFL-1.1"
 
     val components: List<Component> = listOf(
         Component("AndroidX (core, activity, lifecycle) and Jetpack Compose", APACHE, "https://developer.android.com/jetpack"),
@@ -27,9 +26,10 @@ object Licences {
         Component("OkHttp and Okio", APACHE, "https://square.github.io/okhttp/"),
         Component("NanoHTTPD, the web server behind Desktop Sync", BSD3, "https://github.com/NanoHttpd/nanohttpd"),
         Component("Kotlin and kotlinx.coroutines", APACHE, "https://kotlinlang.org"),
+        Component("Lato typeface, inside MMD (Copyright 2010-2014 tyPoland Lukasz Dziedzic)", OFL, "https://www.latofonts.com"),
         Component("Material Symbols icons", APACHE, "https://fonts.google.com/icons"),
-        Component("whisper.cpp and ggml, speech recognition", MIT, "https://github.com/ggml-org/whisper.cpp"),
-        Component("Whisper speech model, by OpenAI", MIT, "https://github.com/openai/whisper"),
+        Component("whisper.cpp and ggml, speech recognition (ggerganov)", MIT, "https://github.com/ggml-org/whisper.cpp"),
+        Component("Whisper speech model, by OpenAI: English base model bundled, multilingual models fetched from ggerganov/whisper.cpp on Hugging Face", MIT, "https://huggingface.co/ggerganov/whisper.cpp"),
     )
 
     /** The licence texts shown in full after the list: one per distinct licence the list names. */
@@ -38,6 +38,7 @@ object Licences {
         APACHE -> R.raw.licence_apache2
         MIT -> R.raw.licence_mit
         BSD3 -> R.raw.licence_bsd3
+        OFL -> R.raw.licence_ofl
         else -> throw IllegalArgumentException("no text for $licence")
     }
 
@@ -51,9 +52,4 @@ object Licences {
 
     fun read(context: Context, @RawRes id: Int): List<String> =
         paragraphs(context.resources.openRawResource(id).bufferedReader().use { it.readText() })
-
-    /** Opens an address; false when the phone has nothing to open it with. */
-    fun open(context: Context, address: String): Boolean = runCatching {
-        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(address)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-    }.isSuccess
 }

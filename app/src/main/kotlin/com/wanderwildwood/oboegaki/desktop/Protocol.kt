@@ -176,6 +176,34 @@ fun isAllowedPeer(ip: String?, vpnNets: List<Subnet>): Boolean {
     return vpnNets.any { it.contains(peer) }
 }
 
+/**
+ * Whether a peer is on a private network: this phone, 10/8, 172.16/12, 192.168/16, link-local
+ * (169.254/16, fe80::/10), unique-local (fc00::/7) or Tailscale's 100.64/10. With "VPN only" off,
+ * these are still the only peers let in, so a global IPv6 or cellular address never reaches the
+ * server. Anything that is not an address is no.
+ */
+fun isPrivatePeer(ip: String?): Boolean {
+    val addr = ip?.substringBefore('%')?.lowercase()?.trim() ?: return false
+    // A literal only: a name made of hex letters and dots must never reach a DNS lookup.
+    val v4 = Regex("^\\d{1,3}(\\.\\d{1,3}){3}$").matches(addr)
+    val v6 = ':' in addr && Regex("^[0-9a-f.:]+$").matches(addr)
+    if (!v4 && !v6) return false
+    val bytes = runCatching { java.net.InetAddress.getByName(addr).address }.getOrNull() ?: return false
+    if (bytes.size == 4) {
+        val a = bytes[0].toInt() and 0xFF
+        val b = bytes[1].toInt() and 0xFF
+        return a == 10 || a == 127 || (a == 172 && b in 16..31) || (a == 192 && b == 168) ||
+            (a == 169 && b == 254) || (a == 100 && b in 64..127)
+    }
+    if (bytes.size == 16) {
+        val a = bytes[0].toInt() and 0xFF
+        val b = bytes[1].toInt() and 0xFF
+        val loopback = bytes.take(15).all { it.toInt() == 0 } && bytes[15].toInt() == 1
+        return loopback || (a and 0xFE) == 0xFC || (a == 0xFE && (b and 0xC0) == 0x80)
+    }
+    return false
+}
+
 /** The VPN's networks that are safe to trust: not Tailscale's own, not overlapping [local], not tiny prefixes. */
 fun trustedVpnNets(vpn: List<Subnet>, local: List<Subnet>): List<Subnet> =
     vpn.filterNot { net ->

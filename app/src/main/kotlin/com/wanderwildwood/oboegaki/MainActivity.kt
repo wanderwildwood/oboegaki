@@ -22,6 +22,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.core.content.IntentCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mudita.mmd.ThemeMMD
@@ -235,8 +239,15 @@ private fun App(capture: MutableState<Capture?>) {
         RecordService.start(context)
         screen = Screen.Recording
     }
+    // The microphone said no: say so, and when Android will not ask again, offer the app's own settings.
+    var micDenied by remember { mutableStateOf<Boolean?>(null) }
     val askMic = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) record()
+        if (granted) {
+            record()
+        } else {
+            val activity = context as? android.app.Activity
+            micDenied = activity == null || !activity.shouldShowRequestPermissionRationale(Manifest.permission.RECORD_AUDIO)
+        }
     }
     fun recordAsking() {
         if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
@@ -483,6 +494,33 @@ private fun App(capture: MutableState<Capture?>) {
             },
             onDismiss = { pictures = null },
         )
+    }
+    micDenied?.let { settingsToo ->
+        com.wanderwildwood.oboegaki.ui.EInkDialog(onDismiss = { micDenied = null }) {
+            com.mudita.mmd.components.text.TextMMD(
+                text = stringResource(if (settingsToo) R.string.mic_denied_settings else R.string.mic_denied),
+                style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
+            )
+            androidx.compose.foundation.layout.Spacer(androidx.compose.ui.Modifier.height(16.dp))
+            if (settingsToo) {
+                com.mudita.mmd.components.buttons.ButtonMMD(
+                    onClick = {
+                        micDenied = null
+                        runCatching {
+                            context.startActivity(
+                                Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)),
+                            )
+                        }
+                    },
+                    modifier = androidx.compose.ui.Modifier.fillMaxWidth().height(48.dp),
+                ) { com.mudita.mmd.components.text.TextMMD(text = stringResource(R.string.mic_open_settings), style = androidx.compose.material3.MaterialTheme.typography.bodySmall) }
+                androidx.compose.foundation.layout.Spacer(androidx.compose.ui.Modifier.height(8.dp))
+            }
+            com.mudita.mmd.components.buttons.OutlinedButtonMMD(
+                onClick = { micDenied = null },
+                modifier = androidx.compose.ui.Modifier.fillMaxWidth().height(48.dp),
+            ) { com.mudita.mmd.components.text.TextMMD(text = stringResource(R.string.about_close), style = androidx.compose.material3.MaterialTheme.typography.bodySmall) }
+        }
     }
     if (picturesFailed) PicturesFailedDialog(onDismiss = { picturesFailed = false })
 }

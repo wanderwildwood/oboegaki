@@ -89,6 +89,8 @@ fun Picture(uri: Uri?, name: String = "") {
                             .setDataAndType(uri, "image/*")
                             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION),
                     )
+                }.onFailure {
+                    android.widget.Toast.makeText(context, context.getString(R.string.no_app_for_that), android.widget.Toast.LENGTH_LONG).show()
                 }
             },
             onClose = { open = false },

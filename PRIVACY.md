@@ -19,9 +19,11 @@ Notes collects nothing about you and has no analytics, ads or tracking of any ki
   it runs, the phone itself serves your notes and tasks, in full, to a browser that has the link
   or the six-digit code. Nothing goes through any server of ours or anyone's: the browser talks
   to the phone directly. By default only a computer on your VPN (Tailscale or another) can reach
-  it; turn *VPN only* off and any computer on the same network with the link can. It uses plain
+  it; turn *VPN only* off and any computer on the same home network with the link can; addresses on the
+  internet or mobile data are always refused. It uses plain
   `http`, so on a network without a VPN the notes travel unencrypted. *Reset link* cuts off every
   browser that has the old link. Nothing you wrote is written to a log. Switch it off, tap Stop
   on its notification, or restart the phone, and it stops.
+- **Dream Log** (the sibling app 夢帳, signed with the same key) may write a note into Notes through a capture provider, without a confirmation screen; Notes checks the caller's signing certificate first, and no other app can.
 - **The microphone** is used only while you are recording.
 - **Terms:** free software under the GNU General Public License v3, with no warranty.

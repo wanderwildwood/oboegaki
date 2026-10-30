@@ -73,7 +73,8 @@ class DesktopServer(
         setServerSocketFactory { java.net.ServerSocket().apply { reuseAddress = true } }
     }
 
-    private fun peerAllowed(ip: String?) = !vpnOnly() || Network.peerAllowed(ip, context)
+    /** With "VPN only" on: this phone, Tailscale or a trusted VPN. With it off: still only private addresses. */
+    private fun peerAllowed(ip: String?) = if (vpnOnly()) Network.peerAllowed(ip, context) else isPrivatePeer(ip)
 
     // ------------------------------------------------------------------ push
 

@@ -1,6 +1,7 @@
 package com.wanderwildwood.oboegaki.sync
 
 import okhttp3.FormBody
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Request
 import org.json.JSONObject
 import java.io.IOException
@@ -15,6 +16,9 @@ data class Account(val server: String, val user: String, val password: String)
 /** Something the reader can act on: the server said no, or could not be reached. */
 class Unreachable(message: String) : IOException(message)
 class Refused(message: String) : IOException(message)
+
+/** A plain http address to a host out on the internet: not used. */
+class PlainHttpRefused : IOException("plain http to a public host")
 
 /** The notes folder on a Nextcloud: WebDAV, under the user's own files. */
 fun nextcloudRemote(account: Account, folder: String) = WebDavRemote(
@@ -37,6 +41,7 @@ object LoginFlow {
 
     fun start(server: String): Started {
         val base = normalise(server)
+        if (!plainHttpAllowed(base)) throw PlainHttpRefused()
         val request = Request.Builder()
             .url("$base/index.php/login/v2")
             .post(FormBody.Builder().build())
@@ -76,6 +81,21 @@ object LoginFlow {
             if (e is Refused) throw e
             null
         }
+    }
+
+    /**
+     * Whether [address] may be used: any https one, or an http one whose host is on a home or VPN
+     * network (a private or Tailscale address, "localhost", a name with no dots, or one ending
+     * .local, .lan, .home.arpa, .internal or .ts.net). Plain http to a public host would send the
+     * login in the clear across the internet.
+     */
+    fun plainHttpAllowed(address: String): Boolean {
+        if (address.startsWith("https://")) return true
+        val host = address.toHttpUrlOrNull()?.host?.lowercase() ?: return false
+        if (host.contains(':') || host.matches(Regex("^\\d{1,3}(\\.\\d{1,3}){3}$"))) {
+            return com.wanderwildwood.oboegaki.desktop.isPrivatePeer(host)
+        }
+        return !host.contains('.') || listOf(".local", ".lan", ".home.arpa", ".internal", ".ts.net").any { host.endsWith(it) }
     }
 
     /** What was typed, as an address: "cloud.example" becomes "https://cloud.example". */

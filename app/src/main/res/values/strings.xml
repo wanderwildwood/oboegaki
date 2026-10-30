@@ -86,6 +86,12 @@
     <string name="cd_more">More</string>
     <!-- In that menu: opens a calendar app's new event with the note's title and words -->
     <string name="note_remind">Remind me…</string>
+    <string name="calendar_would_not_take_it">The calendar would not take it. The note\'s words are copied instead, to paste where you like.</string>
+    <string name="no_app_for_that">No app on this phone can open that.</string>
+    <string name="signin_plain_http">That address starts with http:// and is out on the internet, so your login would travel unprotected. Use an https:// address, or an address on your home network or VPN.</string>
+    <string name="mic_denied">The microphone is off for Notes, so it cannot record. You can allow it when you press Record again.</string>
+    <string name="mic_denied_settings">The microphone is off for Notes, so it cannot record. Android will not ask again: turn Microphone on in the app\'s settings.</string>
+    <string name="mic_open_settings">Open app settings</string>
     <string name="note_remind_none">No calendar app on this phone took it.</string>
 
     <!-- ============================================================ -->
@@ -366,14 +372,15 @@
 
     <string name="about_title">Notes %1$s</string>
     <string name="about_privacy_heading">Privacy</string>
-    <string name="about_privacy">Your notes, lists, recordings and scans stay on this phone, or go to the place you chose for them: a folder on the phone, your own Nextcloud, or a WebDAV server you named. The app connects only to the servers you set up, and your sign-in details are kept on this phone. Nothing is sent to the app\'s maker.</string>
+    <string name="about_privacy">Your notes, lists, recordings and scans stay on this phone, or go to the place you chose for them: a folder on the phone, your own Nextcloud, or a WebDAV server you named. The app connects only to the servers you set up and, once, to Hugging Face if you choose a speech model for another language. Your sign-in details are kept on this phone. Nothing is sent to the app\'s maker.</string>
     <string name="about_privacy_voice">The microphone is used only while you are recording, and recordings are turned into words on this phone. For a language other than English, the speech model is downloaded once from Hugging Face when you choose it; nothing you have recorded is sent. Reminders ring on this phone only. A deleted note is kept for 7 days in a hidden folder beside your notes, then removed.</string>
-    <string name="about_privacy_desktop">Desktop Sync is off until you switch it on. While it is on, this phone serves your notes and tasks to a browser that has its link or code, directly and not through any server, by default only over your VPN. It never starts by itself, and nothing you wrote is logged.</string>
+    <string name="about_privacy_desktop">Desktop Sync is off until you switch it on. While it is on, this phone serves your notes and tasks to a browser on your VPN or home network that has the link or code, directly and not through any server. The page uses plain http, not https: over Tailscale or another VPN the tunnel encrypts it, on an ordinary home network others on it could read it. It never starts by itself, and nothing you wrote is logged.</string>
     <string name="about_privacy_close">There are no ads, no analytics and no tracking. Backups and exports go only where you choose to save them.</string>
     <string name="about_terms_heading">Terms</string>
     <string name="about_terms">This app is free software under the GNU General Public License v3. It comes with no warranty: use it at your own risk.</string>
     <string name="about_licences_heading">Licences</string>
     <string name="about_feed_the_llamas">feed the llamas</string>
+    <string name="about_no_browser_address">No browser is installed. The address is %1$s.</string>
     <string name="about_no_browser">There is no browser on this phone to open that with.</string>
     <string name="about_close">Close</string>
     <string name="about_blurb">Notes are plain files. They stay on this phone, or go only to the place you set up for them.</string>
@@ -476,7 +483,7 @@
     <string name="desktop_show_what">The address and a code to type on your computer.</string>
     <string name="desktop_vpn_only">VPN only</string>
     <string name="desktop_vpn_only_on">Only a computer on your VPN can reach it.</string>
-    <string name="desktop_vpn_only_off">Any computer on this network can reach it, with the link.</string>
+    <string name="desktop_vpn_only_off">Any computer on your home or office network can reach it, with the link. Addresses on the internet or mobile data are always refused. The page uses plain http, which is not encrypted: others on that network could read it.</string>
     <string name="desktop_no_vpn">No VPN is up on this phone, so nothing can connect yet.</string>
     <string name="desktop_reset">Reset link</string>
     <string name="desktop_reset_confirm">Reset link: old links stop working. Tap again.</string>

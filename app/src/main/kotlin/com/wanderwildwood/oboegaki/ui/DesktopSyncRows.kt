@@ -1,6 +1,11 @@
 package com.wanderwildwood.oboegaki.ui
 
 import android.content.ClipData
+import android.content.ClipDescription
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.os.PersistableBundle
 import android.content.ClipboardManager
 import android.content.Context
 import androidx.compose.foundation.clickable
@@ -183,7 +188,23 @@ private fun ShowLinkDialog(onDismiss: () -> Unit) {
     }
 }
 
+/**
+ * Puts the link on the clipboard, marked sensitive so Android hides it from previews, and takes it
+ * off again after a minute if nothing else has been copied since (the label is unique to this copy).
+ */
 private fun copy(context: Context, text: String) {
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-    clipboard.setPrimaryClip(ClipData.newPlainText("Desktop Sync link", text))
+    val label = "Desktop Sync link " + java.util.UUID.randomUUID()
+    val clip = ClipData.newPlainText(label, text)
+    if (Build.VERSION.SDK_INT >= 33) {
+        clip.description.extras = PersistableBundle().apply { putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true) }
+    }
+    clipboard.setPrimaryClip(clip)
+    Handler(Looper.getMainLooper()).postDelayed({
+        runCatching {
+            if (clipboard.primaryClipDescription?.label == label) {
+                if (Build.VERSION.SDK_INT >= 28) clipboard.clearPrimaryClip() else clipboard.setPrimaryClip(ClipData.newPlainText("", ""))
+            }
+        }
+    }, 60_000L)
 }

@@ -201,13 +201,23 @@ fun NoteScreen(
     fun remind() {
         save()
         val name = title.ifBlank { at.substringAfterLast('/').substringBeforeLast('.') }
+        // A plain timed event, the next hour for an hour, the shape every calendar takes: Mudita's
+        // calendar choked on an event with a title and words but no times (Medicine, Wallet).
+        val begin = (System.currentTimeMillis() / 3_600_000L + 1) * 3_600_000L
         val intent = Intent(Intent.ACTION_INSERT, CalendarContract.Events.CONTENT_URI)
             .putExtra(CalendarContract.Events.TITLE, name)
             .putExtra(CalendarContract.Events.DESCRIPTION, reminderText(body.text))
+            .putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, begin)
+            .putExtra(CalendarContract.EXTRA_EVENT_END_TIME, begin + 3_600_000L)
         try {
             context.startActivity(intent)
         } catch (_: ActivityNotFoundException) {
             noCalendar = true
+        } catch (_: Exception) {
+            // The calendar would not take it: keep the words instead, ready to paste.
+            val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            clipboard.setPrimaryClip(android.content.ClipData.newPlainText(name, name + "\n\n" + reminderText(body.text)))
+            android.widget.Toast.makeText(context, context.getString(R.string.calendar_would_not_take_it), android.widget.Toast.LENGTH_LONG).show()
         }
     }
 

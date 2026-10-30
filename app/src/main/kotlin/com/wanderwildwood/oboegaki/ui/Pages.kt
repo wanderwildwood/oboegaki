@@ -90,6 +90,8 @@ fun Pages(uri: Uri?, name: String) {
                                     .setDataAndType(uri, "application/pdf")
                                     .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION),
                             )
+                        }.onFailure {
+                            android.widget.Toast.makeText(context, context.getString(R.string.no_app_for_that), android.widget.Toast.LENGTH_LONG).show()
                         }
                     }
                     .heightIn(min = 48.dp)

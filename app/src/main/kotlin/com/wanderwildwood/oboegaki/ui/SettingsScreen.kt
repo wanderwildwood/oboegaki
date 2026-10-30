@@ -55,6 +55,7 @@ import com.wanderwildwood.oboegaki.glance.GlanceProvider
 import com.wanderwildwood.oboegaki.hearing.Speech
 import com.wanderwildwood.oboegaki.hearing.Voice
 import com.wanderwildwood.oboegaki.sync.LoginFlow
+import com.wanderwildwood.oboegaki.sync.PlainHttpRefused
 import com.wanderwildwood.oboegaki.sync.Refused
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -705,18 +706,15 @@ fun SignInScreen(onSignedIn: () -> Unit, onBack: () -> Unit) {
                         val started = runCatching { withContext(Dispatchers.IO) { LoginFlow.start(address) } }
                         val flow = started.getOrNull()
                         if (flow == null) {
-                            status = if (started.exceptionOrNull() is Refused) R.string.signin_not_nextcloud else R.string.signin_unreachable
+                            status = when (started.exceptionOrNull()) {
+                                is PlainHttpRefused -> R.string.signin_plain_http
+                                is Refused -> R.string.signin_not_nextcloud
+                                else -> R.string.signin_unreachable
+                            }
                             waiting = false
                             return@launch
                         }
-                        val opened = runCatching {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(flow.loginUrl)))
-                        }.isSuccess
-                        if (!opened) {
-                            status = R.string.about_no_browser
-                            waiting = false
-                            return@launch
-                        }
+                        openLink(context, flow.loginUrl, context.getString(R.string.about_no_browser_address, flow.loginUrl))
                         status = R.string.signin_waiting
                         val deadline = System.currentTimeMillis() + 20 * 60_000
                         while (System.currentTimeMillis() < deadline) {
