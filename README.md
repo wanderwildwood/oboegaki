@@ -18,7 +18,7 @@ Not a fork. Written from scratch in Kotlin and Jetpack Compose, using Mudita's o
 
 ## Where this is up to
 
-Version 0.2.14. On a Kompakt: notes and lists syncing through Nextcloud
+Version 0.3.0. On a Kompakt: notes and lists syncing through Nextcloud
 between two phones, a list shared between them and ticked on one while added to on the other,
 a voice note heard and written down, a page photographed and handed to the scanner.
 
@@ -72,6 +72,40 @@ a voice note heard and written down, a page photographed and handed to the scann
   [Tasks](#tasks).
 - **On the lock screen**, through [Glance](https://github.com/wanderwildwood/hitome), the pinned
   notes, and how much of each list is left to do.
+
+## Desktop Sync
+
+A small web server runs *inside the app on the phone* and serves its own page to a browser on
+your computer, like Google Keep in a tab: no cloud, no relay, nothing installed on the computer.
+Design and protocol: [docs/DESKTOP-SYNC.md](docs/DESKTOP-SYNC.md).
+
+- **Notes** as cards: titles, text, checklists with tick boxes (a tick on the computer ticks on
+  the phone, and the other way), pictures the note shows, its folder, its reminder. Search, a
+  *Pinned* section, *Reminders*, *Archive*, and a list of your folders.
+- Make, edit, pin, archive, bring back and delete notes; make a list; add items from the card.
+- **Tasks**: the app's own Tasks, the ones synced with a Nextcloud, with add, tick, edit (due,
+  priority, whether it rings on the phone) and delete.
+- Live in both directions over a WebSocket, with polling as a fallback. Light and dark.
+- If a note is changed on both at once, the edit that arrives last wins, and the other text is
+  kept at the end of the note under *Edited elsewhere*. Edits to different lines are joined.
+- Only what the app has is shown: there are no colours, no labels and no trash, so *Delete* is
+  for good, as on the phone, and asks first.
+
+**Setup.** Settings, *Desktop Sync*, switch on. *Show link* gives the address, a six-digit code
+(three minutes, works once) and the full link. Open the address on the computer, type the code;
+the browser remembers. Off by default, never starts by itself, and a restart leaves it off.
+Switch it off with the same row or *Stop* on the notification.
+
+**Access.** *VPN only* is on by default: a request that does not come through a VPN (Tailscale,
+or another VPN that gives the phone an address of its own) gets an empty 404 before its token is
+even read. It is checked on every request, so the server starts whether or not the VPN is up.
+Turned off, any device on the same Wi-Fi with the link can reach it. Every request also needs
+the token; *Reset link* makes a new one and stops every open browser at once. It speaks plain
+`http`, which the VPN encrypts; on a network with no VPN the notes cross it in the clear.
+Responses are never cached, carry a strict content policy, and never allow another website to
+call the server. Writes are size-limited and go through the same code the screens use, so the
+reminders, the lock screen, the pins and the Nextcloud sync follow an edit from the computer as
+they follow one on the phone. The server is NanoHTTPD.
 
 ## Where the notes are kept
 
@@ -203,6 +237,9 @@ and the SHA-256 of the certificate it is signed with; any other caller is `refus
   allowed, for a server at home or on Tailscale; over `http` on an ordinary network the notes
   and the app password can be read by anyone else on it, so give a server that has `https`
   as `https`.
+- `FOREGROUND_SERVICE` is also what keeps Desktop Sync's server alive, with a notification and a
+  Stop button, only while its switch is on. It uses the `INTERNET` permission to listen, not to
+  call out.
 - `ACCESS_NETWORK_STATE`, to notice the phone is back on a network, so what was changed
   without one goes up then.
 - `RECORD_AUDIO`, asked the first time the microphone is pressed and not before.

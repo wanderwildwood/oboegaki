@@ -70,6 +70,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
                 PRIVACY -> {
                     item { Paragraph(R.string.about_privacy) }
                     item { Paragraph(R.string.about_privacy_voice) }
+                    item { Paragraph(R.string.about_privacy_desktop) }
                     item { Paragraph(R.string.about_privacy_close) }
                 }
                 TERMS -> item { Paragraph(R.string.about_terms) }

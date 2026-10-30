@@ -352,6 +352,7 @@
     <string name="about_privacy_heading">Privacy</string>
     <string name="about_privacy">Your notes, lists, recordings and scans stay on this phone, or go to the place you chose for them: a folder on the phone, your own Nextcloud, or a WebDAV server you named. The app connects only to the servers you set up, and your sign-in details are kept on this phone. Nothing is sent to the app\'s maker.</string>
     <string name="about_privacy_voice">The microphone is used only while you are recording, and recordings are turned into words on this phone. For a language other than English, the speech model is downloaded once from Hugging Face when you choose it; nothing you have recorded is sent. Reminders ring on this phone only.</string>
+    <string name="about_privacy_desktop">Desktop Sync is off until you switch it on. While it is on, this phone serves your notes and tasks to a browser that has its link or code, directly and not through any server, by default only over your VPN. It never starts by itself, and nothing you wrote is logged.</string>
     <string name="about_privacy_close">There are no ads, no analytics and no tracking. Backups and exports go only where you choose to save them.</string>
     <string name="about_terms_heading">Terms</string>
     <string name="about_terms">This app is free software under the GNU General Public License v3. It comes with no warranty: use it at your own risk.</string>
