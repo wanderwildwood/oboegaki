@@ -114,3 +114,10 @@ are 400.
 Off: nothing. On: a listening socket and a service; the flows that tell the page "changed" are
 collected only while the server runs; the keep-alive ping runs only while a browser is connected.
 Nothing in the app's own UI redraws for it: the Settings rows are static text (no countdown).
+
+## Known delay
+
+A tick or edit made on the phone reaches an open browser at once when it comes from a sync or
+another app, but one typed in the phone's own note editor is noticed when the note is left or at
+the next ten-second look at the notes folder, so up to about ten seconds. Changes from the
+browser reach the phone at once.
