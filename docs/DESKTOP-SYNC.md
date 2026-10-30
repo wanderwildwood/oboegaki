@@ -53,13 +53,15 @@ follow an edit on the phone follow an edit from the browser too.
 | checklist item | a `- [ ] item` / `- [x] item` line; `line` is its index in the whole file |
 | `pinned` | in the pins file (`Notes.pins`, `Notes.togglePin`) |
 | `archived` | under `Archive/` (`Notes.archive`/`unarchive`, the same move the phone makes) |
+| trash | `Notes.trash`: notes in the hidden `.trash` folder (see Trash below); `id` is the note's folder in the trash, never a path |
 | folder (the nearest thing to a label) | the note's folder; shown and settable on create |
 | reminder | `reminder:` in front matter (note) or `⏰ yyyy-MM-dd HH:mm` on an item line |
 | pictures | `![[name.jpg]]` embeds; fetched through `GET /api/file` (pictures only, only beside a note) |
 | tasks | `Tasks.shown`: lists, and per task summary, description, due (day or time), priority, done |
 
-What the app does not have is not invented: there are no colours, no labels, no trash. *Delete*
-is permanent exactly as on the phone, and asks first on the page. Voice notes and scans show as
+What the app does not have is not invented: there are no colours and no labels. *Delete* moves
+a note to the trash, exactly as on the phone, and can be undone from the page's *Trash*; *Delete
+forever* and *Empty trash* are permanent, and the page asks first. Voice notes and scans show as
 a line naming the file; they are not played or opened in the browser.
 
 ## Endpoints
@@ -70,13 +72,18 @@ All JSON, all except the first three need the token and `X-Notes: 1` on POST.
 - `POST /api/pair` `{code}` -> `{token}`.
 - `GET /ws?token=` WebSocket; the phone sends `{"type":"changed"}` when notes or tasks change;
   pings every 30 s only while a browser is connected; a peer silent for 95 s is dropped.
-- `GET /api/state` everything: notes (not archived and archived), folders, task lists, and
-  `rev`; answers `304` when the browser's `If-None-Match` matches (the polling fallback).
+- `GET /api/state` everything: notes (not archived and archived), `trash` (`{id, title, folder,
+  archived, deleted, until}`, newest first, times in milliseconds) and `trashDays`, folders, task
+  lists, and `rev`; answers `304` when the browser's `If-None-Match` matches (the polling fallback).
 - `POST /api/notes/create` `{title, text, folder?, reminder?}`
 - `POST /api/notes/update` `{id, v, baseText, title, text, reminder?}` (see conflicts)
 - `POST /api/notes/tick` `{id, line, expect}` ticks/unticks one line
 - `POST /api/notes/additem` `{id, text}` a new item after the last
-- `POST /api/notes/pin` `{id, pinned}`, `/archive` `{id, archived}`, `/delete` `{id}`
+- `POST /api/notes/pin` `{id, pinned}`, `/archive` `{id, archived}`, `/delete` `{id, v?}`
+  (moves the note to the trash; see conflicts for `v`; answers `{deleted, trash}`)
+- `POST /api/trash/restore` `{id}` -> `{note, restored, trash}`; `/api/trash/delete` `{id}` (for
+  good) -> `{deleted, trash}`; `/api/trash/empty` `{}` -> `{emptied, trash}`. `id` is a trash
+  entry's id as `state` gave it out (a folder name in the trash, a number); anything else is 404.
 - `POST /api/tasks/add` `{list, summary, description?, due?, priority?}`
 - `POST /api/tasks/update` `{list, name, from:{...}, to:{...}}`, `/tick`, `/delete` `{list, name}`
 - `GET /api/file?id=<note>&name=<picture>` the picture bytes.
@@ -95,11 +102,32 @@ the text it started from.
    lost**: it is added at the end of the note as a separate paragraph headed `## Edited elsewhere`.
    The reply says `conflict: "kept-both"` and the page tells the person.
 
+**Trashing is a move, not a delete.** The note, with its recordings and scans, goes to the trash
+and nothing is lost for 7 days. A request to trash a note says which `v` it was looking at; if
+the note has changed since (an edit on the phone, a sync), it is refused with `409` and the page
+reloads, so words the person never saw are not trashed on their behalf. Without `v` the note is
+trashed as it is. Restoring a note that a name now stands in the way of keeps both: the restored
+one is "name (1)", and nothing is written over.
+
 A tick is one character on one line, and is applied to the note as it is now; if the line at that
 index is no longer the item the browser meant (`expect`), it is refused with 409 and the page
 reloads. Task edits send the fields they started from, and only fields that changed are written,
 which is how the phone's own task screen already behaves, so a due date changed on the phone is
 not undone by a title edited in the browser.
+
+## Trash
+
+Deleting, on the phone or here, moves the note to `.trash/<moment>/` inside the notes folder,
+with the recordings and scans only it links and a `.meta` file saying where it came from
+(`from: Garden/kiln.md`) and when (`at:` in milliseconds). Archive is a visible folder that syncs;
+the trash is a hidden one, and every walk of the notes skips a name that starts with a dot, so a
+trashed note is never listed, searched, synced to Nextcloud or WebDAV (where the move looks like
+a deletion, as before), handed to Glance, or counted; a pin is dropped. Its reminders are kept
+silent beside it and ring again if it is restored; a purged note's go. *Restore* puts it back in
+its folder (the top of the notes if that folder has gone, "name (1)" if the name is taken).
+Notes older than 7 days (`TRASH_DAYS`, one constant) are removed when the app starts. The page's
+*Trash* lists them with the day they were deleted, *Restore*, *Delete forever* and *Empty trash*,
+the last two behind a confirm. Tasks are not in it: they come from CalDAV and have their own delete.
 
 ## Limits
 

@@ -67,6 +67,7 @@ h3.sec { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; colo
 .card .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 2px; }
 .chip { font-size: 12px; border: 1px solid var(--line); border-radius: 12px; padding: 1px 9px; color: var(--soft); }
 .card .acts { display: flex; gap: 2px; margin: 6px -6px 0; opacity: 0; transition: opacity .12s; }
+.card .acts.shown { opacity: 1; }
 .card:hover .acts, .card:focus-within .acts { opacity: 1; }
 .card img { max-width: 100%; border-radius: 6px; margin: 6px 0; display: block; }
 .card .add { margin: 4px 0 2px; }
@@ -112,7 +113,7 @@ h3.sec { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; colo
   function recall(k) { try { return LS ? LS.getItem(k) : null; } catch (e) { return null; } }
 
   var S = {
-    token: recall("notes.token"), notes: [], folders: [], taskLists: [], newFolder: "", ready: true, etag: null,
+    token: recall("notes.token"), notes: [], trash: [], trashDays: 7, folders: [], taskLists: [], newFolder: "", ready: true, etag: null,
     view: "notes", folder: null, query: "", live: false, loaded: false, openNote: null, openTask: null, pending: 0
   };
   var root = document.getElementById("root");
@@ -172,7 +173,7 @@ h3.sec { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; colo
       return r.json();
     }).then(function (j) {
       if (!j) return;
-      S.notes = j.notes; S.folders = j.folders; S.taskLists = j.taskLists; S.newFolder = j.newFolder; S.ready = j.ready; S.loaded = true;
+      S.notes = j.notes; S.trash = j.trash || []; S.trashDays = j.trashDays || 7; S.folders = j.folders; S.taskLists = j.taskLists; S.newFolder = j.newFolder; S.ready = j.ready; S.loaded = true;
       S.defaultTaskList = j.defaultTaskList;
       draw();
       if (modal && modal.noteChanged) modal.noteChanged();
@@ -295,6 +296,7 @@ h3.sec { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; colo
     side.appendChild(navButton("Reminders", "reminders", live.filter(hasReminder).length));
     side.appendChild(navButton("Tasks", "tasks", S.taskLists.reduce(function (a, l) { return a + l.items.filter(function (i) { return !i.done; }).length; }, 0)));
     side.appendChild(navButton("Archive", "archive", S.notes.length - live.length));
+    side.appendChild(navButton("Trash", "trash", S.trash.length));
     if (S.folders.length) {
       side.appendChild(h("h2", { text: "Folders" }));
       S.folders.forEach(function (f) { side.appendChild(navButton(f, "folder", live.filter(function (n) { return n.folder === f || n.folder.indexOf(f + "/") === 0; }).length, f)); });
@@ -307,6 +309,7 @@ h3.sec { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; colo
     if (!S.loaded) { main.appendChild(h("p", { class: "empty", text: "Opening your notes…" })); return; }
     if (!S.ready) { main.appendChild(h("p", { class: "empty", text: "Notes has nowhere to keep notes yet. Choose a place on the phone first." })); return; }
     if (S.view === "tasks") { main.appendChild(tasksView()); return; }
+    if (S.view === "trash") { main.appendChild(trashView()); return; }
     var words = wordsOf(S.query);
     var list;
     if (S.view === "archive") list = S.notes.filter(function (n) { return n.archived; });
@@ -385,11 +388,48 @@ h3.sec { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; colo
   function act(p, ok, fail) {
     return p.then(ok).catch(function (e) { if (e.message !== "signed out") toast(e.message); if (fail) fail(e); });
   }
+  // Delete moves a note to the trash on the phone; it can be brought back for a week.
   function removeNote(n) {
-    if (!confirm("Delete “" + (n.title || "this note") + "” for good? The phone has no trash, so this cannot be undone.")) return Promise.resolve();
-    return act(api("POST", "/api/notes/delete", { id: n.id }), function () {
-      S.notes = S.notes.filter(function (x) { return x.id !== n.id; }); S.etag = null; closeModal(); redraw(); toast("Deleted.");
-    });
+    return act(api("POST", "/api/notes/delete", { id: n.id, v: n.v }), function (j) {
+      S.notes = S.notes.filter(function (x) { return x.id !== n.id; }); S.trash = j.trash || S.trash; S.etag = null; closeModal(); redraw();
+      toast("Moved to the trash. It is kept " + S.trashDays + " days.");
+    }, function (e) { if (e.status === 409) load(true); });
+  }
+
+  // ---------------------------------------------------------------- the trash
+  function whenText(ms) { try { return new Date(ms).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }); } catch (e) { return new Date(ms).toISOString(); } }
+  function trashView() {
+    var box = h("div", null);
+    box.appendChild(h("p", { class: "hint", text: "Deleted notes are kept " + S.trashDays + " days on the phone, then removed for good." }));
+    if (!S.trash.length) { box.appendChild(h("p", { class: "empty", text: "The trash is empty." })); return box; }
+    box.appendChild(h("div", { class: "composer" },
+      h("button", { class: "act", text: "Empty trash (" + S.trash.length + ")", onclick: emptyTrash })));
+    box.appendChild(h("div", { class: "grid" }, S.trash.map(trashCard)));
+    return box;
+  }
+  function trashCard(t) {
+    var c = h("article", { class: "card" });
+    c.appendChild(h("h4", { text: t.title || "Untitled" }));
+    var chips = h("div", { class: "chips" }, h("span", { class: "chip", text: "Deleted " + whenText(t.deleted) }));
+    if (t.archived) chips.appendChild(h("span", { class: "chip", text: "Archive" }));
+    if (t.folder) chips.appendChild(h("span", { class: "chip", text: t.folder }));
+    c.appendChild(chips);
+    c.appendChild(h("div", { class: "acts shown" },
+      h("button", { class: "quiet", text: "Restore", onclick: function () {
+        act(api("POST", "/api/trash/restore", { id: t.id }), function (j) {
+          S.trash = j.trash || []; replaceNote(j.note); redraw(); toast("Put back.");
+        }, function () { load(true); });
+      } }),
+      h("button", { class: "quiet", text: "Delete forever", onclick: function () {
+        if (!confirm("Delete “" + (t.title || "this note") + "” for good? It cannot be brought back.")) return;
+        act(api("POST", "/api/trash/delete", { id: t.id }), function (j) { S.trash = j.trash || []; S.etag = null; redraw(); toast("Deleted for good."); }, function () { load(true); });
+      } })));
+    return c;
+  }
+  function emptyTrash() {
+    var n = S.trash.length; if (!n) return;
+    if (!confirm("Delete all " + n + " note" + (n === 1 ? "" : "s") + " in the trash for good? They cannot be brought back.")) return;
+    act(api("POST", "/api/trash/empty", {}), function (j) { S.trash = j.trash || []; S.etag = null; redraw(); toast("Trash emptied."); }, function () { load(true); });
   }
 
   // ---------------------------------------------------------------- the note editor

@@ -3,6 +3,8 @@ package com.wanderwildwood.oboegaki.desktop
 import com.wanderwildwood.oboegaki.notes.ARCHIVE_FOLDER
 import com.wanderwildwood.oboegaki.notes.Line
 import com.wanderwildwood.oboegaki.notes.Note
+import com.wanderwildwood.oboegaki.notes.Trashed
+import com.wanderwildwood.oboegaki.notes.trashedUntil
 import com.wanderwildwood.oboegaki.notes.embeds
 import com.wanderwildwood.oboegaki.notes.frontMatterHead
 import com.wanderwildwood.oboegaki.notes.isArchived
@@ -64,6 +66,16 @@ fun noteJson(note: Note, pinned: Boolean): JSONObject {
         .put("recordings", JSONArray(embedded.filter(::isSound)))
         .put("scans", JSONArray(embedded.filter { it.lowercase().endsWith(".pdf") }))
 }
+
+/** A note in the trash as the page sees it: its id is its folder in the trash, never a path. */
+fun trashJson(t: Trashed): JSONObject =
+    JSONObject()
+        .put("id", t.slot)
+        .put("title", t.title)
+        .put("folder", if (isArchived(t.from)) t.folder.removePrefix(ARCHIVE_FOLDER).trimStart('/') else t.folder)
+        .put("archived", isArchived(t.from))
+        .put("deleted", t.at)
+        .put("until", trashedUntil(t.at))
 
 /** A due as the page's inputs write it: "2026-10-08" for a day, "2026-10-08T17:00" for a time on the phone's clock. */
 fun dueText(due: Due?): String? = when (due) {

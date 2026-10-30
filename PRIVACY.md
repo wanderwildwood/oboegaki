@@ -10,6 +10,8 @@ Notes collects nothing about you and has no analytics, ads or tracking of any ki
   model is downloaded once from Hugging Face when you choose it; nothing you record is sent.
 - **The Nextcloud app password** and a WebDAV password are kept in the app's private storage,
   and backups are turned off, so they leave the phone only for the server they belong to.
+- **Deleted notes** are kept for 7 days in a hidden folder next to your notes, wherever you keep
+  them, then removed.
 - **Reminders** are set on the phone's own alarm clock and ring only on the phone.
 - **Pinned notes on the lock screen** are handed to Glance, only when it is on the phone and the
   setting is on; they go no further.

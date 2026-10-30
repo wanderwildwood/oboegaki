@@ -82,6 +82,7 @@ fun ListScreen(
     onSettings: () -> Unit,
     onAbout: () -> Unit,
     onTasks: () -> Unit,
+    onTrash: () -> Unit,
     // A sync to run when the list is pulled down from its top, returning the state it left;
     // null when the notes live only on this phone.
     onPull: (suspend () -> SyncState)? = null,
@@ -246,6 +247,10 @@ fun ListScreen(
                 choosing = false
                 onView(s, o)
             },
+            onTrash = {
+                choosing = false
+                onTrash()
+            },
             onDismiss = { choosing = false },
         )
     }
@@ -285,6 +290,7 @@ private fun ViewDialog(
     folders: List<String>,
     canShare: Boolean,
     onChoose: (String, Order) -> Unit,
+    onTrash: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     EInkDialog(onDismiss = onDismiss) {
@@ -298,6 +304,7 @@ private fun ViewDialog(
                 item { Choice(stringResource(R.string.view_shared), showing == Showing.SHARED) { onChoose(Showing.SHARED, order) } }
             }
             item { Choice(stringResource(R.string.view_archive), showing == Showing.ARCHIVE) { onChoose(Showing.ARCHIVE, order) } }
+            item { Choice(stringResource(R.string.view_trash), false) { onTrash() } }
             if (folders.isNotEmpty()) item { DialogHeading(stringResource(R.string.view_folders)) }
             for (folder in folders) {
                 item(key = "folder-$folder") {

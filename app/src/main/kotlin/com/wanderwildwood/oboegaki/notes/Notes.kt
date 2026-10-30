@@ -146,6 +146,7 @@ object Notes {
         _list.value = runCatching { shelf?.list() }.getOrNull().orEmpty()
             .sortedByDescending { it.modified }
         _pins.value = runCatching { readPins(shelf) }.getOrDefault(emptySet())
+        _trash.value = runCatching { readTrash(shelf) }.getOrDefault(emptyList())
         // The lock screen shows the pinned notes; whatever just changed may be one of them.
         GlanceProvider.changed(appContext)
     }
@@ -708,24 +709,139 @@ object Notes {
         _changed.value++
     }
 
+    private val _trash = MutableStateFlow<List<Trashed>>(emptyList())
+    /** The notes in the trash, the most recently deleted first. */
+    val trash: StateFlow<List<Trashed>> = _trash
+
+    /** The trashed notes as the shelf holds them now. */
+    private fun readTrash(shelf: Shelf?): List<Trashed> {
+        if (shelf == null) return emptyList()
+        val slots = shelf.entries(TRASH_FOLDER)?.filter { it.isFolder }.orEmpty()
+        return slots.mapNotNull { slot ->
+            val dir = "$TRASH_FOLDER/${slot.name}"
+            val files = shelf.entries(dir) ?: return@mapNotNull null
+            trashEntry(slot.name, files, shelf.read("$dir/$TRASH_META"))
+        }.sortedByDescending { it.at }
+    }
+
     /**
-     * Delete a note, and the recordings and scans it holds that sit beside it: `![[name]]` links
-     * to files in the same folder. Anything another note also links stays.
+     * Delete a note: moved to the trash, with the recordings and scans it holds that sit beside
+     * it (`![[name]]` links to files in the same folder, unless another note also links them),
+     * to wait [TRASH_DAYS] days. Its pin goes, and its reminders are kept with it, silent, to ring
+     * again if it is restored.
      */
     fun delete(path: String) {
         val shelf = shelf() ?: return
-        val text = shelf.read(path).orEmpty()
-        val folder = path.substringBeforeLast('/', "")
-        val prefix = if (folder.isEmpty()) "" else "$folder/"
-        val held = embeds(text).map { prefix + it }
-        shelf.delete(path)
-        repin(path, null)
-        val others = _list.value.filter { it.path != path }
-        for (attachment in held) {
-            val linkedElsewhere = others.any { note -> embeds(note.text).any { prefix + it == attachment || it == attachment } }
-            if (!linkedElsewhere) runCatching { shelf.delete(attachment) }
+        val trashed = synchronized(notesLock) {
+            val text = shelf.read(path) ?: return
+            val folder = path.substringBeforeLast('/', "")
+            val prefix = if (folder.isEmpty()) "" else "$folder/"
+            val others = _list.value.filter { it.path != path }
+            val held = embeds(text).distinct().map { prefix + it }.filter { attachment ->
+                shelf.exists(attachment) &&
+                    others.none { note -> embeds(note.text).any { prefix + it == attachment || it == attachment } }
+            }
+            val now = System.currentTimeMillis()
+            val slot = trashSlot(now, shelf.entries(TRASH_FOLDER)?.map { it.name }.orEmpty().toSet())
+            val dir = "$TRASH_FOLDER/$slot"
+            // The note of where it came from first: a trash with the note and no record is
+            // still readable, but a record with no note is only clutter.
+            shelf.write("$dir/$TRASH_META", trashMetaText(TrashMeta(path, now)))
+            for (attachment in held) {
+                runCatching { shelf.move(attachment, "$dir/${attachment.substringAfterLast('/')}") }
+            }
+            shelf.move(path, trashedPath(slot, path))
+            trashedPath(slot, path)
         }
+        repin(path, null)
+        Reminders.moved(appContext, path, trashed)
+        Reminders.syncSoon(appContext)
         refresh()
+    }
+
+    /**
+     * Take a note out of the trash, back to the folder it was deleted from, or to the top of
+     * the notes if that folder is gone, and under another name, " (1)", if its own is taken.
+     * Returns where it is now, or null if it is not in the trash.
+     */
+    fun restore(slot: String): String? {
+        val shelf = shelf() ?: return null
+        val back = synchronized(notesLock) {
+            val item = readTrash(shelf).firstOrNull { it.slot == slot } ?: return null
+            val dir = "$TRASH_FOLDER/$slot"
+            val folder = item.folder
+            val folderThere = folder.isEmpty() || shelf.entries(folder) != null
+            val target = restoreTarget(item.from, folderThere, shelf::exists)
+            val targetFolder = target.substringBeforeLast('/', "")
+            for (file in shelf.entries(dir).orEmpty()) {
+                if (file.isFolder || file.name == TRASH_META || file.name == item.path.substringAfterLast('/')) continue
+                // A recording or scan of that name already there stays; it is never written over.
+                val there = inFolder(targetFolder, file.name)
+                if (!shelf.exists(there)) runCatching { shelf.move("$dir/${file.name}", there) }
+            }
+            shelf.move(item.path, target)
+            clearSlot(shelf, slot)
+            item.path to target
+        }
+        Reminders.moved(appContext, back.first, back.second)
+        Reminders.syncSoon(appContext)
+        afterEdit()
+        return back.second
+    }
+
+    /** Remove one trashed note, and what was kept with it, for good. */
+    fun deleteForever(slot: String) {
+        val shelf = shelf() ?: return
+        synchronized(notesLock) { clearSlot(shelf, slot) }
+        Reminders.syncSoon(appContext)
+        refresh()
+    }
+
+    /** Remove everything in the trash for good. Returns how many notes that was. */
+    fun emptyTrash(): Int {
+        val shelf = shelf() ?: return 0
+        val n = synchronized(notesLock) {
+            val slots = shelf.entries(TRASH_FOLDER)?.filter { it.isFolder }.orEmpty()
+            slots.forEach { clearSlot(shelf, it.name) }
+            slots.size
+        }
+        Reminders.syncSoon(appContext)
+        refresh()
+        return n
+    }
+
+    /**
+     * Remove what has been in the trash more than [TRASH_DAYS] days. Run when the app starts;
+     * [now] is for tests. Returns how many notes went.
+     */
+    fun purgeExpired(now: Long = System.currentTimeMillis()): Int {
+        val shelf = shelf() ?: return 0
+        val gone = synchronized(notesLock) {
+            val old = expiredIn(readTrash(shelf), now)
+            old.forEach { clearSlot(shelf, it.slot) }
+            old.size
+        }
+        if (gone > 0) {
+            Reminders.syncSoon(appContext)
+            refresh()
+        }
+        return gone
+    }
+
+    /** The screens' ways in: off the main thread, since the notes may be a mount of a server. */
+    fun restoreSoon(slot: String) { scope.launch { restore(slot) } }
+    fun deleteForeverSoon(slot: String) { scope.launch { deleteForever(slot) } }
+    fun emptyTrashSoon() { scope.launch { emptyTrash() } }
+
+    private fun clearSlot(shelf: Shelf, slot: String) {
+        val dir = "$TRASH_FOLDER/$slot"
+        for (file in shelf.entries(dir).orEmpty()) runCatching { shelf.delete("$dir/${file.name}") }
+        runCatching { shelf.delete(dir) }
+    }
+
+    /** Purge on a background thread, once the app is up. */
+    fun purgeSoon() {
+        scope.launch { runCatching { purgeExpired() } }
     }
 
     /**

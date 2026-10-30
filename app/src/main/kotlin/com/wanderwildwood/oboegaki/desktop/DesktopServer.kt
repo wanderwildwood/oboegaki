@@ -5,6 +5,8 @@ import android.util.Base64
 import android.util.Log
 import com.wanderwildwood.oboegaki.notes.Line
 import com.wanderwildwood.oboegaki.notes.Notes
+import com.wanderwildwood.oboegaki.notes.TRASH_DAYS
+import com.wanderwildwood.oboegaki.notes.trashIsStale
 import com.wanderwildwood.oboegaki.notes.addTask
 import com.wanderwildwood.oboegaki.notes.cleanFolder
 import com.wanderwildwood.oboegaki.notes.embeds
@@ -229,6 +231,9 @@ class DesktopServer(
             method == Method.POST && uri == "/api/notes/pin" -> pinNote(body(session))
             method == Method.POST && uri == "/api/notes/archive" -> archiveNote(body(session))
             method == Method.POST && uri == "/api/notes/delete" -> deleteNote(body(session))
+            method == Method.POST && uri == "/api/trash/restore" -> restoreNote(body(session))
+            method == Method.POST && uri == "/api/trash/delete" -> deleteForever(body(session))
+            method == Method.POST && uri == "/api/trash/empty" -> emptyTrash()
             method == Method.POST && uri == "/api/tasks/add" -> addTask(body(session))
             method == Method.POST && uri == "/api/tasks/update" -> updateTask(body(session))
             method == Method.POST && uri == "/api/tasks/tick" -> tickTask(body(session))
@@ -298,6 +303,8 @@ class DesktopServer(
             .put("ready", ready)
             .put("notes", JSONArray(all.map { noteJson(it, it.path in pins) }))
             .put("folders", JSONArray(folders(all)))
+            .put("trash", JSONArray(Notes.trash.value.map(::trashJson)))
+            .put("trashDays", TRASH_DAYS)
             .put("newFolder", Notes.newFolder)
             .put("taskLists", JSONArray(Tasks.shown.value.map { s -> taskListJson(s.list, s.items) { it.task.uid in rings } }))
             .put("defaultTaskList", runCatching { Tasks.defaultList().id }.getOrNull() ?: JSONObject.NULL)
@@ -454,12 +461,48 @@ class DesktopServer(
         return noteReply(moved, JSONObject().put("was", id))
     }
 
+    /**
+     * Delete is a move to the trash, not a removal. A request that says which version of the note
+     * it was looking at is refused with 409 if the note has changed since, so a stale page cannot
+     * trash words it never saw; the page reloads and asks again.
+     */
     private fun deleteNote(o: JSONObject): Response {
         val id = requireNote(o)
+        val current = Notes.read(id) ?: throw Refusal(404, "that note is gone")
+        if (trashIsStale(if (o.has("v")) o.optString("v") else null, versionOf(current))) {
+            throw Refusal(409, "that note has changed; reloading")
+        }
         Notes.delete(id)
-        Reminders.syncSoon(context)
         Notes.reloadNow()
-        return json(200, JSONObject().put("deleted", id))
+        return json(200, JSONObject().put("deleted", id).put("trash", JSONArray(Notes.trash.value.map(::trashJson))))
+    }
+
+    /** The trashed note the app has, by exactly the id it gave out. Never built from anything else. */
+    private fun requireTrashed(o: JSONObject): String {
+        val id = o.optString("id", "")
+        if (id.isEmpty() || id.length > 64) throw Refusal(400, "which note?")
+        if (Notes.trash.value.none { it.slot == id }) throw Refusal(404, "that note is not in the trash")
+        return id
+    }
+
+    private fun restoreNote(o: JSONObject): Response {
+        val id = requireTrashed(o)
+        val path = Notes.restore(id) ?: throw Refusal(404, "that note is not in the trash")
+        Notes.reloadNow()
+        return noteReply(path, JSONObject().put("restored", id).put("trash", JSONArray(Notes.trash.value.map(::trashJson))))
+    }
+
+    private fun deleteForever(o: JSONObject): Response {
+        val id = requireTrashed(o)
+        Notes.deleteForever(id)
+        Notes.reloadNow()
+        return json(200, JSONObject().put("deleted", id).put("trash", JSONArray(Notes.trash.value.map(::trashJson))))
+    }
+
+    private fun emptyTrash(): Response {
+        val n = Notes.emptyTrash()
+        Notes.reloadNow()
+        return json(200, JSONObject().put("emptied", n).put("trash", JSONArray(Notes.trash.value.map(::trashJson))))
     }
 
     // ------------------------------------------------------------------ tasks

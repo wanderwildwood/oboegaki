@@ -140,3 +140,29 @@ class MappingTest {
         assertEquals("a b", fieldsFrom(JSONObject("""{"summary":"a\nb"}""")).summary)
     }
 }
+
+class TrashMappingTest {
+    @Test
+    fun aTrashedNoteIsSentWithItsFolderIdAndDates() {
+        val j = trashJson(com.wanderwildwood.oboegaki.notes.Trashed("1761832800000", "kiln", "Garden/kiln.md", 1761832800000L))
+        assertEquals("1761832800000", j.getString("id"))
+        assertEquals("kiln", j.getString("title"))
+        assertEquals("Garden", j.getString("folder"))
+        assertFalse(j.getBoolean("archived"))
+        assertEquals(1761832800000L, j.getLong("deleted"))
+        assertEquals(1761832800000L + 7 * 24 * 3600 * 1000L, j.getLong("until"))
+    }
+
+    @Test
+    fun aNoteDeletedFromTheArchiveSaysSoAndNamesTheFolderItWasFiledIn() {
+        val j = trashJson(com.wanderwildwood.oboegaki.notes.Trashed("9", "old", "Archive/Garden/old.md", 9))
+        assertTrue(j.getBoolean("archived"))
+        assertEquals("Garden", j.getString("folder"))
+    }
+
+    @Test
+    fun theIdIsNeverAPath() {
+        val j = trashJson(com.wanderwildwood.oboegaki.notes.Trashed("5", "x", "a/b/x.md", 5))
+        assertFalse(j.getString("id").contains('/'))
+    }
+}

@@ -89,7 +89,7 @@ class DesktopService : Service() {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         watching = scope
         scope.launch {
-            combine(Notes.list, Notes.pins, Tasks.shown) { a, b, c -> Triple(a, b, c) }
+            combine(Notes.list, Notes.pins, Tasks.shown, Notes.trash) { a, b, c, d -> listOf(a, b, c, d) }
                 .drop(1)
                 .debounce(250)
                 .collect { next.notifyChanged() }

@@ -47,6 +47,12 @@ interface Shelf {
     /** Somewhere a player can open the file at [path], or null if it is not there. */
     fun uriOf(path: String): Uri?
 
+    /**
+     * What is directly inside [dir], a hidden folder such as the trash included, or null when
+     * there is no such folder.
+     */
+    fun entries(dir: String): List<Entry>?
+
     /** Every file kept here, notes and what sits beside them, and the pins: what a move takes along. */
     fun files(): List<String>
 
@@ -139,6 +145,12 @@ class FileShelf(
 
     override fun readBytes(path: String): ByteArray? = synchronized(notesLock) {
         File(root, path).takeIf { it.isFile }?.readBytes()
+    }
+
+    override fun entries(dir: String): List<Entry>? = synchronized(notesLock) {
+        File(root, dir).takeIf { it.isDirectory }?.listFiles()
+            ?.filter { !it.name.endsWith(".part") }
+            ?.map { Entry(it.name, it.isDirectory, it.lastModified()) }
     }
 }
 
@@ -310,6 +322,11 @@ class FolderShelf(private val resolver: ContentResolver, private val tree: Uri) 
         runCatching {
             resolver.openInputStream(DocumentsContract.buildDocumentUriUsingTree(tree, id))?.use { it.readBytes() }
         }.getOrNull()
+    }
+
+    override fun entries(dir: String): List<Entry>? = synchronized(notesLock) {
+        val id = idOf(dir) ?: return null
+        runCatching { children(id).map { Entry(it.name, it.isFolder, it.modified) } }.getOrNull()
     }
 
     private data class Child(val id: String, val name: String, val isFolder: Boolean, val modified: Long)

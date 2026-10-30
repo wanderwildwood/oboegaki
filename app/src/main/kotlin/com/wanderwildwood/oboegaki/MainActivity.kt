@@ -51,6 +51,7 @@ import com.wanderwildwood.oboegaki.remind.TASK
 import com.wanderwildwood.oboegaki.tasks.Tasks
 import com.wanderwildwood.oboegaki.ui.TaskScreen
 import com.wanderwildwood.oboegaki.ui.TasksScreen
+import com.wanderwildwood.oboegaki.ui.TrashScreen
 import android.net.ConnectivityManager
 import android.net.Network
 import com.wanderwildwood.oboegaki.ui.SetupScreen
@@ -86,6 +87,7 @@ private sealed interface Screen {
     data class Scan(val pictures: kotlin.collections.List<Uri> = emptyList()) : Screen
     data class Outside(val uri: Uri) : Screen
     data object Tasks : Screen
+    data object Trash : Screen
     /** One task; [name] null for a new one in [list]. */
     data class Task(val list: String, val name: String?) : Screen
 }
@@ -108,6 +110,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Notes.init(this)
+        Notes.purgeSoon()
         Tasks.init(this)
         Voice.init(this)
         if (savedInstanceState == null) capture.value = captureFrom(intent)
@@ -333,8 +336,13 @@ private fun App(capture: MutableState<Capture?>) {
                 onSettings = { screen = Screen.Settings },
                 onAbout = { aboutOpen = true },
                 onTasks = { screen = Screen.Tasks },
+                onTrash = { screen = Screen.Trash },
                 onPull = if (keeping.isServer) ({ Notes.syncAndWait(); Notes.sync.value }) else null,
             )
+            Screen.Trash -> {
+                BackHandler { screen = Screen.List }
+                TrashScreen(onBack = { screen = Screen.List })
+            }
             Screen.Tasks -> {
                 BackHandler { screen = Screen.List }
                 TasksScreen(

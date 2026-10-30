@@ -9,6 +9,7 @@ import android.content.Intent
 import android.util.Log
 import com.wanderwildwood.oboegaki.MainActivity
 import com.wanderwildwood.oboegaki.notes.Notes
+import com.wanderwildwood.oboegaki.notes.isTrashPath
 import com.wanderwildwood.oboegaki.notes.Reminder
 import com.wanderwildwood.oboegaki.notes.findReminder
 import com.wanderwildwood.oboegaki.notes.preview
@@ -198,6 +199,11 @@ object Reminders {
             } else if (shelf == null) {
                 // The notes cannot be read just now: their reminders are kept as they are.
                 out += r
+                continue
+            } else if (isTrashPath(r.path)) {
+                // In the trash: silent, and kept for a restore while the note is still there.
+                Notifier.cancel(context, r.id)
+                if (text(r.path) != null) out += r
                 continue
             } else {
                 var found = text(r.path)?.let { findReminder(it, r.key, r.at) }

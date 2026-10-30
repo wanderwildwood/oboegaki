@@ -18,11 +18,15 @@ Not a fork. Written from scratch in Kotlin and Jetpack Compose, using Mudita's o
 
 ## Where this is up to
 
-Version 0.3.0. On a Kompakt: notes and lists syncing through Nextcloud
+Version 0.3.1. On a Kompakt: notes and lists syncing through Nextcloud
 between two phones, a list shared between them and ticked on one while added to on the other,
 a voice note heard and written down, a page photographed and handed to the scanner.
 
 ## What it does
+
+- **Deleted notes are kept for 7 days** in a hidden folder (`.trash`) next to your notes, then
+  removed. *Trash* is in the view menu: *Restore* puts a note back in its folder, *Delete forever*
+  and *Empty trash* remove at once, each on a second tap.
 
 - **Notes** are Markdown files. A note's title is its file name, and folders are folders, so
   the same notes open as they are in Obsidian or any editor on a computer.
@@ -83,13 +87,14 @@ Design and protocol: [docs/DESKTOP-SYNC.md](docs/DESKTOP-SYNC.md).
   the phone, and the other way), pictures the note shows, its folder, its reminder. Search, a
   *Pinned* section, *Reminders*, *Archive*, and a list of your folders.
 - Make, edit, pin, archive, bring back and delete notes; make a list; add items from the card.
+  *Delete* moves a note to the *Trash* in the sidebar, where it can be restored or deleted for good.
 - **Tasks**: the app's own Tasks, the ones synced with a Nextcloud, with add, tick, edit (due,
   priority, whether it rings on the phone) and delete.
 - Live in both directions over a WebSocket, with polling as a fallback. Light and dark.
 - If a note is changed on both at once, the edit that arrives last wins, and the other text is
   kept at the end of the note under *Edited elsewhere*. Edits to different lines are joined.
-- Only what the app has is shown: there are no colours, no labels and no trash, so *Delete* is
-  for good, as on the phone, and asks first.
+- Only what the app has is shown: there are no colours and no labels. *Delete* moves a note to
+  the trash, as on the phone; *Delete forever* and *Empty trash* ask first.
 
 **Setup.** Settings, *Desktop Sync*, switch on. *Show link* gives the address, a six-digit code
 (three minutes, works once) and the full link. Open the address on the computer, type the code;
