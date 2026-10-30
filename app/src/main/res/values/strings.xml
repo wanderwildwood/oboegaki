@@ -483,7 +483,8 @@
     <string name="desktop_no_address">There is no network address to reach this phone at yet. Start your VPN or join Wi-Fi.</string>
     <string name="desktop_open">Open this on your computer:</string>
     <string name="desktop_code">Then type this code:</string>
-    <string name="desktop_code_lasts">It works once, for three minutes.</string>
+    <string name="desktop_code_lasts">Works once, for %s</string>
+    <string name="desktop_code_locked">Too many wrong tries. Close this and open it again for a new code.</string>
     <string name="desktop_link">Or paste the whole link:</string>
     <string name="desktop_copy">Copy link</string>
     <string name="desktop_done">Done</string>

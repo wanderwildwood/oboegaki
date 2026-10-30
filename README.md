@@ -97,7 +97,7 @@ Design and protocol: [docs/DESKTOP-SYNC.md](docs/DESKTOP-SYNC.md).
   the trash, as on the phone; *Delete forever* and *Empty trash* ask first.
 
 **Setup.** Settings, *Desktop Sync*, switch on. *Show link* gives the address, a six-digit code
-(three minutes, works once) and the full link. Open the address on the computer, type the code;
+(works once; a new one appears by itself when it runs out) and the full link. Open the address on the computer, type the code;
 the browser remembers. Off by default, never starts by itself, and a restart leaves it off.
 Switch it off with the same row or *Stop* on the notification.
 

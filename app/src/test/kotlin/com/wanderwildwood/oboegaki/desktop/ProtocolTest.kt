@@ -334,3 +334,72 @@ class LimitsTest {
         assertEquals(200_000, Limits.NOTE_TEXT)
     }
 }
+
+class PairingRolloverTest {
+
+    private var now = 5_000L
+    private val pairing = Pairing({ now })
+
+    @Test
+    fun showingIssuesOneWhenThereIsNone() {
+        val shown = pairing.show()!!
+        assertEquals(Pairing.LIFETIME_MS, shown.leftMs)
+        assertTrue(pairing.redeem(shown.code))
+    }
+
+    @Test
+    fun theSameCodeIsShownWhileItLasts() {
+        val first = pairing.issue()
+        now += Pairing.LIFETIME_MS - 1
+        val shown = pairing.show()!!
+        assertEquals(first, shown.code)
+        assertEquals(1L, shown.leftMs)
+    }
+
+    @Test
+    fun aCodeThatHasRunOutIsReplacedAtTheBoundary() {
+        val first = pairing.issue()
+        now += Pairing.LIFETIME_MS
+        val next = pairing.show()!!
+        assertEquals(Pairing.LIFETIME_MS, next.leftMs)
+        // Only the new one is valid: the old one, if it differs, is refused.
+        if (next.code != first) assertFalse(pairing.redeem(first))
+        assertTrue(pairing.redeem(next.code))
+    }
+
+    @Test
+    fun aCodeThatWasUsedIsReplacedByANewOne() {
+        val first = pairing.show()!!
+        assertTrue(pairing.redeem(first.code))
+        val next = pairing.show()!!
+        assertEquals(Pairing.LIFETIME_MS, next.leftMs)
+        assertTrue(pairing.redeem(next.code))
+    }
+
+    @Test
+    fun aNewCodeReplacesTheOldOne() {
+        val a = pairing.issue()
+        val b = pairing.issue()
+        if (a != b) assertFalse(pairing.redeem(a))
+        assertTrue(pairing.redeem(b))
+    }
+
+    @Test
+    fun tooManyWrongTriesLeaveNoCodeUntilOneIsAskedFor() {
+        val code = pairing.show()!!.code
+        val wrong = if (code == "000000") "111111" else "000000"
+        repeat(Pairing.MAX_ATTEMPTS) { assertFalse(pairing.redeem(wrong)) }
+        assertNull(pairing.show())
+        assertFalse(pairing.redeem(code))
+        assertTrue(pairing.redeem(pairing.issue()))
+    }
+
+    @Test
+    fun theCountdownReadsMinutesAndSecondsRoundedUp() {
+        assertEquals("3:00", countdownText(180_000))
+        assertEquals("2:41", countdownText(160_001))
+        assertEquals("0:01", countdownText(1))
+        assertEquals("0:00", countdownText(0))
+        assertEquals("0:00", countdownText(-50))
+    }
+}

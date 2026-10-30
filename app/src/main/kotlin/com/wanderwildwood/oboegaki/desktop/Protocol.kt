@@ -66,10 +66,27 @@ class Pairing(private val clock: () -> Long, private val random: SecureRandom = 
     private var digits: String? = null
     private var expiresAt = 0L
     private var attemptsLeft = 0
+    private var lockedOut = false
+
+    /** What a dialog shows: the code and how many milliseconds it has left. */
+    data class Shown(val code: String, val leftMs: Long)
+
+    /**
+     * The code to show now. One that has run out or been used is replaced by a new one, so a
+     * dialog left open never shows a dead code; only one code is ever valid. After too many
+     * wrong tries there is none (null) until [issue] is asked for, on the phone, by hand.
+     */
+    @Synchronized
+    fun show(): Shown? {
+        if (lockedOut) return null
+        val code = current() ?: if (lockedOut) return null else issue()
+        return Shown(code, expiresAt - clock())
+    }
 
     /** A new code, replacing any outstanding one. */
     @Synchronized
     fun issue(): String {
+        lockedOut = false
         val code = (0 until 6).map { random.nextInt(10) }.joinToString("")
         digits = code
         expiresAt = clock() + LIFETIME_MS
@@ -92,7 +109,10 @@ class Pairing(private val clock: () -> Long, private val random: SecureRandom = 
         val given = supplied?.filter { it.isDigit() } ?: return false
         if (given.length != expected.length || !constantTimeEquals(given, expected)) {
             attemptsLeft -= 1
-            if (attemptsLeft <= 0) clear()
+            if (attemptsLeft <= 0) {
+                clear()
+                lockedOut = true
+            }
             return false
         }
         clear()
@@ -256,4 +276,10 @@ fun resolveEdit(started: Boolean, baseText: String?, mine: String, current: Stri
     val together = if (kept.isEmpty()) mine else
         (if (head.isEmpty()) "" else head + "\n\n") + "## $EDITED_ELSEWHERE\n\n" + kept + "\n"
     return Resolved(together, Outcome.KEPT_BOTH)
+}
+
+/** Time left as "2:41", rounded up to the second, never below 0:00. */
+fun countdownText(leftMs: Long): String {
+    val seconds = if (leftMs <= 0) 0 else (leftMs + 999) / 1000
+    return "%d:%02d".format(seconds / 60, seconds % 60)
 }

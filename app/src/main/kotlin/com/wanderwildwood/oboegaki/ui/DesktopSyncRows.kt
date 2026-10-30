@@ -16,6 +16,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
+import com.wanderwildwood.oboegaki.desktop.Pairing
+import com.wanderwildwood.oboegaki.desktop.countdownText
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,7 +40,7 @@ import com.wanderwildwood.oboegaki.notes.Notes
 
 /**
  * Desktop Sync's rows in Settings. Off until the switch is turned, and the switch is the only
- * thing that starts it. Nothing here counts down or redraws by itself: the code is shown once,
+ * thing that starts it. Nothing here counts down or redraws by itself: the code counts down only while its dialog is open,
  * with how long it lasts, so the screen stays still.
  */
 fun LazyListScope.desktopSyncRows() {
@@ -115,7 +119,15 @@ fun LazyListScope.desktopSyncRows() {
 @Composable
 private fun ShowLinkDialog(onDismiss: () -> Unit) {
     val context = LocalContext.current
-    val code = remember { DesktopSync.pairing.issue() }
+    // A new code each time it opens, and a new one whenever it runs out or is used, for as long
+    // as the dialog is up. The one-second tick lives only while this is on screen.
+    var shown by remember { mutableStateOf<Pairing.Shown?>(DesktopSync.pairing.issue().let { DesktopSync.pairing.show() }) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(1000)
+            shown = DesktopSync.pairing.show()
+        }
+    }
     val where = remember { Network.reachable(context) }
     val token = Notes.preferences.desktopToken
     val first = where.firstOrNull()
@@ -134,13 +146,18 @@ private fun ShowLinkDialog(onDismiss: () -> Unit) {
                 )
             }
             TextMMD(text = stringResource(R.string.desktop_code), style = MaterialTheme.typography.bodyMedium)
-            TextMMD(
-                text = code.take(3) + " " + code.drop(3),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(vertical = 8.dp),
-            )
-            TextMMD(text = stringResource(R.string.desktop_code_lasts), style = MaterialTheme.typography.labelSmall)
+            val now = shown
+            if (now == null) {
+                TextMMD(text = stringResource(R.string.desktop_code_locked), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(vertical = 8.dp))
+            } else {
+                TextMMD(
+                    text = now.code.take(3) + " " + now.code.drop(3),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(vertical = 8.dp),
+                )
+                TextMMD(text = stringResource(R.string.desktop_code_lasts, countdownText(now.leftMs)), style = MaterialTheme.typography.labelSmall)
+            }
             Spacer(Modifier.height(12.dp))
             TextMMD(text = stringResource(R.string.desktop_link), style = MaterialTheme.typography.bodyMedium)
             TextMMD(

@@ -25,7 +25,7 @@ Two independent gates, checked on every request (and on the WebSocket upgrade):
    which cannot set headers). Compared in constant time. *Reset link* mints a new one and
    restarts the server, so old bookmarks and open tabs stop at once.
 
-**Pairing code.** *Show link* shows the address(es), the full tokenised link, and a six-digit
+**Pairing code.** (The Show link dialog refreshes its code by itself: when the code runs out or is used while the dialog is open, a new one replaces it, with "Works once, for 2:41" counting down once a second only while the dialog is on screen; one code is valid at a time and the five-tries lockout stands, after which no new code appears until the dialog is opened again. Messaging's Desktop Sync dialog should get the same change later.) *Show link* shows the address(es), the full tokenised link, and a six-digit
 code: valid 3 minutes, one use, 5 wrong tries kill it, a new *Show link* replaces it. The browser
 posts it to `POST /api/pair` (the only route that answers without a token; needs header
 `X-Notes-Pairing: 1`, body at most 512 bytes) and gets the token back, then remembers it.
