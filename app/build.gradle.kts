@@ -54,8 +54,8 @@ android {
         // that: Supernote's tablets run Android 11 (API 30), and it installs there too.
         minSdk = 30
         targetSdk = 31
-        versionCode = 24
-        versionName = "0.2.14"
+        versionCode = 25
+        versionName = "0.3.0"
 
         ndk {
             // The Kompakt is arm64. The emulator an x86_64 debug build is tried on is added
@@ -182,5 +182,11 @@ dependencies {
     // a method HttpURLConnection refuses to send.
     implementation(libs.okhttp)
 
+    // Desktop Sync: the small web server inside the app (BSD-3-Clause).
+    implementation("org.nanohttpd:nanohttpd:2.3.1")
+    implementation("org.nanohttpd:nanohttpd-websocket:2.3.1")
+
     testImplementation(libs.junit)
+    // The real org.json, for the tests of what the page is sent: the Android one is a stub off the phone.
+    testImplementation("org.json:json:20240303")
 }

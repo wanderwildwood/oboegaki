@@ -132,6 +132,16 @@ class Preferences(context: Context) {
         get() = store.getString(TASKS_LIST, null)
         set(value) = store.edit().putString(TASKS_LIST, value).apply()
 
+    /** The token the page proves itself with; "" until the server has first run. */
+    var desktopToken: String
+        get() = store.getString(DESKTOP_TOKEN, null) ?: ""
+        set(value) = store.edit().putString(DESKTOP_TOKEN, value).apply()
+
+    /** Only a VPN may reach the page. On unless the reader turns it off. */
+    var desktopVpnOnly: Boolean
+        get() = store.getBoolean(DESKTOP_VPN_ONLY, true)
+        set(value) = store.edit().putBoolean(DESKTOP_VPN_ONLY, value).apply()
+
     var lastSync: Long
         get() = store.getLong(LAST_SYNC, 0L)
         set(value) = store.edit().putLong(LAST_SYNC, value).apply()
@@ -159,5 +169,7 @@ class Preferences(context: Context) {
         const val STOP_SEEN = "stop_seen"
         const val STOPPED_AT = "stopped_at"
         const val TASKS_LIST = "tasks_list"
+        const val DESKTOP_TOKEN = "desktop_token"
+        const val DESKTOP_VPN_ONLY = "desktop_vpn_only"
     }
 }

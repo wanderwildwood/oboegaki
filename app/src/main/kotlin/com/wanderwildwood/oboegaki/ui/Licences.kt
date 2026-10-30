@@ -19,11 +19,13 @@ object Licences {
 
     const val APACHE = "Apache-2.0"
     const val MIT = "MIT"
+    const val BSD3 = "BSD-3-Clause"
 
     val components: List<Component> = listOf(
         Component("AndroidX (core, activity, lifecycle) and Jetpack Compose", APACHE, "https://developer.android.com/jetpack"),
         Component("MMD, Mudita Mindful Design", APACHE, "https://github.com/mudita/MMD"),
         Component("OkHttp and Okio", APACHE, "https://square.github.io/okhttp/"),
+        Component("NanoHTTPD, the web server behind Desktop Sync", BSD3, "https://github.com/NanoHttpd/nanohttpd"),
         Component("Kotlin and kotlinx.coroutines", APACHE, "https://kotlinlang.org"),
         Component("Material Symbols icons", APACHE, "https://fonts.google.com/icons"),
         Component("whisper.cpp and ggml, speech recognition", MIT, "https://github.com/ggml-org/whisper.cpp"),
@@ -35,6 +37,7 @@ object Licences {
     fun textFor(licence: String): Int = when (licence) {
         APACHE -> R.raw.licence_apache2
         MIT -> R.raw.licence_mit
+        BSD3 -> R.raw.licence_bsd3
         else -> throw IllegalArgumentException("no text for $licence")
     }
 

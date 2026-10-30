@@ -2,3 +2,7 @@
 -keep class com.wanderwildwood.oboegaki.hearing.Whisper {
     native <methods>;
 }
+
+# NanoHTTPD and NanoWSD, the server behind Desktop Sync.
+-dontwarn fi.iki.elonen.**
+-keep class fi.iki.elonen.** { *; }

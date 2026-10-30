@@ -728,6 +728,19 @@ object Notes {
         refresh()
     }
 
+    /**
+     * A note was changed from outside the app's own screens, as Desktop Sync does: an open note
+     * looks again, and the list, the lock screen and the sync follow, as after any edit.
+     */
+    fun externalChange() {
+        reload()
+        _changed.value++
+        afterEdit()
+    }
+
+    /** Read the notes again now, on this thread, so what is asked next is up to date. */
+    fun reloadNow() = reload()
+
     fun afterEdit() {
         // Off the main thread: listing a folder reads every note in it, and a folder that is a
         // mount of a server reads each one over the network.

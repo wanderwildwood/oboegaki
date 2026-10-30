@@ -448,4 +448,31 @@
     <!-- On a list item held down: it leaves the note and becomes a task in that list -->
     <string name="item_to_tasks">Move to Tasks · %1$s</string>
     <string name="settings_tasks_in">New tasks go in</string>
+
+    <!-- ============================================================ -->
+    <!-- Desktop Sync: the notes in a browser on a computer, served from this phone -->
+
+    <string name="desktop_title">Desktop Sync</string>
+    <string name="desktop_what">Your notes and tasks in a browser on your computer, over your VPN. Off until you turn it on.</string>
+    <string name="desktop_what_on">On. Your computer can open your notes while this is on.</string>
+    <string name="desktop_show">Show link</string>
+    <string name="desktop_show_what">The address and a code to type on your computer.</string>
+    <string name="desktop_vpn_only">VPN only</string>
+    <string name="desktop_vpn_only_on">Only a computer on your VPN can reach it.</string>
+    <string name="desktop_vpn_only_off">Any computer on this network can reach it, with the link.</string>
+    <string name="desktop_no_vpn">No VPN is up on this phone, so nothing can connect yet.</string>
+    <string name="desktop_reset">Reset link</string>
+    <string name="desktop_reset_confirm">Reset link: old links stop working. Tap again.</string>
+    <string name="desktop_no_address">There is no network address to reach this phone at yet. Start your VPN or join Wi-Fi.</string>
+    <string name="desktop_open">Open this on your computer:</string>
+    <string name="desktop_code">Then type this code:</string>
+    <string name="desktop_code_lasts">It works once, for three minutes.</string>
+    <string name="desktop_link">Or paste the whole link:</string>
+    <string name="desktop_copy">Copy link</string>
+    <string name="desktop_done">Done</string>
+    <string name="desktop_running">Desktop Sync is on</string>
+    <string name="desktop_stop">Stop</string>
+    <!-- %1$s is the phone's address, %2$d the port -->
+    <string name="desktop_listening">Listening on %1$s:%2$d</string>
+    <string name="desktop_waiting">Waiting for a network…</string>
 </resources>

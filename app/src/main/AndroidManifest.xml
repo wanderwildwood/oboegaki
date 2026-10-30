@@ -192,6 +192,12 @@
             android:exported="false"
             android:foregroundServiceType="microphone" />
 
+        <!-- Desktop Sync's server, for as long as the switch in Settings is on. Never started by
+             anything else, and not restarted by the system. -->
+        <service
+            android:name=".desktop.DesktopService"
+            android:exported="false" />
+
     </application>
 
 </manifest>

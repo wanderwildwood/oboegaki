@@ -278,6 +278,7 @@ fun SettingsScreen(
                 }
                 Keeping.NOWHERE -> Unit
             }
+            desktopSyncRows()
             // Android 14 on takes the full screen away from an app installed from a file.
             if (hasReminders && !fullScreenOn) {
                 item {

@@ -25,9 +25,10 @@ class LicencesTest {
 
     @Test
     fun everyLicenceNamedHasItsFullTextBundled() {
-        assertEquals(listOf("Apache-2.0", "MIT"), Licences.distinctLicences())
+        assertEquals(listOf("Apache-2.0", "BSD-3-Clause", "MIT"), Licences.distinctLicences())
         assertTrue(File(raw, "licence_gpl3.txt").readText().contains("GNU GENERAL PUBLIC LICENSE"))
         assertTrue(File(raw, "licence_apache2.txt").readText().contains("Apache License"))
+        assertTrue(File(raw, "licence_bsd3.txt").readText().contains("Redistribution and use in source and binary forms"))
         assertTrue(File(raw, "licence_mit.txt").readText().contains("Permission is hereby granted"))
     }
 

@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Notes</title>
+<link rel="icon" href="data:,">
+<style nonce="__NONCE__">
+:root {
+  --bg: #f6f5f1; --panel: #ffffff; --ink: #1c1c1a; --soft: #5f5e59; --line: #d9d6cd;
+  --accent: #1c1c1a; --accent-ink: #ffffff; --hover: #ecebe5; --warn: #8a3b12; --shadow: 0 1px 2px rgba(0,0,0,.12);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #161614; --panel: #22221f; --ink: #ecebe5; --soft: #a3a198; --line: #3a3935;
+    --accent: #ecebe5; --accent-ink: #161614; --hover: #2d2c28; --warn: #e0a070; --shadow: 0 1px 2px rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #161614; --panel: #22221f; --ink: #ecebe5; --soft: #a3a198; --line: #3a3935;
+  --accent: #ecebe5; --accent-ink: #161614; --hover: #2d2c28; --warn: #e0a070; --shadow: 0 1px 2px rgba(0,0,0,.5);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: 1px solid transparent; border-radius: 6px; padding: 5px 10px; }
+button:hover, button:focus-visible { background: var(--hover); }
+button.solid { background: var(--accent); color: var(--accent-ink); }
+button.solid:hover { opacity: .88; }
+button.quiet { color: var(--soft); padding: 3px 7px; font-size: 13px; }
+input[type=text], input[type=search], input[type=date], input[type=time], input[type=datetime-local], select, textarea {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; width: 100%;
+}
+textarea { resize: vertical; min-height: 220px; line-height: 1.5; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+[hidden] { display: none !important; }
+
+.app { display: grid; grid-template-columns: 230px 1fr; grid-template-rows: auto 1fr; height: 100%; }
+.top { grid-column: 1 / 3; display: flex; gap: 14px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.top h1 { font-size: 19px; margin: 0; font-weight: 600; width: 198px; }
+.top .search { flex: 1; max-width: 640px; }
+.top .spacer { flex: 1; }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--soft); margin-right: 6px; }
+.dot.live { background: var(--ink); border-color: var(--ink); }
+.side { padding: 12px 8px; overflow-y: auto; border-right: 1px solid var(--line); }
+.side button { display: block; width: 100%; text-align: left; border-radius: 0 20px 20px 0; padding: 9px 14px; }
+.side button.on { background: var(--hover); font-weight: 600; }
+.side h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--soft); margin: 18px 14px 4px; font-weight: 600; }
+.side .count { float: right; color: var(--soft); font-weight: 400; }
+main { overflow-y: auto; padding: 18px 24px 60px; }
+.composer { max-width: 620px; margin: 0 auto 26px; display: flex; gap: 8px; align-items: stretch; }
+.composer .ghost { flex: 1; text-align: left; color: var(--soft); background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); border-radius: 8px; padding: 11px 14px; }
+.composer button.act { background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); border-radius: 8px; padding: 0 14px; }
+h3.sec { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--soft); margin: 18px 4px 10px; font-weight: 600; }
+.grid { column-width: 250px; column-gap: 14px; }
+.card { break-inside: avoid; display: inline-block; width: 100%; margin: 0 0 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px 8px; cursor: default; box-shadow: var(--shadow); }
+.card:hover { border-color: var(--soft); }
+.card h4 { margin: 0 0 6px; font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
+.card .line { margin: 2px 0; overflow-wrap: anywhere; }
+.card .line.head { font-weight: 600; }
+.card .more { color: var(--soft); font-size: 13px; margin: 4px 0; }
+.card label.item { display: flex; gap: 8px; align-items: flex-start; margin: 3px 0; overflow-wrap: anywhere; cursor: pointer; }
+.card label.item input { margin-top: 4px; flex: none; }
+.card label.item.done span { text-decoration: line-through; color: var(--soft); }
+.card .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 2px; }
+.chip { font-size: 12px; border: 1px solid var(--line); border-radius: 12px; padding: 1px 9px; color: var(--soft); }
+.card .acts { display: flex; gap: 2px; margin: 6px -6px 0; opacity: 0; transition: opacity .12s; }
+.card:hover .acts, .card:focus-within .acts { opacity: 1; }
+.card img { max-width: 100%; border-radius: 6px; margin: 6px 0; display: block; }
+.card .add { margin: 4px 0 2px; }
+.card .add input { border: 0; border-bottom: 1px dashed var(--line); border-radius: 0; background: none; padding: 4px 2px; font-size: 14px; }
+.empty { text-align: center; color: var(--soft); margin: 60px 0; }
+
+.tasklist { max-width: 760px; margin: 0 auto 30px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 16px 14px; box-shadow: var(--shadow); }
+.tasklist h3 { margin: 10px 0 8px; font-size: 17px; }
+.task { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; border-top: 1px solid var(--line); }
+.task:first-of-type { border-top: 0; }
+.task input { margin-top: 5px; flex: none; }
+.task .what { flex: 1; cursor: pointer; overflow-wrap: anywhere; }
+.task .what small { display: block; color: var(--soft); }
+.task.done .what b { text-decoration: line-through; color: var(--soft); font-weight: 400; }
+.addtask { display: flex; gap: 8px; margin: 8px 0 4px; }
+.addtask input[type=date] { width: 150px; } .addtask input[type=time] { width: 120px; }
+
+.scrim { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: flex-start; justify-content: center; padding: 6vh 16px; overflow-y: auto; z-index: 5; }
+.modal { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; width: 100%; max-width: 640px; padding: 16px 18px 12px; box-shadow: 0 8px 30px rgba(0,0,0,.35); }
+.modal .row { display: flex; gap: 10px; align-items: center; margin: 10px 0; flex-wrap: wrap; }
+.modal .row > label { color: var(--soft); font-size: 13px; min-width: 70px; }
+.modal .row > input, .modal .row > select { flex: 1; min-width: 120px; width: auto; }
+.modal .bar { display: flex; gap: 6px; margin-top: 12px; align-items: center; flex-wrap: wrap; }
+.modal .bar .grow { flex: 1; }
+.modal .title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+.note { color: var(--warn); font-size: 13px; margin: 6px 0; }
+.hint { color: var(--soft); font-size: 12.5px; margin: 4px 0; }
+.toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--accent); color: var(--accent-ink); padding: 9px 16px; border-radius: 8px; z-index: 9; max-width: 80vw; }
+.pair { max-width: 420px; margin: 14vh auto; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 22px; }
+.pair h1 { margin-top: 0; font-size: 21px; }
+.pair input { font-size: 22px; letter-spacing: .25em; text-align: center; margin: 10px 0; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script nonce="__NONCE__">
+"use strict";
+(function () {
+  var LS = (function () {
+    try { localStorage.setItem("n.t", "1"); localStorage.removeItem("n.t"); return localStorage; } catch (e) { return null; }
+  })();
+  function store(k, v) { try { if (LS) { if (v === null) LS.removeItem(k); else LS.setItem(k, v); } } catch (e) {} }
+  function recall(k) { try { return LS ? LS.getItem(k) : null; } catch (e) { return null; } }
+
+  var S = {
+    token: recall("notes.token"), notes: [], folders: [], taskLists: [], newFolder: "", ready: true, etag: null,
+    view: "notes", folder: null, query: "", live: false, loaded: false, openNote: null, openTask: null, pending: 0
+  };
+  var root = document.getElementById("root");
+
+  // ---------------------------------------------------------------- helpers
+  function h(tag, props) {
+    var el = document.createElement(tag);
+    if (props) for (var k in props) {
+      var v = props[k];
+      if (v === undefined || v === null || v === false) continue;
+      if (k.slice(0, 2) === "on") el.addEventListener(k.slice(2), v);
+      else if (k === "class") el.className = v;
+      else if (k === "text") el.textContent = v;
+      else if (k in el && k !== "list") el[k] = v;
+      else el.setAttribute(k, v === true ? "" : v);
+    }
+    for (var i = 2; i < arguments.length; i++) add(el, arguments[i]);
+    return el;
+  }
+  function add(el, c) {
+    if (c === undefined || c === null || c === false) return;
+    if (Array.isArray(c)) c.forEach(function (x) { add(el, x); });
+    else el.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+  }
+  var toastTimer = null;
+  function toast(msg) {
+    var old = document.getElementById("toast"); if (old) old.remove();
+    var t = h("div", { id: "toast", class: "toast", role: "status", text: msg });
+    document.body.appendChild(t);
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.remove(); }, 5200);
+  }
+
+  // ---------------------------------------------------------------- talking to the phone
+  function api(method, path, body) {
+    var opts = { method: method, cache: "no-store", headers: { "Authorization": "Bearer " + S.token } };
+    if (method === "POST") { opts.headers["X-Notes"] = "1"; opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body || {}); }
+    return fetch(path, opts).then(function (r) {
+      if (r.status === 401) { signOut(); throw new Error("signed out"); }
+      return r.json().catch(function () { return {}; }).then(function (j) {
+        if (!r.ok) { var e = new Error(j.error || ("error " + r.status)); e.status = r.status; throw e; }
+        return j;
+      });
+    });
+  }
+  function signOut() { S.token = null; store("notes.token", null); closeSocket(); draw(); }
+
+  function load(force) {
+    if (!S.token) return Promise.resolve();
+    var headers = { "Authorization": "Bearer " + S.token };
+    if (S.etag && !force) headers["If-None-Match"] = S.etag;
+    return fetch("/api/state", { cache: "no-store", headers: headers }).then(function (r) {
+      if (r.status === 304) return null;
+      if (r.status === 401) { signOut(); return null; }
+      if (!r.ok) throw new Error("the phone answered " + r.status);
+      S.etag = r.headers.get("ETag");
+      return r.json();
+    }).then(function (j) {
+      if (!j) return;
+      S.notes = j.notes; S.folders = j.folders; S.taskLists = j.taskLists; S.newFolder = j.newFolder; S.ready = j.ready; S.loaded = true;
+      S.defaultTaskList = j.defaultTaskList;
+      draw();
+      if (modal && modal.noteChanged) modal.noteChanged();
+    }).catch(function (e) { if (S.loaded) toast("Cannot reach the phone. " + e.message); });
+  }
+  var loadTimer = null;
+  function loadSoon() { clearTimeout(loadTimer); loadTimer = setTimeout(function () { load(); }, 150); }
+
+  // live: a WebSocket, and a slow poll that only matters when it is down
+  var sock = null, retry = null, poll = null;
+  function closeSocket() { clearTimeout(retry); clearInterval(poll); if (sock) { try { sock.onclose = null; sock.close(); } catch (e) {} } sock = null; S.live = false; }
+  function connect() {
+    if (!S.token) return;
+    closeSocket();
+    poll = setInterval(function () { if (!S.live) load(); }, 10000);
+    try {
+      sock = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws?token=" + encodeURIComponent(S.token));
+    } catch (e) { return; }
+    sock.onopen = function () { S.live = true; liveDot(); load(true); };
+    sock.onmessage = function (m) { try { if (JSON.parse(m.data).type === "changed") loadSoon(); } catch (e) {} };
+    sock.onclose = function () { S.live = false; liveDot(); retry = setTimeout(connect, 3000); };
+    sock.onerror = function () { };
+  }
+  function liveDot() { var d = document.getElementById("dot"); if (d) { d.className = "dot" + (S.live ? " live" : ""); d.title = S.live ? "Live" : "Checking every 10 seconds"; } }
+
+  // ---------------------------------------------------------------- note text helpers
+  var TASK = /^(\s*)[-*+] \[( |x|X)\] ?(.*)$/;
+  function noteById(id) { for (var i = 0; i < S.notes.length; i++) if (S.notes[i].id === id) return S.notes[i]; return null; }
+  function replaceNote(n, was) {
+    var id = was || n.id, found = false;
+    S.notes = S.notes.map(function (x) { if (x.id === id) { found = true; return n; } return x; });
+    if (!found) S.notes.unshift(n);
+    S.etag = null;
+  }
+  function wordsOf(q) { return q.toLowerCase().split(/\s+/).filter(Boolean); }
+  function matches(n, words) {
+    if (!words.length) return true;
+    var hay = (n.title + "\n" + n.body).toLowerCase();
+    return words.every(function (w) { return hay.indexOf(w) >= 0; });
+  }
+  function hasReminder(n) { return !!n.reminder || n.items.some(function (i) { return i.reminder && !i.done; }); }
+  function nextReminder(n) {
+    var all = []; if (n.reminder) all.push(n.reminder);
+    n.items.forEach(function (i) { if (i.reminder && !i.done) all.push(i.reminder); });
+    all.sort(); return all[0] || "";
+  }
+
+  // ---------------------------------------------------------------- pictures (fetched with the token, shown from memory)
+  var pics = {};
+  function picture(n, name, into) {
+    var key = n.id + "|" + name;
+    function show(url) { into.src = url; }
+    if (pics[key]) { show(pics[key]); return; }
+    fetch("/api/file?id=" + encodeURIComponent(n.id) + "&name=" + encodeURIComponent(name), { cache: "no-store", headers: { "Authorization": "Bearer " + S.token } })
+      .then(function (r) { if (!r.ok) throw 0; return r.blob(); })
+      .then(function (b) { pics[key] = URL.createObjectURL(b); show(pics[key]); })
+      .catch(function () { into.alt = name; });
+  }
+
+  // ---------------------------------------------------------------- drawing
+  function draw() {
+    root.textContent = "";
+    if (!S.token) { root.appendChild(pairScreen()); return; }
+    root.appendChild(appShell());
+    liveDot();
+  }
+
+  function pairScreen() {
+    var code = h("input", { type: "text", inputMode: "numeric", maxLength: 7, autocomplete: "off", placeholder: "000 000", "aria-label": "Six-digit code" });
+    var msg = h("div", { class: "note" });
+    function go() {
+      msg.textContent = "";
+      fetch("/api/pair", { method: "POST", cache: "no-store", headers: { "X-Notes-Pairing": "1", "Content-Type": "application/json" }, body: JSON.stringify({ code: code.value }) })
+        .then(function (r) { return r.json().then(function (j) { return [r.ok, j]; }); })
+        .then(function (x) {
+          if (!x[0]) { msg.textContent = x[1].error || "That did not work."; return; }
+          S.token = x[1].token; store("notes.token", S.token); S.loaded = false; draw(); load(true); connect();
+        }).catch(function () { msg.textContent = "Cannot reach the phone."; });
+    }
+    code.addEventListener("keydown", function (e) { if (e.key === "Enter") go(); });
+    return h("div", { class: "pair" },
+      h("h1", { text: "Notes" }),
+      h("p", { text: "On the phone, open Settings, Desktop Sync, then Show link. Type the six-digit code here." }),
+      code, h("button", { class: "solid", text: "Open my notes", onclick: go }), msg,
+      h("p", { class: "hint", text: "Or open the whole link the phone shows. The code works once, for three minutes." }));
+  }
+
+  function appShell() {
+    var q = h("input", { type: "search", class: "search", placeholder: "Search notes", value: S.query, "aria-label": "Search" });
+    q.addEventListener("input", function () { S.query = q.value; if (S.view === "tasks") S.view = "notes"; drawMain(); });
+    var theme = h("button", { text: themeLabel(), title: "Light or dark", onclick: function () { toggleTheme(); this.textContent = themeLabel(); } });
+    var top = h("div", { class: "top" }, h("h1", { text: "Notes" }), q, h("span", { class: "spacer" }),
+      h("span", null, h("span", { id: "dot", class: "dot" })), theme);
+    var side = h("nav", { class: "side", id: "side" });
+    var main = h("main", { id: "main" });
+    var app = h("div", { class: "app" }, top, side, main);
+    setTimeout(function () { drawSide(); drawMain(); }, 0);
+    return app;
+  }
+
+  function themeLabel() { var t = document.documentElement.getAttribute("data-theme"); return t === "dark" ? "Light" : t === "light" ? "Dark" : (matchMedia("(prefers-color-scheme: dark)").matches ? "Light" : "Dark"); }
+  function toggleTheme() {
+    var t = document.documentElement.getAttribute("data-theme");
+    var dark = t ? t === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    var next = dark ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next); store("notes.theme", next);
+  }
+
+  function navButton(label, view, count, folder) {
+    var on = S.view === view && (folder === undefined || S.folder === folder);
+    var b = h("button", { class: on ? "on" : "", onclick: function () { S.view = view; S.folder = folder === undefined ? null : folder; S.query = ""; var s = document.querySelector(".search"); if (s) s.value = ""; drawSide(); drawMain(); } },
+      label, count ? h("span", { class: "count", text: String(count) }) : null);
+    return b;
+  }
+  function drawSide() {
+    var side = document.getElementById("side"); if (!side) return;
+    side.textContent = "";
+    var live = S.notes.filter(function (n) { return !n.archived; });
+    side.appendChild(navButton("Notes", "notes", 0));
+    side.appendChild(navButton("Reminders", "reminders", live.filter(hasReminder).length));
+    side.appendChild(navButton("Tasks", "tasks", S.taskLists.reduce(function (a, l) { return a + l.items.filter(function (i) { return !i.done; }).length; }, 0)));
+    side.appendChild(navButton("Archive", "archive", S.notes.length - live.length));
+    if (S.folders.length) {
+      side.appendChild(h("h2", { text: "Folders" }));
+      S.folders.forEach(function (f) { side.appendChild(navButton(f, "folder", live.filter(function (n) { return n.folder === f || n.folder.indexOf(f + "/") === 0; }).length, f)); });
+    }
+  }
+
+  function drawMain() {
+    var main = document.getElementById("main"); if (!main) return;
+    main.textContent = "";
+    if (!S.loaded) { main.appendChild(h("p", { class: "empty", text: "Opening your notes…" })); return; }
+    if (!S.ready) { main.appendChild(h("p", { class: "empty", text: "Notes has nowhere to keep notes yet. Choose a place on the phone first." })); return; }
+    if (S.view === "tasks") { main.appendChild(tasksView()); return; }
+    var words = wordsOf(S.query);
+    var list;
+    if (S.view === "archive") list = S.notes.filter(function (n) { return n.archived; });
+    else if (words.length) list = S.notes;
+    else list = S.notes.filter(function (n) { return !n.archived; });
+    if (S.view === "folder") list = list.filter(function (n) { return n.folder === S.folder || n.folder.indexOf(S.folder + "/") === 0; });
+    if (S.view === "reminders") list = list.filter(hasReminder).sort(function (a, b) { return nextReminder(a) < nextReminder(b) ? -1 : 1; });
+    list = list.filter(function (n) { return matches(n, words); });
+
+    if (S.view !== "archive" && S.view !== "reminders") {
+      main.appendChild(h("div", { class: "composer" },
+        h("button", { class: "ghost", text: "Take a note…", onclick: function () { editNote(null, false); } }),
+        h("button", { class: "act", text: "New list", onclick: function () { editNote(null, true); } })));
+    }
+    if (!list.length) { main.appendChild(h("p", { class: "empty", text: words.length ? "Nothing matches." : S.view === "archive" ? "Nothing in the archive." : S.view === "reminders" ? "No reminders." : "No notes yet." })); return; }
+    var pinned = S.view === "notes" || S.view === "folder" ? list.filter(function (n) { return n.pinned && !n.archived; }) : [];
+    var rest = list.filter(function (n) { return pinned.indexOf(n) < 0; });
+    if (pinned.length) { main.appendChild(h("h3", { class: "sec", text: "Pinned" })); main.appendChild(grid(pinned)); }
+    if (pinned.length && rest.length) main.appendChild(h("h3", { class: "sec", text: "Others" }));
+    if (rest.length) main.appendChild(grid(rest));
+  }
+  function grid(notes) { return h("div", { class: "grid" }, notes.map(card)); }
+
+  function card(n) {
+    var c = h("article", { class: "card", tabIndex: 0 });
+    c.addEventListener("click", function (e) { if (e.target.closest("button, input, label, a")) return; editNote(n); });
+    c.addEventListener("keydown", function (e) { if (e.key === "Enter" && e.target === c) editNote(n); });
+    if (n.title) c.appendChild(h("h4", { text: n.title }));
+    var lines = n.body.split("\n"), items = n.items.slice(), shown = 0, cut = false;
+    var firstPic = n.pictures[0];
+    if (firstPic) { var img = h("img", { alt: "" }); picture(n, firstPic, img); c.appendChild(img); }
+    for (var i = 0; i < lines.length; i++) {
+      var raw = lines[i];
+      if (/^\s*!\[\[.*\]\]\s*$/.test(raw)) continue;
+      var t = TASK.exec(raw);
+      if (t) {
+        var it = items.shift(); if (!it) continue;
+        if (shown >= 14) { cut = true; break; }
+        c.appendChild(itemRow(n, it)); shown++;
+        continue;
+      }
+      if (!raw.trim()) continue;
+      if (shown >= 14) { cut = true; break; }
+      var head = /^#{1,6}\s/.test(raw);
+      c.appendChild(h("div", { class: "line" + (head ? " head" : ""), text: head ? raw.replace(/^#{1,6}\s+/, "") : raw.length > 400 ? raw.slice(0, 400) + "…" : raw })); shown++;
+    }
+    if (cut) c.appendChild(h("div", { class: "more", text: "…" }));
+    var chips = h("div", { class: "chips" });
+    if (n.reminder) chips.appendChild(h("span", { class: "chip", text: "Reminder " + n.reminder }));
+    if (n.folder) chips.appendChild(h("span", { class: "chip", text: n.folder }));
+    n.recordings.forEach(function (r) { chips.appendChild(h("span", { class: "chip", text: "Recording " + r })); });
+    n.scans.forEach(function (r) { chips.appendChild(h("span", { class: "chip", text: "Scan " + r })); });
+    if (n.pictures.length > 1) chips.appendChild(h("span", { class: "chip", text: (n.pictures.length - 1) + " more picture" + (n.pictures.length > 2 ? "s" : "") }));
+    if (chips.childNodes.length) c.appendChild(chips);
+    if (n.items.length && !n.archived) {
+      var add = h("input", { type: "text", placeholder: "+ List item", "aria-label": "Add an item" });
+      add.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" && add.value.trim()) { var v = add.value; add.value = ""; act(api("POST", "/api/notes/additem", { id: n.id, text: v }), function (j) { replaceNote(j.note); redraw(); }); }
+      });
+      c.appendChild(h("div", { class: "add" }, add));
+    }
+    c.appendChild(h("div", { class: "acts" },
+      n.archived ? null : h("button", { class: "quiet", text: n.pinned ? "Unpin" : "Pin", onclick: function () { act(api("POST", "/api/notes/pin", { id: n.id, pinned: !n.pinned }), function (j) { replaceNote(j.note); redraw(); }); } }),
+      h("button", { class: "quiet", text: n.archived ? "Restore" : "Archive", onclick: function () { act(api("POST", "/api/notes/archive", { id: n.id, archived: !n.archived }), function (j) { replaceNote(j.note, j.was); redraw(); toast(n.archived ? "Brought back from the archive." : "Archived."); }); } }),
+      h("button", { class: "quiet", text: "Delete", onclick: function () { removeNote(n); } })));
+    return c;
+  }
+  function itemRow(n, it) {
+    var box = h("input", { type: "checkbox", checked: it.done, "aria-label": it.text });
+    box.addEventListener("change", function () {
+      act(api("POST", "/api/notes/tick", { id: n.id, line: it.line, expect: it.text }), function (j) { replaceNote(j.note); redraw(); }, function () { load(true); });
+    });
+    return h("label", { class: "item" + (it.done ? " done" : "") }, box, h("span", { text: it.text + (it.reminder ? "  ⏰ " + it.reminder : "") }));
+  }
+  function redraw() { drawSide(); drawMain(); }
+  function act(p, ok, fail) {
+    return p.then(ok).catch(function (e) { if (e.message !== "signed out") toast(e.message); if (fail) fail(e); });
+  }
+  function removeNote(n) {
+    if (!confirm("Delete “" + (n.title || "this note") + "” for good? The phone has no trash, so this cannot be undone.")) return Promise.resolve();
+    return act(api("POST", "/api/notes/delete", { id: n.id }), function () {
+      S.notes = S.notes.filter(function (x) { return x.id !== n.id; }); S.etag = null; closeModal(); redraw(); toast("Deleted.");
+    });
+  }
+
+  // ---------------------------------------------------------------- the note editor
+  var modal = null;
+  function closeModal() { if (modal) { modal.remove(); modal = null; } S.openNote = null; S.openTask = null; }
+
+  function editNote(n, asList) {
+    closeModal();
+    var isNew = !n;
+    var base = n ? { id: n.id, v: n.v, text: n.body, title: n.title } : null;
+    S.openNote = n ? n.id : "new";
+    var title = h("input", { type: "text", class: "title", placeholder: "Title", value: n ? n.title : "", maxLength: 120, "aria-label": "Title" });
+    var body = h("textarea", { "aria-label": "Note", value: n ? n.body : (asList ? "- [ ] " : ""), placeholder: "Take a note…" });
+    var rem = h("input", { type: "datetime-local", value: n && n.reminder ? n.reminder.replace(" ", "T") : "" });
+    var folder = h("select", null, h("option", { value: "", text: "Top level" }));
+    var fl = S.folders.slice(); if (isNew && S.newFolder && fl.indexOf(S.newFolder) < 0) fl.push(S.newFolder);
+    fl.forEach(function (f) { folder.appendChild(h("option", { value: f, text: f })); });
+    folder.value = isNew ? S.newFolder : (n.folder || "");
+    var warn = h("div", { class: "note", hidden: true });
+    var original = { title: title.value, body: body.value, rem: rem.value };
+
+    function dirty() { return title.value !== original.title || body.value !== original.body || rem.value !== original.rem; }
+    function save(thenClose) {
+      if (!dirty() && !isNew) { if (thenClose) closeModal(); return Promise.resolve(); }
+      if (isNew && !title.value.trim() && !body.value.trim()) { closeModal(); return Promise.resolve(); }
+      var reminder = rem.value ? rem.value.replace("T", " ").slice(0, 16) : "";
+      var req = isNew
+        ? api("POST", "/api/notes/create", { title: title.value, text: body.value, folder: folder.value, reminder: reminder || null })
+        : api("POST", "/api/notes/update", { id: base.id, v: base.v, baseText: base.text, title: title.value, text: body.value, reminder: reminder || null });
+      return act(req, function (j) {
+        replaceNote(j.note, isNew ? undefined : base.id);
+        if (j.conflict === "kept-both") toast("This note was also edited on the phone. Both versions are kept: the phone's is at the end under “Edited elsewhere”.");
+        else if (j.conflict === "merged") toast("This note was also edited on the phone. The two edits were joined.");
+        if (thenClose) { closeModal(); redraw(); }
+        else { base = { id: j.note.id, v: j.note.v, text: j.note.body, title: j.note.title }; original = { title: title.value, body: body.value, rem: rem.value }; redraw(); }
+      }, function () { });
+    }
+    function close() { save(true).then(function () { }); }
+    var toggleList = h("button", { text: "List on/off", title: "Turn the lines into a checklist, or back", onclick: function () {
+      var ls = body.value.split("\n"), allTasks = ls.filter(function (l) { return l.trim(); }).every(function (l) { return TASK.test(l); });
+      body.value = ls.map(function (l) {
+        if (!l.trim()) return l;
+        if (allTasks) { var m = TASK.exec(l); return m[1] + m[3]; }
+        return TASK.test(l) ? l : l.replace(/^(\s*)([-*+] )?/, "$1- [ ] ");
+      }).join("\n");
+    } });
+    var addItem = h("button", { text: "Add item", onclick: function () { body.value = body.value.replace(/\n*$/, "\n") + "- [ ] "; body.focus(); body.setSelectionRange(body.value.length, body.value.length); } });
+    var pinBtn = n && !n.archived ? h("button", { text: n.pinned ? "Unpin" : "Pin", onclick: function () { act(api("POST", "/api/notes/pin", { id: n.id, pinned: !n.pinned }), function (j) { replaceNote(j.note); n = j.note; this.textContent = n.pinned ? "Unpin" : "Pin"; redraw(); }.bind(this)); } }) : null;
+    var archBtn = n ? h("button", { text: n.archived ? "Restore" : "Archive", onclick: function () { save(false).then(function () { return act(api("POST", "/api/notes/archive", { id: base.id, archived: !n.archived }), function (j) { replaceNote(j.note, j.was); closeModal(); redraw(); }); }); } }) : null;
+    var delBtn = n ? h("button", { text: "Delete", onclick: function () { removeNote(n); } }) : null;
+
+    var pics = h("div", null);
+    if (n) n.pictures.forEach(function (p) { var img = h("img", { alt: "", class: "pic" }); picture(n, p, img); pics.appendChild(img); });
+
+    var m = h("div", { class: "modal", role: "dialog", "aria-label": "Note" },
+      warn, title, body,
+      pics,
+      h("div", { class: "hint", text: "A line starting “- [ ] ” is a checklist item. Put “⏰ 2026-10-08 17:00” at the end of an item for a reminder on that item." }),
+      h("div", { class: "row" }, h("label", { text: "Reminder" }), rem, h("button", { class: "quiet", text: "Clear", onclick: function () { rem.value = ""; } })),
+      h("div", { class: "row" }, h("label", { text: "Folder" }), isNew ? folder : h("span", { text: n.folder || "Top level" })),
+      h("div", { class: "bar" }, toggleList, addItem, pinBtn, archBtn, delBtn, h("span", { class: "grow" }),
+        h("button", { text: "Close", onclick: close }), h("button", { class: "solid", text: "Save", onclick: function () { save(true); } })));
+    var scrim = h("div", { class: "scrim" }, m);
+    scrim.addEventListener("mousedown", function (e) { if (e.target === scrim) close(); });
+    scrim.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") close();
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") save(true);
+    });
+    modal = scrim; document.body.appendChild(scrim);
+    (isNew ? (asList ? body : title) : body).focus();
+    // If the phone changes this note while it is open, say so; the save then joins the two.
+    scrim.noteChanged = function () {
+      var now = n && noteById(base.id);
+      if (now && now.v !== base.v) { warn.hidden = false; warn.textContent = "This note changed on the phone while it was open. Saving will keep both versions."; }
+    };
+  }
+
+  // ---------------------------------------------------------------- tasks
+  function dueWords(due) { return due ? due.replace("T", " ") : ""; }
+  var PRI = { 0: "", 1: "High", 5: "Medium", 9: "Low" };
+  function priWord(p) { return p === 0 ? "" : p <= 4 ? "High" : p === 5 ? "Medium" : "Low"; }
+
+  function tasksView() {
+    var wrap = h("div", null);
+    if (!S.taskLists.length) wrap.appendChild(h("p", { class: "empty", text: "No task lists yet." }));
+    S.taskLists.forEach(function (l) {
+      var open = l.items.filter(function (i) { return !i.done; }).sort(function (a, b) { return (a.due || "￿") < (b.due || "￿") ? -1 : 1; });
+      var done = l.items.filter(function (i) { return i.done; });
+      var box = h("section", { class: "tasklist" }, h("h3", { text: l.name + (l.readOnly ? " (read only)" : "") + (l.onPhone ? "" : "") }));
+      if (!l.readOnly) {
+        var t = h("input", { type: "text", placeholder: "Add a task", maxLength: 500, "aria-label": "New task in " + l.name });
+        var d = h("input", { type: "date", "aria-label": "Due day" }), tm = h("input", { type: "time", "aria-label": "Due time" });
+        var go = function () {
+          if (!t.value.trim()) return;
+          var due = d.value ? (tm.value ? d.value + "T" + tm.value : d.value) : null;
+          act(api("POST", "/api/tasks/add", { list: l.id, summary: t.value, due: due }), function () { t.value = ""; d.value = ""; tm.value = ""; load(true); });
+        };
+        t.addEventListener("keydown", function (e) { if (e.key === "Enter") go(); });
+        box.appendChild(h("div", { class: "addtask" }, t, d, tm, h("button", { class: "solid", text: "Add", onclick: go })));
+      }
+      open.forEach(function (i) { box.appendChild(taskRow(l, i)); });
+      if (done.length) {
+        var shown = h("div", { hidden: true }, done.map(function (i) { return taskRow(l, i); }));
+        box.appendChild(h("button", { class: "quiet", text: "Completed (" + done.length + ")", onclick: function () { shown.hidden = !shown.hidden; } }));
+        box.appendChild(shown);
+      }
+      wrap.appendChild(box);
+    });
+    return wrap;
+  }
+  function taskRow(l, i) {
+    var box = h("input", { type: "checkbox", checked: i.done, disabled: l.readOnly, "aria-label": i.summary });
+    box.addEventListener("change", function () { act(api("POST", "/api/tasks/tick", { list: l.id, name: i.name }), function () { load(true); }, function () { load(true); }); });
+    var bits = [];
+    if (i.due) bits.push("Due " + dueWords(i.due));
+    if (i.priority) bits.push(priWord(i.priority) + " priority");
+    if (i.repeats) bits.push("Repeats");
+    if (i.rings) bits.push("Rings on the phone");
+    var what = h("div", { class: "what" }, h("b", { text: i.summary || "(no title)" }), bits.length ? h("small", { text: bits.join(" · ") }) : null, i.description ? h("small", { text: i.description.length > 160 ? i.description.slice(0, 160) + "…" : i.description }) : null);
+    if (!l.readOnly) what.addEventListener("click", function () { editTask(l, i); });
+    return h("div", { class: "task" + (i.done ? " done" : "") }, box, what,
+      l.readOnly ? null : h("button", { class: "quiet", text: "Delete", onclick: function () { if (confirm("Delete this task?")) act(api("POST", "/api/tasks/delete", { list: l.id, name: i.name }), function () { load(true); }); } }));
+  }
+  function editTask(l, i) {
+    closeModal();
+    var summary = h("input", { type: "text", value: i.summary, maxLength: 500, "aria-label": "Task" });
+    var desc = h("textarea", { value: i.description, "aria-label": "Notes" });
+    var dd = i.due ? i.due.slice(0, 10) : "", tt = i.due && i.due.length > 10 ? i.due.slice(11) : "";
+    var day = h("input", { type: "date", value: dd }), time = h("input", { type: "time", value: tt });
+    var pri = h("select", null, [[0, "None"], [9, "Low"], [5, "Medium"], [1, "High"]].map(function (p) { return h("option", { value: String(p[0]), text: p[1] }); }));
+    pri.value = String(i.priority === 0 ? 0 : i.priority <= 4 ? 1 : i.priority === 5 ? 5 : 9);
+    var rings = h("input", { type: "checkbox", checked: i.rings });
+    var from = { summary: i.summary, description: i.description, due: i.due, priority: i.priority, done: i.done };
+    function save() {
+      var due = day.value ? (time.value ? day.value + "T" + time.value : day.value) : null;
+      var to = { summary: summary.value, description: desc.value, due: due, priority: parseInt(pri.value, 10) };
+      if (pri.value === String(from.priority === 0 ? 0 : from.priority <= 4 ? 1 : from.priority === 5 ? 5 : 9)) to.priority = from.priority;
+      act(api("POST", "/api/tasks/update", { list: l.id, name: i.name, from: from, to: to, rings: rings.checked }), function () { closeModal(); load(true); });
+    }
+    var m = h("div", { class: "modal", role: "dialog", "aria-label": "Task" },
+      h("div", { class: "title", text: "Task in " + l.name }), summary, h("div", { class: "row" }, desc),
+      h("div", { class: "row" }, h("label", { text: "Due" }), day, time, h("button", { class: "quiet", text: "Clear", onclick: function () { day.value = ""; time.value = ""; } })),
+      h("div", { class: "row" }, h("label", { text: "Priority" }), pri),
+      h("div", { class: "row" }, h("label", { text: "Rings" }), rings, h("span", { class: "hint", text: "Ring on the phone when it is due (needs a time)." })),
+      i.repeats ? h("div", { class: "hint", text: "It repeats. Ticking it moves it on to the next time." }) : null,
+      h("div", { class: "bar" }, h("span", { class: "grow" }), h("button", { text: "Close", onclick: closeModal }), h("button", { class: "solid", text: "Save", onclick: save })));
+    var scrim = h("div", { class: "scrim" }, m);
+    scrim.addEventListener("mousedown", function (e) { if (e.target === scrim) closeModal(); });
+    scrim.addEventListener("keydown", function (e) { if (e.key === "Escape") closeModal(); if ((e.ctrlKey || e.metaKey) && e.key === "Enter") save(); });
+    modal = scrim; document.body.appendChild(scrim); summary.focus();
+  }
+
+  // ---------------------------------------------------------------- start
+  var savedTheme = recall("notes.theme");
+  if (savedTheme === "light" || savedTheme === "dark") document.documentElement.setAttribute("data-theme", savedTheme);
+
+  // A link with the key in it: keep the key, then show the page without it in the address bar.
+  var m = /[?&]token=([A-Za-z0-9]+)/.exec(location.search);
+  if (m) { S.token = m[1]; store("notes.token", S.token); try { history.replaceState(null, "", location.pathname); } catch (e) {} }
+  draw();
+  if (S.token) { load(true); connect(); }
+})();
+</script>
+</body>
+</html>
