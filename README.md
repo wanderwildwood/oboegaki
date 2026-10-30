@@ -13,8 +13,8 @@ Not a fork. Written from scratch in Kotlin and Jetpack Compose, using Mudita's o
 
 | | |
 |---|---|
-| ![Every note, newest first](screenshots/1-list.png) | ![Tasks synced with a Nextcloud, one set to ring on this phone](screenshots/2-tasks.png) |
-| ![A voice note and what was heard](screenshots/3-voice.png) | ![Scanning a page](screenshots/4-scan.png) |
+| ![Every note, newest first](screenshots/1-list.png) | ![A list, ticked in one tap](screenshots/2-checklist.png) |
+| ![The Trash: deleted notes wait seven days](screenshots/3-trash.png) | ![Desktop Sync in Settings, off until you turn it on](screenshots/4-desktop-sync.png) |
 
 ## Where this is up to
 
