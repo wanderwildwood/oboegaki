@@ -29,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -158,9 +159,20 @@ fun SettingsScreen(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         TextMMD(text = stringResource(R.string.settings_lock_screen), style = MaterialTheme.typography.bodyLarge)
-                        if (!remember { SyncApps.glanceInstalled(context) }) {
-                            TextMMD(text = stringResource(R.string.settings_lock_screen_needs), style = MaterialTheme.typography.labelSmall)
-                        }
+                        TextMMD(text = stringResource(R.string.settings_lock_screen_what), style = MaterialTheme.typography.labelSmall)
+                        val presence = remember { SyncApps.glanceStatus(context) }
+                        val pinned = remember { runCatching { Notes.pinnedNow().size }.getOrDefault(0) }
+                        TextMMD(
+                            text = when {
+                                presence == SyncApps.Presence.MISSING -> stringResource(R.string.glance_missing)
+                                presence == SyncApps.Presence.DISABLED -> stringResource(R.string.glance_disabled)
+                                !on -> stringResource(R.string.glance_ready_off)
+                                else -> pluralStringResource(R.plurals.glance_ready_pinned, pinned, pinned)
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
                     }
                     Spacer(Modifier.width(16.dp))
                     SwitchMMD(checked = on, onCheckedChange = null)

@@ -545,6 +545,13 @@ private fun Reading(
                 }),
             )
         }
+        if (parsed.any { it is Line.Task }) item(key = "hint") {
+            TextMMD(
+                text = stringResource(R.string.note_items_hint),
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.padding(bottom = 24.dp),
+            )
+        }
     }
 }
 

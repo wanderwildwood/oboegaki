@@ -63,6 +63,8 @@
     <string name="note_body_hint">Note</string>
     <!-- At the foot of a list: type here and press done to add a task -->
     <string name="note_add_item">Add an item</string>
+    <!-- Under a note's list: how an item gets from the note to the Tasks tab -->
+    <string name="note_items_hint">Hold an item to set a reminder or move it to Tasks. Items stay in the note until you do.</string>
     <string name="note_delete_confirm">Delete — tap again</string>
     <!-- The three dots on a note, which open a short menu -->
     <string name="cd_more">More</string>
@@ -285,6 +287,15 @@
     <string name="settings_lock_screen">Pinned notes on the lock screen</string>
     <!-- Under that switch while Glance, which draws the lock screen, is not on the phone -->
     <string name="settings_lock_screen_needs">Needs Glance, which is not on this phone</string>
+    <!-- Always under the lock-screen switch: what it does and what it needs -->
+    <string name="settings_lock_screen_what">Hands your pinned notes to Glance, a separate app that draws the lock screen. This switch does nothing without it.</string>
+    <string name="glance_missing">Glance is not installed, so nothing shows on the lock screen yet.</string>
+    <string name="glance_disabled">Glance is installed but switched off in the phone\'s app settings.</string>
+    <string name="glance_ready_off">Glance is installed and on. This switch is off, so nothing is handed over.</string>
+    <plurals name="glance_ready_pinned">
+        <item quantity="one">Glance is installed and on. %1$d pinned note is handed over.</item>
+        <item quantity="other">Glance is installed and on. %1$d pinned notes are handed over.</item>
+    </plurals>
     <!-- Settings, with the notes in a folder and Syncthing-Fork on the phone: a switch -->
     <string name="settings_wake_syncthing">Wake Syncthing-Fork when Notes opens</string>
     <!-- Under that switch: the Syncthing-Fork setting it needs, named as Syncthing-Fork names it -->
@@ -345,14 +356,17 @@
     <string name="about_terms_heading">Terms</string>
     <string name="about_terms">This app is free software under the GNU General Public License v3. It comes with no warranty: use it at your own risk.</string>
     <string name="about_licences_heading">Licences</string>
-    <string name="about_source">Source code: github.com/wanderwildwood/oboegaki</string>
-    <string name="about_licence">GNU General Public License v3</string>
-    <string name="about_okhttp">OkHttp, Apache 2.0</string>
-    <string name="about_whisper">Speech recognition by whisper.cpp, MIT, with OpenAI\'s Whisper model, MIT</string>
-    <string name="about_icons">Icons from Material Symbols, Apache 2.0</string>
     <string name="about_feed_the_llamas">feed the llamas</string>
     <string name="about_no_browser">There is no browser on this phone to open that with.</string>
     <string name="about_close">Close</string>
+    <string name="about_blurb">Notes are plain files. They stay on this phone, or go only to the place you set up for them.</string>
+    <string name="about_back">Back</string>
+    <string name="licences_source">Source code</string>
+    <string name="licences_licence">Licence</string>
+    <string name="licences_licence_line">This app is released under the GNU General Public License, version 3 only. Copyright wander wildwood. The full text follows.</string>
+    <string name="licences_built_with">Built with</string>
+    <string name="licences_built_with_note">The parts of this app that others made, each under its own licence. The full text of each licence follows the list.</string>
+    <string name="licences_text_of">%1$s licence</string>
 
     <!-- Reminders: set from a note's ⋮ or a list item's long press, rung by this phone -->
     <string name="remind_channel">Reminders</string>
@@ -396,7 +410,7 @@
     <string name="tasks_not_synced">Not synced yet</string>
     <string name="tasks_synced">Synced %1$s</string>
     <string name="tasks_read_only">read only</string>
-    <string name="tasks_none">No tasks.</string>
+    <string name="tasks_none">No tasks. A list item in a note stays in the note until you hold it and choose Move to Tasks.</string>
     <string name="tasks_all_done">Everything here is done.</string>
     <string name="tasks_done_show">Done · %1$d</string>
     <string name="tasks_done_hide">Done · %1$d · hide</string>

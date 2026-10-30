@@ -46,6 +46,20 @@ object SyncApps {
     /** Glance (hitome), which draws the pinned notes on the lock screen, is on the phone. */
     fun glanceInstalled(context: Context): Boolean = installed(context, "com.wanderwildwood.hitome")
 
+    /** Whether Glance is missing, installed but switched off, or installed and on. */
+    fun glanceStatus(context: Context): Presence {
+        val info = runCatching { context.packageManager.getApplicationInfo("com.wanderwildwood.hitome", 0) }.getOrNull()
+        return presence(info != null, info?.enabled == true)
+    }
+
+    enum class Presence { MISSING, DISABLED, READY }
+
+    fun presence(installed: Boolean, enabled: Boolean): Presence = when {
+        !installed -> Presence.MISSING
+        !enabled -> Presence.DISABLED
+        else -> Presence.READY
+    }
+
     /** Syncthing-Fork's package, if it is on the phone. */
     fun syncthingFork(context: Context): String? = SYNCTHING_FORK.firstOrNull { installed(context, it) }
 
