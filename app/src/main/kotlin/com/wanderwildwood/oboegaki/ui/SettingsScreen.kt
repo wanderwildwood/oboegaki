@@ -78,6 +78,7 @@ fun SettingsScreen(
     onSignIn: () -> Unit,
     onWebDav: () -> Unit,
     onObsidian: () -> Unit,
+    onAbout: () -> Unit,
     onBack: () -> Unit,
 ) {
     val preferences = Notes.preferences
@@ -116,6 +117,7 @@ fun SettingsScreen(
             TopAppBarMMD(
                 title = { TextMMD(text = stringResource(R.string.settings_title)) },
                 navigationIcon = { BarButton(Icons.Back, stringResource(R.string.cd_back), onBack) },
+                actions = { BarButton(Icons.Info, stringResource(R.string.cd_about), onAbout) },
             )
         },
     ) { contentPadding ->

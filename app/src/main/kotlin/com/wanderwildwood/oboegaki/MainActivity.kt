@@ -360,7 +360,6 @@ private fun App(capture: MutableState<Capture?>) {
                 onRecord = { recordAsking() },
                 onScan = { screen = Screen.Scan() },
                 onSettings = { screen = Screen.Settings },
-                onAbout = { aboutOpen = true },
                 onTasks = { screen = Screen.Tasks },
                 onTrash = { screen = Screen.Trash },
                 onPull = if (keeping.isServer) ({ Notes.syncAndWait(); Notes.sync.value }) else null,
@@ -445,6 +444,7 @@ private fun App(capture: MutableState<Capture?>) {
                     onSignIn = { screen = Screen.SignIn },
                     onWebDav = { screen = Screen.WebDav },
                     onObsidian = { screen = Screen.Obsidian },
+                    onAbout = { aboutOpen = true },
                     onBack = {
                         keeping = Notes.preferences.keeping
                         screen = Screen.List

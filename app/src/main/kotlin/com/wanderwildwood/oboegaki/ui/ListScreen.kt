@@ -80,7 +80,6 @@ fun ListScreen(
     onRecord: () -> Unit,
     onScan: () -> Unit,
     onSettings: () -> Unit,
-    onAbout: () -> Unit,
     onTasks: () -> Unit,
     onTrash: () -> Unit,
     // A sync to run when the list is pulled down from its top, returning the state it left;
@@ -120,7 +119,6 @@ fun ListScreen(
                         if (!searching) query = ""
                     }
                     BarButton(Icons.Settings, stringResource(R.string.cd_settings), onSettings)
-                    BarButton(Icons.Info, stringResource(R.string.cd_about), onAbout)
                 },
             )
         },
