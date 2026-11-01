@@ -1,4 +1,4 @@
-# 覚書 oboegaki — Notes
+# 覚書 oboegaki — Memo
 
 Notes, lists, voice notes and scanned paper, kept as plain Markdown files in a folder you
 choose: on your own Nextcloud, or anywhere on the phone. Built for the

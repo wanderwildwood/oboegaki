@@ -12,6 +12,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
+import com.wanderwildwood.oboegaki.ui.TextSize
 import androidx.compose.ui.platform.LocalCursorBlinkEnabled
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -110,20 +113,30 @@ class MainActivity : ComponentActivity() {
     }
 
     private val capture: MutableState<Capture?> = mutableStateOf(null)
+    private val turner = TurnWithPhone(this)
+
+    /** Settings changed whether the screen turns with the phone. */
+    fun turningChanged() = turner.set(Notes.preferences.turnWithPhone)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Notes.init(this)
+        TextSize.load(Notes.preferences)
+        turner.set(Notes.preferences.turnWithPhone)
         Notes.purgeSoon()
         Tasks.init(this)
         Voice.init(this)
         if (savedInstanceState == null) capture.value = captureFrom(intent)
         setContent {
-            ThemeMMD(colorScheme = monochrome) {
-                // A blinking cursor repaints its field twice a second for as long as it has
-                // focus, a refresh nobody asked for on an E Ink screen. Dialogs are inside this.
-                CompositionLocalProvider(LocalCursorBlinkEnabled provides false) {
-                    App(capture)
+            // Small, Medium or Large: the text scale, for everything inside, dialogs too.
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, density.fontScale * TextSize.factor())) {
+                ThemeMMD(colorScheme = monochrome) {
+                    // A blinking cursor repaints its field twice a second for as long as it has
+                    // focus, a refresh nobody asked for on an E Ink screen. Dialogs are inside this.
+                    CompositionLocalProvider(LocalCursorBlinkEnabled provides false) {
+                        App(capture)
+                    }
                 }
             }
         }
@@ -144,6 +157,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        turner.resume()
         Notes.refresh()
         Notes.syncNow()
         Tasks.refresh()
@@ -160,6 +174,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onPause() {
+        turner.pause()
         super.onPause()
         Notes.stopWatching()
         runCatching { getSystemService(ConnectivityManager::class.java).unregisterNetworkCallback(online) }

@@ -49,11 +49,10 @@ fun AboutDialog(onDismiss: () -> Unit) {
     // The words run to more than a dialog holds, so they turn over by whole rows like any list.
     val height = (LocalConfiguration.current.screenHeightDp * 0.62f).dp
     val context = LocalContext.current
-    val gpl = remember { Licences.read(context, R.raw.licence_gpl3) }
-    val texts = remember {
-        Licences.distinctLicences().associateWith { Licences.read(context, Licences.textFor(it)) }
-    }
     EInkDialog(onDismiss = { if (page.isEmpty()) onDismiss() else page = "" }) {
+        if (page == LICENCES) {
+            LicencesScreen(rememberLicencesData(), rememberLicencesLabels(), onBack = { page = "" }, modifier = Modifier.fillMaxWidth().height(height + 110.dp))
+        } else {
         TextMMD(
             text = if (page.isEmpty()) stringResource(R.string.about_title, BuildConfig.VERSION_NAME) else stringResource(
                 when (page) {
@@ -74,31 +73,6 @@ fun AboutDialog(onDismiss: () -> Unit) {
                     item { Paragraph(R.string.about_privacy_close) }
                 }
                 TERMS -> item { Paragraph(R.string.about_terms) }
-                LICENCES -> {
-                    item { Heading(R.string.licences_source) }
-                    item {
-                        Link(Licences.SOURCE.removePrefix("https://")) {
-                            openLink(context, Licences.SOURCE, context.getString(R.string.about_no_browser_address, Licences.SOURCE))
-                        }
-                    }
-                    item { Heading(R.string.licences_licence) }
-                    item { Paragraph(R.string.licences_licence_line) }
-                    items(gpl) { Words(it) }
-                    item { Heading(R.string.licences_built_with) }
-                    item { Paragraph(R.string.licences_built_with_note) }
-                    items(Licences.components) { c ->
-                        Column(Modifier.padding(vertical = 4.dp)) {
-                            Words(c.name + ", " + c.licence)
-                            Link(c.link.removePrefix("https://")) {
-                                openLink(context, c.link, context.getString(R.string.about_no_browser_address, c.link))
-                            }
-                        }
-                    }
-                    for (licence in Licences.distinctLicences()) {
-                        item { TextMMD(text = stringResource(R.string.licences_text_of, licence), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, modifier = Modifier.padding(top = 10.dp, bottom = 2.dp)) }
-                        items(texts.getValue(licence)) { Words(it) }
-                    }
-                }
                 else -> {
                     item { Paragraph(R.string.about_blurb) }
                     item { AboutRow(R.string.about_privacy_heading) { page = PRIVACY } }
@@ -113,6 +87,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
             onClick = { if (page.isEmpty()) onDismiss() else page = "" },
             modifier = Modifier.fillMaxWidth().height(48.dp),
         ) { TextMMD(text = stringResource(if (page.isEmpty()) R.string.about_close else R.string.about_back), style = MaterialTheme.typography.bodySmall) }
+        }
     }
 }
 

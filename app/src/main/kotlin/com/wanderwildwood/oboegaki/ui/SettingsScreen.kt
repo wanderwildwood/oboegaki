@@ -87,6 +87,8 @@ fun SettingsScreen(
     var choosingFolder by remember { mutableStateOf(false) }
     var choosingSpeech by remember { mutableStateOf(false) }
     var choosingTasks by remember { mutableStateOf(false) }
+    var choosingSize by remember { mutableStateOf(false) }
+    var turning by remember { mutableStateOf(preferences.turnWithPhone) }
     val taskLists = remember { Tasks.writableLists() }
     var tasksIn by remember { mutableStateOf(Tasks.defaultList().id) }
     val speech by Speech.state.collectAsState()
@@ -279,6 +281,32 @@ fun SettingsScreen(
                 }
                 Keeping.NOWHERE -> Unit
             }
+            item {
+                SettingRow(
+                    stringResource(R.string.text_size_title),
+                    stringResource(when (TextSize.level.intValue) { 0 -> R.string.text_size_small; 2 -> R.string.text_size_large; else -> R.string.text_size_medium }),
+                ) { choosingSize = true }
+            }
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            turning = !turning
+                            preferences.turnWithPhone = turning
+                            (context as? com.wanderwildwood.oboegaki.MainActivity)?.turningChanged()
+                        }
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        TextMMD(text = stringResource(R.string.turn_title), style = MaterialTheme.typography.bodyLarge)
+                        TextMMD(text = stringResource(R.string.turn_note), style = MaterialTheme.typography.labelSmall)
+                    }
+                    Spacer(Modifier.width(16.dp))
+                    SwitchMMD(checked = turning, onCheckedChange = null)
+                }
+            }
             desktopSyncRows()
             // Android 14 on takes the full screen away from an app installed from a file.
             if (hasReminders && !fullScreenOn) {
@@ -333,6 +361,24 @@ fun SettingsScreen(
         )
     }
 
+    if (choosingSize) {
+        EInkDialog(onDismiss = { choosingSize = false }) {
+            TextMMD(text = stringResource(R.string.text_size_title), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.height(4.dp))
+            listOf(R.string.text_size_small, R.string.text_size_medium, R.string.text_size_large).forEachIndexed { i, label ->
+                TextMMD(
+                    text = stringResource(label),
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = if (i == TextSize.level.intValue) FontWeight.Bold else null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { TextSize.choose(preferences, i); choosingSize = false }
+                        .heightIn(min = 48.dp)
+                        .padding(vertical = 12.dp),
+                )
+            }
+        }
+    }
     if (choosingTasks) {
         EInkDialog(onDismiss = { choosingTasks = false }) {
             TextMMD(text = stringResource(R.string.settings_tasks_in), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
@@ -633,7 +679,7 @@ fun SetupScreen(onNextcloud: () -> Unit, onWebDav: () -> Unit, onFolder: () -> U
             )
         },
     ) { contentPadding ->
-        PagedColumn(modifier = Modifier.fillMaxSize().padding(contentPadding).padding(horizontal = 20.dp)) {
+        PagedColumn(modifier = Modifier.fillMaxSize().padding(contentPadding), contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 20.dp, end = 12.dp)) {
             item {
                 Spacer(Modifier.height(20.dp))
                 TextMMD(text = stringResource(R.string.setup_where), style = MaterialTheme.typography.titleMedium)

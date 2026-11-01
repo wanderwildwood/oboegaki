@@ -29,6 +29,16 @@ class Preferences(context: Context) {
 
     private val store = context.getSharedPreferences("oboegaki", Context.MODE_PRIVATE)
 
+    /** Whether the screen turns sideways when the phone does. */
+    var turnWithPhone: Boolean
+        get() = store.getBoolean("turnWithPhone", true)
+        set(value) = store.edit().putBoolean("turnWithPhone", value).apply()
+
+    /** How big the words are: 0 small, 1 medium, 2 large. */
+    var textSize: Int
+        get() = store.getInt("textSize", 1).coerceIn(0, 2)
+        set(value) = store.edit().putInt("textSize", value.coerceIn(0, 2)).apply()
+
     var keeping: Keeping
         get() = runCatching { Keeping.valueOf(store.getString(KEEPING, null) ?: "") }.getOrDefault(Keeping.NOWHERE)
         set(value) = store.edit().putString(KEEPING, value.name).apply()
