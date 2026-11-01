@@ -722,6 +722,7 @@ fun SignInScreen(onSignedIn: () -> Unit, onBack: () -> Unit) {
     var address by remember { mutableStateOf(Notes.preferences.account?.server.orEmpty()) }
     var status by remember { mutableStateOf<Int?>(null) }
     var waiting by remember { mutableStateOf(false) }
+    var loginAddress by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface,
@@ -760,8 +761,14 @@ fun SignInScreen(onSignedIn: () -> Unit, onBack: () -> Unit) {
                             waiting = false
                             return@launch
                         }
-                        openLink(context, flow.loginUrl, context.getString(R.string.about_no_browser_address, flow.loginUrl))
-                        status = R.string.signin_waiting
+                        if (hasBrowser(context, flow.loginUrl)) {
+                            openLink(context, flow.loginUrl, context.getString(R.string.about_no_browser_address, flow.loginUrl))
+                            status = R.string.signin_waiting
+                        } else {
+                            // Nextcloud's sign-in finishes on the server, so any device with a browser can do it.
+                            loginAddress = flow.loginUrl
+                            status = R.string.signin_no_browser
+                        }
                         val deadline = System.currentTimeMillis() + 20 * 60_000
                         while (System.currentTimeMillis() < deadline) {
                             delay(2000)
@@ -786,6 +793,10 @@ fun SignInScreen(onSignedIn: () -> Unit, onBack: () -> Unit) {
             status?.let {
                 Spacer(Modifier.height(16.dp))
                 TextMMD(text = stringResource(it), style = MaterialTheme.typography.bodyMedium)
+            }
+            loginAddress?.let {
+                Spacer(Modifier.height(12.dp))
+                TextMMD(text = it, style = MaterialTheme.typography.bodyMedium)
             }
             Spacer(Modifier.height(24.dp))
             TextMMD(text = stringResource(R.string.signin_note), style = MaterialTheme.typography.labelSmall)

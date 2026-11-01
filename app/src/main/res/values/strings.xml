@@ -112,6 +112,7 @@
     <string name="signin_address">Server address</string>
     <string name="signin_go">Sign in</string>
     <string name="signin_opening">Asking the server…</string>
+    <string name="signin_no_browser">This phone has no browser. On a computer or another phone, open the address below and sign in there. This phone picks it up on its own.</string>
     <string name="signin_waiting">Sign in on the page that opened, then come back here.</string>
     <string name="signin_unreachable">That server could not be reached. Check the address, and that this phone can get to it.</string>
     <string name="signin_not_nextcloud">That address answered, but not as a Nextcloud.</string>

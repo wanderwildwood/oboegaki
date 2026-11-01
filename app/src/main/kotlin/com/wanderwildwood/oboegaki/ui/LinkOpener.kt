@@ -32,3 +32,9 @@ fun openLink(context: Context, url: String, noBrowser: String) {
 /** Whether the package that answered a web address is something a person can browse with. */
 fun isRealBrowser(packageName: String?): Boolean =
     packageName != null && packageName != "android" && !packageName.contains("webview_shell")
+
+/** Whether [url] would open in a real browser here; false on a phone with none (the Manta, for one). */
+fun hasBrowser(context: Context, url: String): Boolean {
+    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).addCategory(Intent.CATEGORY_BROWSABLE)
+    return isRealBrowser(context.packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)?.activityInfo?.packageName)
+}
