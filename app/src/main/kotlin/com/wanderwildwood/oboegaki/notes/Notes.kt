@@ -671,7 +671,7 @@ object Notes {
      * synced, and merged on the server's side with anything changed there.
      */
     fun put(path: String, text: String) {
-        val shelf = shelf() ?: error("Notes has nowhere to keep notes.")
+        val shelf = shelf() ?: error("Memo has nowhere to keep notes.")
         synchronized(notesLock) {
             if (shelf.read(path) != text) shelf.write(path, text)
         }
@@ -680,7 +680,7 @@ object Notes {
 
     /** Another app's note taken away: that file, and nothing beside it. */
     fun remove(path: String) {
-        val shelf = shelf() ?: error("Notes has nowhere to keep notes.")
+        val shelf = shelf() ?: error("Memo has nowhere to keep notes.")
         synchronized(notesLock) {
             if (shelf.exists(path)) shelf.delete(path)
         }

@@ -471,23 +471,27 @@
     <!-- Desktop Sync: the notes in a browser on a computer, served from this phone -->
 
     <string name="desktop_title">Desktop Sync</string>
-    <string name="desktop_what">Your notes and tasks in a browser on your computer, over your VPN. Off until you turn it on.</string>
+    <string name="desktop_what">Your notes and tasks in a browser on your computer, over your VPN. Off until you turn it on. A computer pairs once, with a code; it can be removed below.</string>
     <string name="desktop_what_on">On. Your computer can open your notes while this is on.</string>
     <string name="desktop_show">Show link</string>
-    <string name="desktop_show_what">The address and a code to type on your computer.</string>
+    <string name="desktop_show_what">The address and a code to type on your computer. If you used Desktop Sync before, each computer pairs again once.</string>
     <string name="desktop_vpn_only">VPN only</string>
     <string name="desktop_vpn_only_on">Only a computer on your VPN can reach it.</string>
     <string name="desktop_vpn_only_off">Any computer on your home or office network can reach it, with the link. Addresses on the internet or mobile data are always refused. The page uses plain http, which is not encrypted: others on that network could read it.</string>
     <string name="desktop_no_vpn">No VPN is up on this phone, so nothing can connect yet.</string>
-    <string name="desktop_reset">Reset link</string>
-    <string name="desktop_reset_confirm">Reset link: old links stop working. Tap again.</string>
+    <string name="desktop_browsers">Paired computers</string>
+    <string name="desktop_browsers_none">None yet. A computer shows up here once it has paired.</string>
+    <string name="desktop_browsers_what">Up to %d. Tap one to remove it; a computer not used for 30 days is removed by itself.</string>
+    <string name="desktop_browser_used">Last used %s</string>
+    <string name="desktop_remove_confirm">Remove %s? Tap again.</string>
+    <string name="desktop_remove_all">Remove all</string>
+    <string name="desktop_remove_all_confirm">Remove all: every computer must pair again. Tap again.</string>
     <string name="desktop_no_address">There is no network address to reach this phone at yet. Start your VPN or join Wi-Fi.</string>
     <string name="desktop_open">Open this on your computer:</string>
     <string name="desktop_code">Then type this code:</string>
     <string name="desktop_code_lasts">Works once, for %s</string>
     <string name="desktop_code_locked">Too many wrong tries. Close this and open it again for a new code.</string>
-    <string name="desktop_link">Or paste the whole link:</string>
-    <string name="desktop_copy">Copy link</string>
+    <string name="desktop_code_after">Each computer pairs once and is then listed in Settings. The address is not a secret; the code is.</string>
     <string name="desktop_done">Done</string>
     <string name="desktop_running">Desktop Sync is on</string>
     <string name="desktop_stop">Stop</string>

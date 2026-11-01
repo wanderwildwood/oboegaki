@@ -45,6 +45,13 @@ fun bearerMatches(header: String?, token: String): Boolean {
     return constantTimeEquals(header.substring(prefix.length), token)
 }
 
+/** The token out of an `Authorization: Bearer` header, or null. */
+fun bearerToken(header: String?): String? {
+    val prefix = "Bearer "
+    if (header == null || !header.startsWith(prefix)) return null
+    return header.substring(prefix.length)
+}
+
 // ----------------------------------------------------------------------------------- pairing
 
 /**

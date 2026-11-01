@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.content.ContextCompat
 import com.wanderwildwood.oboegaki.BuildConfig
+import com.wanderwildwood.oboegaki.notes.Notes
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -40,13 +41,28 @@ object DesktopSync {
         pairing.clear()
     }
 
-    /** A new token: old links and open tabs stop working at once. */
-    fun resetLink(context: Context) {
-        pairing.clear()
-        if (_running.value) send(context, DesktopService.RESET, foreground = false)
-        else com.wanderwildwood.oboegaki.notes.Notes.preferences.desktopToken = newToken()
+    /**
+     * The browsers that have paired. Made on first use; the list lives in the app's private
+     * preferences, as hashes. The one shared token an earlier version kept is erased here.
+     */
+    private val pairedBrowsers by lazy {
+        val preferences = Notes.preferences
+        preferences.forgetSharedDesktopToken()
+        PairedBrowsers(
+            now = { System.currentTimeMillis() },
+            initial = preferences.desktopBrowsers,
+            save = { preferences.desktopBrowsers = it },
+        )
     }
 
-    /** The full address with the token in it, for pasting. */
-    fun link(host: String, token: String) = "http://$host:$PORT/?token=$token"
+    fun browsers(): PairedBrowsers = pairedBrowsers
+
+    /** Every paired browser is removed: its token stops working and open pages are closed. */
+    fun removeAllBrowsers() {
+        pairing.clear()
+        browsers().removeAll()
+    }
+
+    /** The address to open on the computer; the code does the rest. */
+    fun address(host: String) = "http://$host:$PORT"
 }

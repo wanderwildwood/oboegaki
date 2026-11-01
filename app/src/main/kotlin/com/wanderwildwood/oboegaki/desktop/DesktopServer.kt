@@ -51,7 +51,7 @@ private const val TAG = "oboegaki-desktop"
 class DesktopServer(
     port: Int,
     private val context: Context,
-    private val token: String,
+    private val browsers: PairedBrowsers,
     private val pairing: Pairing,
     private val vpnOnly: () -> Boolean,
     private val page: () -> String,
@@ -71,6 +71,13 @@ class DesktopServer(
         // SO_REUSEADDR, and unbound: NanoHTTPD binds it itself. So a switch off and on again, or a
         // reset, can take the port back at once instead of waiting out the old socket.
         setServerSocketFactory { java.net.ServerSocket().apply { reuseAddress = true } }
+        // A browser that is removed (or has gone unused for 30 days) is cut off at once, open page included.
+        browsers.onRemoved = { gone ->
+            sockets.toList().filter { it.browserId in gone }.forEach { s ->
+                runCatching { s.close(WebSocketFrame.CloseCode.PolicyViolation, "removed", false) }
+                sockets.remove(s)
+            }
+        }
     }
 
     /** With "VPN only" on: this phone, Tailscale or a trusted VPN. With it off: still only private addresses. */
@@ -87,6 +94,7 @@ class DesktopServer(
     }
 
     override fun stop() {
+        browsers.onRemoved = null
         pinging?.cancel(false)
         keepAlive.shutdownNow()
         super.stop()
@@ -121,16 +129,19 @@ class DesktopServer(
 
     private inner class PushSocket(handshake: IHTTPSession) : WebSocket(handshake) {
         @Volatile var lastPong = System.currentTimeMillis()
+        @Volatile var browserId: String? = null
 
         override fun onOpen() {
             if (!peerAllowed(handshakeRequest.remoteIpAddress)) {
                 runCatching { close(WebSocketFrame.CloseCode.PolicyViolation, "no", false) }
                 return
             }
-            if (!tokenMatches(handshakeRequest.parameters["token"]?.firstOrNull(), token)) {
+            val id = browsers.check(handshakeRequest.parameters["token"]?.firstOrNull())
+            if (id == null) {
                 runCatching { close(WebSocketFrame.CloseCode.PolicyViolation, "no", false) }
                 return
             }
+            browserId = id
             lastPong = System.currentTimeMillis()
             sockets.add(this)
             pingIfNeeded()
@@ -214,7 +225,7 @@ class DesktopServer(
         // The one route that answers without a token: it is how a browser gets one.
         if (uri == "/api/pair" && method == Method.POST) return pair(session)
 
-        if (!bearerMatches(session.headers["authorization"], token)) {
+        if (browsers.check(bearerToken(session.headers["authorization"])) == null) {
             return json(401, JSONObject().put("error", "bad token"))
         }
         // A cross-origin page cannot add this header without a preflight that is never answered.
@@ -289,8 +300,10 @@ class DesktopServer(
             // Expired, wrong, spent and never issued read the same: telling them apart helps only a guesser.
             return json(401, JSONObject().put("error", "that code is not valid. Get a fresh one on the phone."))
         }
+        // This browser's own token; the phone keeps only a hash of it. Never logged.
+        val issued = browsers.issue(browserLabel(session.headers["user-agent"]))
         Log.i(TAG, "a pairing code was used")
-        return json(200, JSONObject().put("token", token))
+        return json(200, JSONObject().put("token", issued))
     }
 
     // ------------------------------------------------------------------ reading
@@ -361,7 +374,7 @@ class DesktopServer(
         requireText(if (o.has(key)) o.optString(key) else null, key, max).replace("\r\n", "\n").replace('\r', '\n')
 
     private fun createNote(o: JSONObject): Response {
-        if (!Notes.isSetUp()) throw Refusal(409, "Notes has nowhere to keep notes yet")
+        if (!Notes.isSetUp()) throw Refusal(409, "Memo has nowhere to keep notes yet")
         val title = requireTitle(if (o.has("title")) o.optString("title") else "")
         var text = text(o, "text", Limits.NOTE_TEXT)
         if (title.isBlank() && text.isBlank()) throw Refusal(400, "there is nothing to keep")

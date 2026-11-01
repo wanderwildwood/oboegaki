@@ -142,10 +142,15 @@ class Preferences(context: Context) {
         get() = store.getString(TASKS_LIST, null)
         set(value) = store.edit().putString(TASKS_LIST, value).apply()
 
-    /** The token the page proves itself with; "" until the server has first run. */
-    var desktopToken: String
-        get() = store.getString(DESKTOP_TOKEN, null) ?: ""
-        set(value) = store.edit().putString(DESKTOP_TOKEN, value).apply()
+    /** Desktop Sync's paired browsers (hashes of their tokens, labels, times); see PairedBrowsers. */
+    var desktopBrowsers: String
+        get() = store.getString(DESKTOP_BROWSERS, null) ?: ""
+        set(value) = store.edit().putString(DESKTOP_BROWSERS, value).apply()
+
+    /** Earlier versions kept one token that every browser shared; it is erased, not carried over. */
+    fun forgetSharedDesktopToken() {
+        if (store.contains(DESKTOP_TOKEN)) store.edit().remove(DESKTOP_TOKEN).apply()
+    }
 
     /** Only a VPN may reach the page. On unless the reader turns it off. */
     var desktopVpnOnly: Boolean
@@ -180,6 +185,7 @@ class Preferences(context: Context) {
         const val STOPPED_AT = "stopped_at"
         const val TASKS_LIST = "tasks_list"
         const val DESKTOP_TOKEN = "desktop_token"
+        const val DESKTOP_BROWSERS = "desktop_browsers"
         const val DESKTOP_VPN_ONLY = "desktop_vpn_only"
     }
 }

@@ -1,13 +1,5 @@
 package com.wanderwildwood.oboegaki.ui
 
-import android.content.ClipData
-import android.content.ClipDescription
-import android.os.Build
-import android.os.Handler
-import android.os.Looper
-import android.os.PersistableBundle
-import android.content.ClipboardManager
-import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.layout.Arrangement
@@ -23,11 +15,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.delay
+import com.wanderwildwood.oboegaki.desktop.PairedBrowsers
 import com.wanderwildwood.oboegaki.desktop.Pairing
 import com.wanderwildwood.oboegaki.desktop.countdownText
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -113,10 +107,54 @@ fun LazyListScope.desktopSyncRows() {
         }
     }
     item {
-        val context = LocalContext.current
-        Leave(stringResource(R.string.desktop_reset), stringResource(R.string.desktop_reset_confirm)) {
-            DesktopSync.resetLink(context)
+        val list by DesktopSync.browsers().list.collectAsState()
+        // Drops what has gone 30 days unused as the screen is drawn; nothing polls for it.
+        remember { DesktopSync.browsers().refresh() }
+        Column {
+            TextMMD(
+                text = stringResource(R.string.desktop_browsers),
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+            )
+            if (list.isEmpty()) {
+                TextMMD(
+                    text = stringResource(R.string.desktop_browsers_none),
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 12.dp),
+                )
+            } else {
+                TextMMD(
+                    text = stringResource(R.string.desktop_browsers_what, PairedBrowsers.MAX_BROWSERS),
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 4.dp),
+                )
+                for (b in list) key(b.id) { BrowserRow(b) }
+                Leave(stringResource(R.string.desktop_remove_all), stringResource(R.string.desktop_remove_all_confirm)) {
+                    DesktopSync.removeAllBrowsers()
+                }
+            }
         }
+    }
+}
+
+/** One paired browser. Tap once and the row asks; tap again within six seconds and it is removed. */
+@Composable
+private fun BrowserRow(b: PairedBrowsers.Browser) {
+    val armed = rememberArmed()
+    val used = remember(b.lastUsed) { java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM).format(java.util.Date(b.lastUsed)) }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { if (armed.value) DesktopSync.browsers().remove(b.id) else armed.value = true }
+            .heightIn(min = 48.dp)
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+    ) {
+        TextMMD(
+            text = if (armed.value) stringResource(R.string.desktop_remove_confirm, b.label) else b.label,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = if (armed.value) FontWeight.Bold else null,
+        )
+        if (!armed.value) TextMMD(text = stringResource(R.string.desktop_browser_used, used), style = MaterialTheme.typography.labelSmall)
     }
 }
 
@@ -134,7 +172,6 @@ private fun ShowLinkDialog(onDismiss: () -> Unit) {
         }
     }
     val where = remember { Network.reachable(context) }
-    val token = Notes.preferences.desktopToken
     val first = where.firstOrNull()
     EInkDialog(onDismiss = onDismiss) {
         TextMMD(text = stringResource(R.string.desktop_show), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
@@ -145,7 +182,7 @@ private fun ShowLinkDialog(onDismiss: () -> Unit) {
             TextMMD(text = stringResource(R.string.desktop_open), style = MaterialTheme.typography.bodyMedium)
             for (w in where) {
                 TextMMD(
-                    text = "${w.label}  http://${w.address}:${DesktopSync.PORT}",
+                    text = "${w.label}  ${DesktopSync.address(w.address)}",
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(vertical = 12.dp),
                 )
@@ -163,22 +200,7 @@ private fun ShowLinkDialog(onDismiss: () -> Unit) {
                 )
                 TextMMD(text = stringResource(R.string.desktop_code_lasts, countdownText(now.leftMs)), style = MaterialTheme.typography.labelSmall)
             }
-            Spacer(Modifier.height(12.dp))
-            TextMMD(text = stringResource(R.string.desktop_link), style = MaterialTheme.typography.bodyMedium)
-            TextMMD(
-                text = DesktopSync.link(first.address, token),
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(vertical = 8.dp),
-            )
-            TextMMD(
-                text = stringResource(R.string.desktop_copy),
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { copy(context, DesktopSync.link(first.address, token)) }
-                    .heightIn(min = 48.dp)
-                    .padding(vertical = 12.dp),
-            )
+            TextMMD(text = stringResource(R.string.desktop_code_after), style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(top = 8.dp))
         }
         TextMMD(
             text = stringResource(R.string.desktop_done),
@@ -186,25 +208,4 @@ private fun ShowLinkDialog(onDismiss: () -> Unit) {
             modifier = Modifier.fillMaxWidth().clickable(onClick = onDismiss).heightIn(min = 48.dp).padding(vertical = 12.dp),
         )
     }
-}
-
-/**
- * Puts the link on the clipboard, marked sensitive so Android hides it from previews, and takes it
- * off again after a minute if nothing else has been copied since (the label is unique to this copy).
- */
-private fun copy(context: Context, text: String) {
-    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-    val label = "Desktop Sync link " + java.util.UUID.randomUUID()
-    val clip = ClipData.newPlainText(label, text)
-    if (Build.VERSION.SDK_INT >= 33) {
-        clip.description.extras = PersistableBundle().apply { putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true) }
-    }
-    clipboard.setPrimaryClip(clip)
-    Handler(Looper.getMainLooper()).postDelayed({
-        runCatching {
-            if (clipboard.primaryClipDescription?.label == label) {
-                if (Build.VERSION.SDK_INT >= 28) clipboard.clearPrimaryClip() else clipboard.setPrimaryClip(ClipData.newPlainText("", ""))
-            }
-        }
-    }, 60_000L)
 }

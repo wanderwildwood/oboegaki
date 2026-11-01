@@ -22,15 +22,23 @@ Two independent gates, checked on every request (and on the WebSocket upgrade):
    before the token is looked at. Off: still only private peers (loopback, `10/8`, `172.16/12`,
    `192.168/16`, link-local, unique-local `fc00::/7`, Tailscale's `100.64/10`), by `isPrivatePeer`;
    a global IPv6 or cellular address gets the same empty 404.
-2. **Token.** 24 characters from Crockford's alphabet, made on first start, kept in the app's
-   private preferences. Sent as `Authorization: Bearer <token>` (HTTP) or `?token=` (WebSocket,
-   which cannot set headers). Compared in constant time. *Reset link* mints a new one and
-   restarts the server, so old bookmarks and open tabs stop at once.
+2. **Session token, one per browser.** Made when a browser pairs: 32 random bytes from
+   `SecureRandom`, as 64 hex characters, handed to that browser once and kept by it. The phone
+   keeps only the token's SHA-256, with a label ("Firefox on Linux", from the User-Agent), the
+   time it was made and the time it was last used, in the app's private preferences (see
+   `PairedBrowsers`). Sent as `Authorization: Bearer <token>` (HTTP) or `?token=` (WebSocket, which
+   cannot set headers), checked on every request against every entry, compared in constant time,
+   never logged. At most 8 browsers; a ninth pairing replaces the one unused longest. A token not
+   used for 30 days is gone. Settings > Desktop Sync lists the paired computers; tapping one arms
+   its row (six seconds), a second tap removes it, and *Remove all* does the same for everyone. A
+   removal closes that browser's open page at once. There is no shared token and no link with a
+   token in it: the one permanent token earlier versions handed to every browser was dropped, so a
+   browser that paired before pairs again once (the page says so when it finds itself unpaired).
 
-**Pairing code.** (The Show link dialog refreshes its code by itself: when the code runs out or is used while the dialog is open, a new one replaces it, with "Works once, for 2:41" counting down once a second only while the dialog is on screen; one code is valid at a time and the five-tries lockout stands, after which no new code appears until the dialog is opened again. Messaging's Desktop Sync dialog should get the same change later.) *Show link* shows the address(es), the full tokenised link, and a six-digit
+**Pairing code.** (The Show link dialog refreshes its code by itself: when the code runs out or is used while the dialog is open, a new one replaces it, with "Works once, for 2:41" counting down once a second only while the dialog is on screen; one code is valid at a time and the five-tries lockout stands, after which no new code appears until the dialog is opened again. Messaging's Desktop Sync dialog should get the same change later.) *Show link* shows the address(es) and a six-digit
 code: valid 3 minutes, one use, 5 wrong tries kill it, a new *Show link* replaces it. The browser
 posts it to `POST /api/pair` (the only route that answers without a token; needs header
-`X-Notes-Pairing: 1`, body at most 512 bytes) and gets the token back, then remembers it.
+`X-Notes-Pairing: 1`, body at most 512 bytes) and gets its own session token back, then remembers it.
 
 The server speaks plain `http`; over a VPN the tunnel encrypts it, on a home network it is
 readable by others on it, and Settings and About say so. *Copy link* marks the clipboard entry
@@ -75,7 +83,7 @@ a line naming the file; they are not played or opened in the browser.
 All JSON, all except the first three need the token and `X-Notes: 1` on POST.
 
 - `GET /` the dashboard (one HTML file, no external requests). Carries no data, so no token.
-- `POST /api/pair` `{code}` -> `{token}`.
+- `POST /api/pair` `{code}` -> `{token}` (a new session token for this browser).
 - `GET /ws?token=` WebSocket; the phone sends `{"type":"changed"}` when notes or tasks change;
   pings every 30 s only while a browser is connected; a peer silent for 95 s is dropped.
 - `GET /api/state` everything: notes (not archived and archived), `trash` (`{id, title, folder,

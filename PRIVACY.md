@@ -1,6 +1,6 @@
 # Privacy
 
-Notes collects nothing about you and has no analytics, ads or tracking of any kind.
+Memo collects nothing about you and has no analytics, ads or tracking of any kind.
 
 - **Notes, lists, recordings and scans** stay on the phone, or go to the place you chose for
   them: a folder on the phone, your own Nextcloud, or a WebDAV server you named. Nowhere else.
@@ -21,9 +21,9 @@ Notes collects nothing about you and has no analytics, ads or tracking of any ki
   to the phone directly. By default only a computer on your VPN (Tailscale or another) can reach
   it; turn *VPN only* off and any computer on the same home network with the link can; addresses on the
   internet or mobile data are always refused. It uses plain
-  `http`, so on a network without a VPN the notes travel unencrypted. *Reset link* cuts off every
-  browser that has the old link. Nothing you wrote is written to a log. Switch it off, tap Stop
+  `http`, so on a network without a VPN the notes travel unencrypted. Each computer that pairs gets its own key, listed in Settings, where it can be removed (or all of
+  them); a key not used for 30 days is dropped, and the phone keeps only a hash of it. Nothing you wrote is written to a log. Switch it off, tap Stop
   on its notification, or restart the phone, and it stops.
-- **Dream Log** (the sibling app 夢帳, signed with the same key) may write a note into Notes through a capture provider, without a confirmation screen; Notes checks the caller's signing certificate first, and no other app can.
+- **Dream Log** (the sibling app 夢帳, signed with the same key) may write a note into Memo through a capture provider, without a confirmation screen; Memo checks the caller's signing certificate first, and no other app can.
 - **The microphone** is used only while you are recording.
 - **Terms:** free software under the GNU General Public License v3, with no warranty.

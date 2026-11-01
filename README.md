@@ -49,7 +49,7 @@ a voice note heard and written down, a page photographed and handed to the scann
   the archive, and orders by newest, oldest or title. The magnifier searches titles and text.
 - **Folders** are listed under *Folders* in the view line, and inside one the list starts with
   the way back up and a row for each folder within it. *New notes go in*, in the settings, names
-  the folder new notes, voice notes, scans and pictures are made in, so Notes can be pointed at a
+  the folder new notes, voice notes, scans and pictures are made in, so Memo can be pointed at a
   whole Obsidian vault and still keep what the phone makes in one place of it.
 - **Pinned** notes stay at the top. **Archived** notes move to an `Archive` folder, out of every
   view but their own, and a search still finds them.
@@ -69,7 +69,7 @@ a voice note heard and written down, a page photographed and handed to the scann
   for a whole note a line in its front matter, `reminder: 2026-10-08 17:00`. A reminder rings
   only on the phone it was set on: on a list shared between two phones, each rings for its own,
   and one set somewhere else shows its time and can be made to ring here too. If the phone was
-  off, or Notes was stopped, when one was due, it rings as soon as it can and says it is late.
+  off, or Memo was stopped, when one was due, it rings as soon as it can and says it is late.
   A note's reminder can still go to a calendar app instead, from the same place.
 - **Tasks** that are real tasks: on a Nextcloud, the same ones its Tasks app, Thunderbird or any
   CalDAV app shows, on a page of their own (the tick-in-a-circle at the top of the list). See
@@ -97,15 +97,15 @@ Design and protocol: [docs/DESKTOP-SYNC.md](docs/DESKTOP-SYNC.md).
   the trash, as on the phone; *Delete forever* and *Empty trash* ask first.
 
 **Setup.** Settings, *Desktop Sync*, switch on. *Show link* gives the address, a six-digit code
-(works once; a new one appears by itself when it runs out) and the full link. Open the address on the computer, type the code;
-the browser remembers. Off by default, never starts by itself, and a restart leaves it off.
+(works once; a new one appears by itself when it runs out). Open the address on the computer, type the code;
+the browser remembers. Each computer gets its own key and is listed under *Paired computers* in the same settings, where it can be removed (or all of them); a computer not used for 30 days is removed by itself, and at most eight are kept. If you used Desktop Sync before this change, each computer pairs again once. Off by default, never starts by itself, and a restart leaves it off.
 Switch it off with the same row or *Stop* on the notification.
 
 **Access.** *VPN only* is on by default: a request that does not come through a VPN (Tailscale,
 or another VPN that gives the phone an address of its own) gets an empty 404 before its token is
 even read. It is checked on every request, so the server starts whether or not the VPN is up.
 Turned off, any device on the same Wi-Fi with the link can reach it. Every request also needs
-the token; *Reset link* makes a new one and stops every open browser at once. It speaks plain
+the browser's own key; removing a computer (or *Remove all*) stops it at once. It speaks plain
 `http`, which the VPN encrypts; on a network with no VPN the notes cross it in the clear.
 Responses are never cached, carry a strict content policy, and never allow another website to
 call the server. Writes are size-limited and go through the same code the screens use, so the
@@ -144,26 +144,26 @@ is kept beside it as `name (other copy).md`.
 
 ### With Obsidian
 
-A vault is a folder of Markdown files, so Notes can keep its notes in one. Obsidian itself is
+A vault is a folder of Markdown files, so Memo can keep its notes in one. Obsidian itself is
 free; what is needed is something to keep the phone's folder and the computer's the same.
-*Using with Obsidian*, in the settings, says the same in short. Notes can be given the whole
+*Using with Obsidian*, in the settings, says the same in short. Memo can be given the whole
 vault: set *New notes go in* to a folder of it, such as `Kompakt`, to keep what the phone makes
 together.
 
 - **Obsidian Sync.** Install Obsidian on the phone and open the synced vault once. Obsidian
   keeps it in its own storage, where no other app can reach it, so in *Manage vaults* move the
-  vault to a folder such as `Documents`, then choose that folder (or a folder inside it) in Notes.
+  vault to a folder such as `Documents`, then choose that folder (or a folder inside it) in Memo.
 - **[Syncthing](https://syncthing.net/)**, free, from the phone to the computer with no server
   in between. On Android it is the Syncthing-Fork app. Sync a folder on the phone to one on the
-  computer, choose the phone's in Notes, and open the computer's as a vault. Both have to be on
+  computer, choose the phone's in Memo, and open the computer's as a vault. Both have to be on
   for the changes to cross. Obsidian rewrites `.obsidian/workspace.json` all the time, so add the
   ignore pattern `.obsidian/workspace*` in Syncthing on both, or it makes conflict copies.
   If notes from the computer arrive only once Syncthing-Fork is opened, switch on
-  *Settings › Behavior › Service Control by Broadcast* in Syncthing-Fork, and Notes wakes it
-  each time it opens (*Wake Syncthing-Fork when Notes opens*, on by default). On a Kompakt,
-  also switch Syncthing-Fork on in DuraSpeed's list: Notes' settings have a button for it.
-  The same button is there whenever reminders are set, since DuraSpeed stopping Notes stops
-  its reminders; switch Notes on in the list too.
+  *Settings › Behavior › Service Control by Broadcast* in Syncthing-Fork, and Memo wakes it
+  each time it opens (*Wake Syncthing-Fork when Memo opens*, on by default). On a Kompakt,
+  also switch Syncthing-Fork on in DuraSpeed's list: Memo's settings have a button for it.
+  The same button is there whenever reminders are set, since DuraSpeed stopping Memo stops
+  its reminders; switch Memo on in the list too.
 - **Nextcloud.** Keep the notes on Nextcloud, and let the Nextcloud desktop app keep the folder
   on the computer, to open as a vault.
 - **A WebDAV service**, with no server of your own. [Koofr](https://koofr.eu/) has a free
@@ -173,7 +173,7 @@ together.
 - **DAVx⁵**, if it is already on the phone for contacts and calendars. Its *WebDAV mounts* put
   a WebDAV folder in the system's picker, so *In a folder on the phone* can choose it. The files
   are read from the server as they are opened, so with no signal they do not open, and two
-  people's changes are not put together; *A WebDAV server* in Notes keeps a copy on the phone and
+  people's changes are not put together; *A WebDAV server* in Memo keeps a copy on the phone and
   merges.
 - **A cable.** Notes in a folder on the phone can be copied to the vault over USB whenever you
   like.
@@ -188,7 +188,7 @@ you is moved into your notes folder and marked as shared.
 
 With the notes on a Nextcloud, the Tasks page shows that Nextcloud's task lists, one section
 each: every calendar of yours that holds tasks, and the ones others have shared with you. They
-sync both ways over CalDAV with the sign-in Notes already has, so a task ticked on the phone is
+sync both ways over CalDAV with the sign-in Memo already has, so a task ticked on the phone is
 ticked in Nextcloud's Tasks app and in Thunderbird, and one added there turns up here. Nothing
 else is needed on the phone, DAVx5 included.
 
@@ -196,7 +196,7 @@ else is needed on the phone, DAVx5 included.
   tap; a task opens to be changed; Delete asks twice. *New list* makes another list on the
   Nextcloud, and *New tasks go in*, in the settings, says which one new tasks go to.
 - Anything else in a task that another app put there (subtasks, categories, alarms, colours)
-  is kept exactly as it was when Notes writes the task back.
+  is kept exactly as it was when Memo writes the task back.
 - Changes made with no signal wait on the phone and go when there is one. Each list says when it
   last synced. If the same task was changed on the phone and somewhere else meanwhile, each
   field changed on only one side keeps that change; where both changed the same field, the
@@ -204,14 +204,14 @@ else is needed on the phone, DAVx5 included.
 - **Reminders.** A task due at a time rings on the phone as a note's reminder does, on the phone
   it was set on: a time set here rings here, which the task's page shows and can turn off. A
   task made somewhere else rings here once you turn it on. Alarms other apps put in a task are
-  kept, for those apps, but Notes rings only by its own rule, so it never rings one task twice.
+  kept, for those apps, but Memo rings only by its own rule, so it never rings one task twice.
 - **Move to Tasks.** A long press on an item of a list offers *Move to Tasks*. The item leaves the
   note and becomes a task, its ⏰ time becoming the task's due time, and its reminder moves with
   it: it rings as the task, not as the item as well.
 - **Repeating tasks** made in another app are shown with *Repeats*. Ticking one that repeats every
   so many days, weeks, months or years moves it on to its next time, as Tasks.org does; one with
   any other rule (a count, "the second Tuesday") is finished by the tick, which its page says.
-- **Without a Nextcloud**, tasks are kept in one list on the phone. Once Notes is on a Nextcloud,
+- **Without a Nextcloud**, tasks are kept in one list on the phone. Once Memo is on a Nextcloud,
   that list offers to move them there.
 
 Tasks are Nextcloud's only: a plain WebDAV server or a folder keeps notes, not tasks.

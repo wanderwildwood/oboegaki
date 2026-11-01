@@ -33,7 +33,6 @@ class DesktopService : Service() {
     companion object {
         const val START = "DESKTOP_START"
         const val STOP = "DESKTOP_STOP"
-        const val RESET = "DESKTOP_RESET"
         private const val CHANNEL = "desktop_sync"
         private const val NOTIFICATION = 20261029
     }
@@ -46,12 +45,6 @@ class DesktopService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             "$packageName.$START" -> begin()
-            "$packageName.$RESET" -> {
-                Notes.init(this)
-                Notes.preferences.desktopToken = newToken()
-                end(removeNotification = false)
-                begin()
-            }
             else -> end(removeNotification = true)
         }
         return START_NOT_STICKY
@@ -65,13 +58,12 @@ class DesktopService : Service() {
         Notes.init(this)
         Tasks.init(this)
         val preferences = Notes.preferences
-        if (preferences.desktopToken.isEmpty()) preferences.desktopToken = newToken()
 
         val html = runCatching { assets.open("desktop/index.html").use { it.readBytes().toString(Charsets.UTF_8) } }.getOrNull()
         val next = DesktopServer(
             port = DesktopSync.PORT,
             context = applicationContext,
-            token = preferences.desktopToken,
+            browsers = DesktopSync.browsers(),
             pairing = DesktopSync.pairing,
             vpnOnly = { preferences.desktopVpnOnly },
             page = { html ?: "" },
