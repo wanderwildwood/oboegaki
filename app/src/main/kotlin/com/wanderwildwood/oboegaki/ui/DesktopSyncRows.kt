@@ -15,6 +15,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.delay
+import com.wanderwildwood.oboegaki.desktop.DesktopWarning
+import com.wanderwildwood.oboegaki.desktop.Keepalive
+import com.wanderwildwood.oboegaki.desktop.desktopWarning
 import com.wanderwildwood.oboegaki.desktop.PairedBrowsers
 import com.wanderwildwood.oboegaki.desktop.Pairing
 import com.wanderwildwood.oboegaki.desktop.countdownText
@@ -65,6 +68,23 @@ fun LazyListScope.desktopSyncRows() {
             }
             Spacer(Modifier.width(16.dp))
             SwitchMMD(checked = running, onCheckedChange = null)
+        }
+        val wanted = remember(running) { Notes.preferences.desktopWanted }
+        val restricted = remember(running) { Keepalive.backgroundRestricted(context) }
+        when (desktopWarning(running, wanted, restricted)) {
+            DesktopWarning.RESTRICTED -> SettingRow(stringResource(R.string.desktop_restricted), stringResource(R.string.desktop_restricted_what)) {
+                runCatching { context.startActivity(Keepalive.appInfo(context)) }
+            }
+            DesktopWarning.STOPPED -> if (Keepalive.duraSpeedPresent(context)) {
+                SettingRow(stringResource(R.string.desktop_stopped), stringResource(R.string.desktop_stopped_duraspeed)) {
+                    runCatching { context.startActivity(Keepalive.duraSpeedInfo()) }
+                }
+            } else {
+                SettingRow(stringResource(R.string.desktop_stopped), stringResource(R.string.desktop_stopped_what)) {
+                    runCatching { context.startActivity(Keepalive.appInfo(context)) }
+                }
+            }
+            DesktopWarning.NONE -> Unit
         }
         if (running) SettingRow(stringResource(R.string.desktop_show), stringResource(R.string.desktop_show_what)) { showing = true }
         }

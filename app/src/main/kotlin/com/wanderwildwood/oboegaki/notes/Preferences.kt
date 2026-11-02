@@ -157,6 +157,11 @@ class Preferences(context: Context) {
         get() = store.getBoolean(DESKTOP_VPN_ONLY, true)
         set(value) = store.edit().putBoolean(DESKTOP_VPN_ONLY, value).apply()
 
+    /** Desktop Sync is meant to be on: set when it starts, cleared only when the reader (or a failure to start) turns it off. */
+    var desktopWanted: Boolean
+        get() = store.getBoolean(DESKTOP_WANTED, false)
+        set(value) = store.edit().putBoolean(DESKTOP_WANTED, value).apply()
+
     var lastSync: Long
         get() = store.getLong(LAST_SYNC, 0L)
         set(value) = store.edit().putLong(LAST_SYNC, value).apply()
@@ -187,5 +192,6 @@ class Preferences(context: Context) {
         const val DESKTOP_TOKEN = "desktop_token"
         const val DESKTOP_BROWSERS = "desktop_browsers"
         const val DESKTOP_VPN_ONLY = "desktop_vpn_only"
+        const val DESKTOP_WANTED = "desktop_wanted"
     }
 }

@@ -47,6 +47,8 @@ class DesktopService : Service() {
         Log.i(TAG, "service command: ${intent?.action?.removePrefix("$packageName.") ?: "none (restart or stray intent)"}")
         when (intent?.action) {
             "$packageName.$START" -> begin()
+            // The reader's own Stop (the switch or the notification button) is the only thing that says "no".
+            "$packageName.$STOP" -> { Notes.init(this); Notes.preferences.desktopWanted = false; end(removeNotification = true) }
             else -> end(removeNotification = true)
         }
         return START_NOT_STICKY
@@ -72,10 +74,12 @@ class DesktopService : Service() {
         )
         if (html == null || runCatching { next.start(0, false) }.isFailure) {
             Log.w(TAG, "the server could not start")
+            preferences.desktopWanted = false
             end(removeNotification = true)
             return
         }
         server = next
+        preferences.desktopWanted = true
         DesktopSync.setRunning(true)
         Tasks.refresh()
 
@@ -113,7 +117,7 @@ class DesktopService : Service() {
     }
 
     override fun onDestroy() {
-        Log.i(TAG, "the service was destroyed")
+        Log.i(TAG, "the service was destroyed; background restricted: ${Keepalive.backgroundRestricted(this)}")
         end(removeNotification = false)
         super.onDestroy()
     }
