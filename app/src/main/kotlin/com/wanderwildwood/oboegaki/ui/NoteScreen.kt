@@ -479,6 +479,11 @@ private fun Reading(
 
     val noteAt = remember(text) { noteReminder(text) }
 
+    // Headings fold: a tap hides the lines under one, up to the next heading as big or bigger.
+    // Nothing is written to the file, and the folds are forgotten when the note is closed.
+    var folded by remember { mutableStateOf(emptySet<Int>()) }
+    val shown = remember(parsed, folded) { withoutFolded(parsed, folded) }
+
     PagedColumn(modifier = Modifier.fillMaxSize()) {
         item(key = "title") {
             TextMMD(
@@ -490,7 +495,7 @@ private fun Reading(
                 ReminderLabel(noteAt, onClick = { onRemind(-1) }, modifier = Modifier.padding(bottom = 12.dp, top = 2.dp))
             }
         }
-        for (line in parsed) {
+        for (line in shown) {
             item(key = line.index) {
                 when (line) {
                     is Line.Task -> Row(
@@ -527,12 +532,18 @@ private fun Reading(
                         val path = if (folder.isEmpty()) name else "$folder/$name"
                         Player(uri = Notes.shelf()?.uriOf(path), hearing = hearing)
                     } else {
-                        val heading = line.text.trimStart().startsWith("#")
+                        val heading = headingLevel(line.text) > 0
+                        val closed = line.index in folded
                         TextMMD(
-                            text = if (heading) line.text.trimStart('#', ' ') else line.text,
+                            text = if (heading) (if (closed) "+ " else "\u2212 ") + line.text.trimStart('#', ' ') else line.text,
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = if (heading) FontWeight.Bold else null,
-                            modifier = Modifier.padding(vertical = 4.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .then(
+                                    if (heading) Modifier.clickable { folded = if (closed) folded - line.index else folded + line.index } else Modifier,
+                                )
+                                .padding(vertical = if (heading) 8.dp else 4.dp),
                         )
                     }
                 }
@@ -563,6 +574,29 @@ private fun Reading(
             )
         }
     }
+}
+
+/** How many # a heading line starts with (1 to 6), or 0 when the line is not a heading. */
+internal fun headingLevel(text: String): Int {
+    val t = text.trimStart()
+    val n = t.takeWhile { it == '#' }.length
+    return if (n in 1..6 && (t.length == n || t[n] == ' ')) n else 0
+}
+
+/** The lines left to show once the folded headings have hidden what lies under them. */
+internal fun withoutFolded(all: List<Line>, folded: Set<Int>): List<Line> {
+    if (folded.isEmpty()) return all
+    val out = ArrayList<Line>(all.size)
+    var hidingUnder = 0 // level of the folded heading now hiding lines, or 0
+    for (line in all) {
+        val level = if (line is Line.Text) headingLevel(line.text) else 0
+        if (hidingUnder > 0) {
+            if (level in 1..hidingUnder) hidingUnder = 0 else continue
+        }
+        out.add(line)
+        if (level > 0 && line.index in folded) hidingUnder = level
+    }
+    return out
 }
 
 /** A note opens to be read rather than written when it holds tasks to tick or a recording to play. */

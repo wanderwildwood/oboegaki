@@ -43,6 +43,8 @@ class DesktopService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Why the service starts or stops, in the log and nowhere else: no note text, no address.
+        Log.i(TAG, "service command: ${intent?.action?.removePrefix("$packageName.") ?: "none (restart or stray intent)"}")
         when (intent?.action) {
             "$packageName.$START" -> begin()
             else -> end(removeNotification = true)
@@ -102,7 +104,16 @@ class DesktopService : Service() {
         }
     }
 
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        Log.i(TAG, "the app was swiped away from Recents; the service goes on")
+    }
+
+    override fun onTrimMemory(level: Int) {
+        Log.i(TAG, "the system asked the app to trim memory, level $level")
+    }
+
     override fun onDestroy() {
+        Log.i(TAG, "the service was destroyed")
         end(removeNotification = false)
         super.onDestroy()
     }
