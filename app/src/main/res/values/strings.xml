@@ -379,13 +379,10 @@
     <string name="about_privacy_close">There are no ads, no analytics and no tracking. Backups and exports go only where you choose to save them.</string>
     <string name="about_terms_heading">Terms</string>
     <string name="about_terms">This app is free software under the GNU General Public License v3. It comes with no warranty: use it at your own risk.</string>
-    <string name="about_licences_heading">Licences</string>
-    <string name="about_feed_the_llamas">feed the llamas</string>
+    <string name="about_feed_the_llamas">Feed the llamas</string>
     <string name="about_no_browser_address">No browser is installed. The address is %1$s.</string>
-    <string name="about_no_browser">There is no browser on this phone to open that with.</string>
     <string name="about_close">Close</string>
     <string name="about_blurb">Notes are plain files. They stay on this phone, or go only to the place you set up for them.</string>
-    <string name="about_back">Back</string>
 
     <!-- Reminders: set from a note's ⋮ or a list item's long press, rung by this phone -->
     <string name="remind_channel">Reminders</string>
