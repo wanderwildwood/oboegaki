@@ -502,9 +502,8 @@
     <string name="licences_title">Licences</string>
     <string name="licences_back">Back</string>
     <string name="licences_source_head">Source code</string>
-    <string name="licences_licence_head">Licence</string>
+    <string name="licences_no_text">%s needs no licence text here.</string>
     <string name="licences_licence">This app is released under the GNU General Public License, version 3 only. Copyright wander wildwood.</string>
-    <string name="licences_built_head">Built with</string>
     <string name="licences_full_head">Full texts</string>
     <string name="licences_full_gpl">GNU General Public License v3 (full text)</string>
     <string name="licences_full_apache">Apache License 2.0 (full text)</string>
