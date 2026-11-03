@@ -31,7 +31,7 @@
    Page Down), so a card or a row is never cut at the foot of the window. */
 * { box-sizing: border-box; scrollbar-width: none; }
 ::-webkit-scrollbar { display: none; width: 0; height: 0; }
-html, body { margin: 0; height: 100%; overflow: hidden; }
+html, body, #root { margin: 0; height: 100%; overflow: hidden; }
 body { background: var(--paper); color: var(--ink); font: 15px/1.45 Lato, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; background: none; border: 1px solid transparent; border-radius: 4px; padding: 5px 10px; }
@@ -84,7 +84,8 @@ main > .hint { flex: none; }
 .measure { position: absolute; left: 0; top: 0; visibility: hidden; pointer-events: none; }
 .measure > * { margin: 0; }
 .turns { flex: none; width: 32px; display: flex; flex-direction: column; justify-content: space-between; }
-.turns[hidden] { display: none; }
+/* Kept in its place when there is one page, so the cards' width does not change with the page count. */
+.turns.one { visibility: hidden; }
 .turns button { width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center; border: 2px solid var(--ink); border-radius: 999px; background: var(--paper); color: var(--ink); }
 .turns button:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
 .turns button:disabled { border-color: var(--line); color: var(--line); cursor: default; }
@@ -475,7 +476,7 @@ button.armed { color: var(--warn); font-weight: 700; }
     var area = h("div", { class: "paged" });
     var prev = h("button", { title: "Previous page (Page Up)", "aria-label": "Previous page", onclick: function () { turn(-1); } }, chevron(true));
     var next = h("button", { title: "Next page (Page Down)", "aria-label": "Next page", onclick: function () { turn(1); } }, chevron(false));
-    var turns = h("div", { class: "turns", hidden: true }, prev, next);
+    var turns = h("div", { class: "turns one" }, prev, next);
     var wrap = h("div", { class: "pagedwrap" }, area, turns);
     var P = { el: wrap, area: area, blocks: [], pages: [], at: 0, anchor: null, key: null };
     var gap = opts.gap === undefined ? GAP : opts.gap;
@@ -509,7 +510,7 @@ button.armed { color: var(--warn); font-weight: 700; }
         if (b.head || !opts.cards) {
           var top = Math.max.apply(null, cur.cols);
           // A heading keeps at least the block after it on its page.
-          var need = b.h + (b.head && P.blocks[i + 1] ? P.blocks[i + 1].h : 0);
+          var need = b.h + (b.head && P.blocks[i + 1] ? 8 + P.blocks[i + 1].h : 0);
           if (top > 0 && top + need > H) { fresh(); top = 0; }
           cur.items.push({ b: b, x: opts.cards ? 0 : x0, y: top, w: opts.cards && b.head ? W : cw });
           for (var c = 0; c < n; c++) cur.cols[c] = top + b.h + (b.head || !opts.cards ? 0 : gap);
@@ -518,8 +519,10 @@ button.armed { color: var(--warn); font-weight: 700; }
         }
         var col = 0; for (var k = 1; k < n; k++) if (cur.cols[k] < cur.cols[col]) col = k;
         var y = cur.cols[col];
-        if (y > 0 && y + b.h > H) { fresh(); col = 0; y = 0; }
-        cur.items.push({ b: b, x: col * (cw + gap), y: y, w: cw });
+        var hasCard = cur.items.some(function (it) { return !it.b.head; });
+        if (y > 0 && y + b.h > H && hasCard) { fresh(); col = 0; y = 0; }
+        // A card taller than what is left even on a page of its own is cut at the foot.
+        cur.items.push({ b: b, x: col * (cw + gap), y: y, w: cw, max: y + b.h > H ? H - y : 0 });
         cur.cols[col] = y + b.h + gap;
       });
       P.pages = pages;
@@ -534,10 +537,11 @@ button.armed { color: var(--warn); font-weight: 700; }
       var pg = P.pages[P.at]; area.replaceChildren();
       if (pg) pg.items.forEach(function (it) {
         var s = it.b.el.style; s.cssText = ""; s.left = it.x + "px"; s.top = it.y + "px"; s.width = it.w + "px";
+        if (it.max) s.maxHeight = it.max + "px";
         area.appendChild(it.b.el); it.b.el.__block = it.b; if (watch) watch.observe(it.b.el);
       });
       P.anchor = pg && pg.items.length ? pg.items[0].b.key : null;
-      turns.hidden = P.pages.length < 2;
+      turns.classList.toggle("one", P.pages.length < 2);
       prev.disabled = P.at <= 0; next.disabled = P.at >= P.pages.length - 1;
       if (P.memo) P.memo[P.key] = P.anchor;
     }
@@ -1067,6 +1071,8 @@ button.armed { color: var(--warn); font-weight: 700; }
   }
   function drawShares(n, box, j) {
     box.textContent = "";
+    // The note's window has no scrollbar either: bring the sharing into view below the buttons.
+    setTimeout(function () { try { box.scrollIntoView({ block: "end" }); } catch (e) {} }, 0);
     if (!j.available) { box.appendChild(h("p", { class: "hint", text: "Sharing needs the notes kept on Nextcloud." })); return; }
     box.appendChild(h("h3", { text: "Sharing" }));
     if (j.sharedWithMe) box.appendChild(h("p", { class: "hint", text: "Shared with you by " + (j.from || "someone") + "." }));
