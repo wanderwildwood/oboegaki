@@ -150,6 +150,9 @@ android {
         buildConfig = true
     }
 
+    // Robolectric reads the app's own strings for the layout tests.
+    testOptions { unitTests.isIncludeAndroidResources = true }
+
     sourceSets {
         named("main") {
             kotlin.srcDir("src/main/kotlin")
@@ -190,4 +193,8 @@ dependencies {
     // The real org.json, for the tests of what the page is sent: the Android one is a stub off the phone.
     testImplementation("org.json:json:20240303")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    // Layout tests: a dialog measured at the Kompakt's sizes, upright and sideways, off the phone.
+    testImplementation("org.robolectric:robolectric:4.14.1")
+    testImplementation("androidx.compose.ui:ui-test-junit4:${libs.versions.androidx.compose.get()}")
+    debugImplementation("androidx.compose.ui:ui-test-manifest:${libs.versions.androidx.compose.get()}")
 }
