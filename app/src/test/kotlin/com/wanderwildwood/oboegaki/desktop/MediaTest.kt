@@ -90,4 +90,32 @@ class MediaTest {
         assertEquals(Gate.NO_TOKEN, gate("GET", "/api/media", mapOf("range" to "bytes=0-")) { it == "x".repeat(64) })
         assertEquals(Gate.API, gate("GET", "/api/media", mapOf("authorization" to "Bearer " + "x".repeat(64))) { it == "x".repeat(64) })
     }
+
+    @Test
+    fun aFileIsServedOnlyIfItsNoteLinksIt() {
+        val text = "Walk notes\n\n![[voice-2026-11-03.m4a]]\n\nThe words\n\n![[scan-1.pdf]]\n"
+        assertEquals("voice-2026-11-03.m4a", linkedFile("Walk.md", text, "voice-2026-11-03.m4a"))
+        // Beside the note, in its own folder.
+        assertEquals("Garden/scan-1.pdf", linkedFile("Garden/Walk.md", text, "scan-1.pdf"))
+        assertEquals("A/B/scan-1.pdf", linkedFile("A/B/Walk.md", text, "scan-1.pdf"))
+        // A file beside the note that the note does not show is not to be had.
+        assertNull(linkedFile("Walk.md", text, "voice-2026-11-02.m4a"))
+        assertNull(linkedFile("Walk.md", "no embeds here, only voice-2026-11-03.m4a in words", "voice-2026-11-03.m4a"))
+        // Exactly that name: not a part of it, not another case.
+        assertNull(linkedFile("Walk.md", text, "voice-2026"))
+        assertNull(linkedFile("Walk.md", text, "SCAN-1.PDF"))
+        // An embed with a label still counts by its name.
+        assertEquals("scan-2.pdf", linkedFile("Walk.md", "![[scan-2.pdf|Receipt]]", "scan-2.pdf"))
+    }
+
+    @Test
+    fun aNoteThatLinksOutsideItsFolderStillCannotReachIt() {
+        // The note's embed may say anything; the name the page asks for must be a plain file name first.
+        val text = "![[../Private/scan.pdf]]\n![[/etc/hosts.pdf]]"
+        assertFalse(isSafeMediaName("../Private/scan.pdf"))
+        assertFalse(isSafeMediaName("/etc/hosts.pdf"))
+        assertFalse(isSafePictureName("../Private/a.jpg"))
+        // And had the check been skipped, the path would still be the note's own folder plus the name.
+        assertEquals("Garden/../Private/scan.pdf", linkedFile("Garden/Walk.md", text, "../Private/scan.pdf"))
+    }
 }

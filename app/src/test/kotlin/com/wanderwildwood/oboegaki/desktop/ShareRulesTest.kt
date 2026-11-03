@@ -95,4 +95,44 @@ class ShareRulesTest {
         }
         assertEquals(Gate.NOT_FROM_PAGE, gate("POST", "/api/shares/stop", mapOf("authorization" to "Bearer $good")) { it == good })
     }
+
+    @Test
+    fun nextcloudsOwnRefusalReachesThePageInItsWords() {
+        val r = sharingFailure(com.wanderwildwood.oboegaki.sync.NextcloudSaid("Sharing Groceries.md failed, because this item is already shared with Tomas Reyes"))
+        assertEquals(503, r.status)
+        assertEquals("Nextcloud: Sharing Groceries.md failed, because this item is already shared with Tomas Reyes", r.message)
+        // Cut short, and no control characters to break a line in the page.
+        val long = sharingFailure(com.wanderwildwood.oboegaki.sync.NextcloudSaid("x\n".repeat(500)))
+        assertTrue(long.message!!.length <= "Nextcloud: ".length + 200)
+        assertFalse(long.message!!.contains('\n'))
+    }
+
+    @Test
+    fun aNetworkFailureNeverTellsThePageTheServersAddress() {
+        val r = sharingFailure(com.wanderwildwood.oboegaki.sync.Unreachable("Failed to connect to cloud.example.org/192.0.2.7:443"))
+        assertEquals(503, r.status)
+        assertEquals("Nextcloud did not answer", r.message)
+        assertFalse(r.message!!.contains("example"))
+        // Nor does any other failure's text: a parse error can quote what came back.
+        val parse = sharingFailure(org.json.JSONException("Value <html><title>Login - cloud.example.org</title> of type java.lang.String"))
+        assertEquals("Nextcloud did not answer", parse.message)
+        val io = sharingFailure(java.io.IOException("unexpected end of stream on https://ada:secret@cloud.example.org/..."))
+        assertEquals("Nextcloud did not answer", io.message)
+    }
+
+    @Test
+    fun signedOutAndTheServersOwnRefusalsKeepTheirMeaning() {
+        assertEquals("Nextcloud says this phone is signed out", sharingFailure(com.wanderwildwood.oboegaki.sync.Refused("signed out")).message)
+        val mine = Refusal(404, "that person is not on this Nextcloud")
+        assertEquals(mine, sharingFailure(mine))
+    }
+
+    @Test
+    fun whatThePageIsToldAboutSharingHoldsNoAccount() {
+        val j = sharesJson(listOf(toTomas), listOf(ada, tomas), listOf(Incoming("9", "/Notes/Groceries.md", "Ada Whitlock")), "/Notes/Groceries.md")
+        assertEquals(setOf("available", "shares", "people", "sharedWithMe", "from"), j.keys().asSequence().toSet())
+        assertEquals(setOf("id", "with", "name", "canEdit"), j.getJSONArray("shares").getJSONObject(0).keys().asSequence().toSet())
+        assertEquals(setOf("id", "name"), j.getJSONArray("people").getJSONObject(0).keys().asSequence().toSet())
+        assertEquals("Ada Whitlock", j.getString("from"))
+    }
 }

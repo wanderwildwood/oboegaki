@@ -1,5 +1,6 @@
 package com.wanderwildwood.oboegaki.desktop
 
+import com.wanderwildwood.oboegaki.notes.embeds
 import com.wanderwildwood.oboegaki.notes.isSound
 
 /*
@@ -32,6 +33,17 @@ fun mediaType(name: String): String? {
         "aac" -> "audio/aac"
         else -> null
     }
+}
+
+/**
+ * Where [name] is kept, if the note [noteId] (whose words are [text]) embeds exactly that name:
+ * beside the note, in its folder. Null if the note does not link it, so nothing a note does not
+ * show can be asked for. The name has been checked as a plain file name before this.
+ */
+fun linkedFile(noteId: String, text: String, name: String): String? {
+    if (embeds(text).none { it == name }) return null
+    val folder = noteId.substringBeforeLast('/', "")
+    return if (folder.isEmpty()) name else "$folder/$name"
 }
 
 /** The largest recording or scan served: far past an hour of voice. */

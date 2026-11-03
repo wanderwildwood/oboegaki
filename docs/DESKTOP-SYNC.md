@@ -143,7 +143,14 @@ could be shared with. A new share can edit, as on the phone. A note someone shar
 account says by whom. It is the phone's Share screen as data: the server calls the app's own
 `Sharing` (sync/Shares.kt), syncs the note up first as the phone does, and names a person or a
 share only by what Nextcloud just listed for that note (`requirePerson`, `requireShare`), so the
-page cannot stop a share of some other file or share with someone not on the server. Cards say
+page cannot stop a share of some other file or share with someone not on the server. The
+Nextcloud account never reaches the page: its name and password are only in the Authorization
+header of the phone's own calls to Nextcloud, and what the page is told is listed in
+`sharesJson` (share ids, the people's ids and names, can-edit, and who shared a note with this
+account), tested key by key. When a call fails, only Nextcloud's own words for a refusal go
+through (`sharingFailure`); a network failure's text, which names the server's address, and any
+other failure's become "Nextcloud did not answer". Sharing routes are guarded like every other:
+the browser's own token in the header and, for each change, `X-Notes: 1`. Cards say
 *Shared* or *Shared with you* (`shared`, `sharedWithMe` in the state, from `Notes.shared` and
 `Notes.sharedWithMe`). On WebDAV or on the phone alone there is no sharing and no *Share* button.
 

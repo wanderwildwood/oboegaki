@@ -9,6 +9,9 @@ import org.json.JSONObject
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
+/** Nextcloud refused a sharing call, in its own words (its OCS message), or "the server answered <code>". */
+class NextcloudSaid(message: String) : IOException(message)
+
 /** Someone on the same Nextcloud a note can be shared with. */
 data class Person(val id: String, val name: String)
 
@@ -131,7 +134,7 @@ class Sharing(private val account: Account) {
             when {
                 it.isSuccessful -> it.body?.string()
                 it.code == 401 -> throw Refused("signed out")
-                else -> throw IOException(sharingError(it.code, it.body?.string()))
+                else -> throw NextcloudSaid(sharingError(it.code, it.body?.string()))
             }
         }
     }

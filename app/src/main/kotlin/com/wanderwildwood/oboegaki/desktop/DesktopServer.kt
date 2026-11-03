@@ -9,7 +9,6 @@ import com.wanderwildwood.oboegaki.notes.TRASH_DAYS
 import com.wanderwildwood.oboegaki.notes.trashIsStale
 import com.wanderwildwood.oboegaki.notes.addTask
 import com.wanderwildwood.oboegaki.notes.cleanFolder
-import com.wanderwildwood.oboegaki.notes.embeds
 import com.wanderwildwood.oboegaki.notes.folders
 import com.wanderwildwood.oboegaki.notes.MoveRefusal
 import com.wanderwildwood.oboegaki.notes.moveTarget
@@ -376,10 +375,7 @@ class DesktopServer(
         val id = session.parameters["id"]?.firstOrNull() ?: throw Refusal(400, "no note")
         val name = session.parameters["name"]?.firstOrNull() ?: throw Refusal(400, "no picture")
         if (!isSafePictureName(name)) throw Refusal(400, "not a picture")
-        val text = noteText(id)
-        if (embeds(text).none { it == name }) throw Refusal(404, "not in that note")
-        val folder = id.substringBeforeLast('/', "")
-        val path = if (folder.isEmpty()) name else "$folder/$name"
+        val path = linkedFile(id, noteText(id), name) ?: throw Refusal(404, "not in that note")
         val bytes = Notes.shelf()?.readBytes(path) ?: throw Refusal(404, "no such picture")
         if (bytes.size > Limits.PICTURE_BYTES) throw Refusal(413, "too large")
         val type = when (name.substringAfterLast('.').lowercase()) {
@@ -400,9 +396,7 @@ class DesktopServer(
         val name = session.parameters["name"]?.firstOrNull() ?: throw Refusal(400, "no file")
         if (!isSafeMediaName(name)) throw Refusal(400, "not a recording or a scan")
         val type = mediaType(name) ?: throw Refusal(400, "not a recording or a scan")
-        if (embeds(noteText(id)).none { it == name }) throw Refusal(404, "not in that note")
-        val folder = id.substringBeforeLast('/', "")
-        val path = if (folder.isEmpty()) name else "$folder/$name"
+        val path = linkedFile(id, noteText(id), name) ?: throw Refusal(404, "not in that note")
         val uri = Notes.shelf()?.uriOf(path) ?: throw Refusal(404, "no such file")
         val fd = context.contentResolver.openAssetFileDescriptor(uri, "r") ?: throw Refusal(404, "no such file")
         val total = fd.length.takeIf { it >= 0 } ?: fd.parcelFileDescriptor.statSize
@@ -723,13 +717,9 @@ class DesktopServer(
      */
     private fun <T> nextcloud(block: () -> T): T = try {
         block()
-    } catch (r: Refusal) {
-        throw r
-    } catch (e: com.wanderwildwood.oboegaki.sync.Refused) {
-        throw Refusal(503, "Nextcloud says this phone is signed out")
     } catch (e: Exception) {
-        Log.w(TAG, "sharing failed: " + e.javaClass.simpleName)
-        throw Refusal(503, "Nextcloud: " + (e.message ?: "no answer"))
+        if (e !is Refusal) Log.w(TAG, "sharing failed: " + e.javaClass.simpleName)
+        throw sharingFailure(e)
     }
 
     /**

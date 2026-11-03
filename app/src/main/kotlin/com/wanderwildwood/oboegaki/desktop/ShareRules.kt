@@ -1,7 +1,9 @@
 package com.wanderwildwood.oboegaki.desktop
 
 import com.wanderwildwood.oboegaki.sync.Incoming
+import com.wanderwildwood.oboegaki.sync.NextcloudSaid
 import com.wanderwildwood.oboegaki.sync.Person
+import com.wanderwildwood.oboegaki.sync.Refused
 import com.wanderwildwood.oboegaki.sync.Share
 import org.json.JSONArray
 import org.json.JSONObject
@@ -41,3 +43,17 @@ fun sharesJson(shares: List<Share>, people: List<Person>, incoming: List<Incomin
 
 /** For notes not kept on Nextcloud: sharing is Nextcloud's own, a plain WebDAV server or the phone alone has none. */
 fun noSharingJson(): JSONObject = JSONObject().put("available", false)
+
+/**
+ * What the page is told when a sharing call fails. Only Nextcloud's own answer to a refused call
+ * goes through, cut short; a network failure's text (which names the server's address) and any
+ * other failure's (a parse error can quote what came back) are put in plain words instead. The
+ * account's name and password are never in any of these: they only ever travel in the request's
+ * Authorization header, from the phone to Nextcloud.
+ */
+fun sharingFailure(e: Throwable): Refusal = when (e) {
+    is Refusal -> e
+    is Refused -> Refusal(503, "Nextcloud says this phone is signed out")
+    is NextcloudSaid -> Refusal(503, "Nextcloud: " + (e.message?.replace(Regex("[\\u0000-\\u001f]"), " ")?.take(200) ?: "it refused"))
+    else -> Refusal(503, "Nextcloud did not answer")
+}
