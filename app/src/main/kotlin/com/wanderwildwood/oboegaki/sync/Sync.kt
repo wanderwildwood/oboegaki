@@ -32,8 +32,65 @@ class Sync(
 
     data class Result(val sent: Int, val received: Int, val kept: List<String>)
 
+    /** Moves made on this phone and not yet on the server, in order (see [recordMoves]). */
+    private val movesFile = movesFileFor(stateFile)
+
+    private fun pendingMoves(): List<Pair<String, String>> {
+        var out: List<Pair<String, String>> = emptyList()
+        guard { out = readMoves(movesFile) }
+        return out
+    }
+
+    /** Whether [path] is either end of a move still to be made on the server. */
+    private fun movePending(path: String): Boolean = pendingMoves().any { it.first == path || it.second == path }
+
+    /**
+     * Make the moves made here on the server too, as moves, before anything else is compared:
+     * a note moved to another folder, archived or brought back stays the same file there, so
+     * a share on Nextcloud stays with it. What the sync knew of the old path is carried to the
+     * new one. A move the server will not make (the file gone there, or the name taken) is
+     * dropped, and the rest of the sync treats it as before: a deletion and a new file.
+     */
+    private fun applyMoves(remote: Remote, state: MutableMap<String, String>) {
+        val pending = pendingMoves()
+        if (pending.isEmpty()) return
+        val blobs = readBlobState().toMutableMap()
+        var done = 0
+        try {
+            for ((from, to) in pending) {
+                val text = syncsAsText(from)
+                val known = if (text) state[from] else blobs[from]?.first
+                if (known != null) {
+                    val moved = try {
+                        remote.move(from, to)
+                        true
+                    } catch (_: Moved) {
+                        false
+                    }
+                    if (moved) {
+                        if (text) {
+                            state.remove(from)
+                            state[to] = known
+                            File(base, to).parentFile?.mkdirs()
+                            File(base, from).renameTo(File(base, to))
+                        } else {
+                            blobs[to] = blobs.remove(from)!!
+                        }
+                    }
+                }
+                done++
+            }
+        } finally {
+            writeState(state)
+            writeBlobState(blobs)
+            // Only those dealt with; any noted while this ran stay for the next sync.
+            guard { writeMoves(movesFile, readMoves(movesFile).drop(done)) }
+        }
+    }
+
     fun run(remote: Remote): Result {
         val state = readState().toMutableMap()
+        applyMoves(remote, state)
         val everything = remote.list()
         val there = everything.filterKeys { syncsAsText(it) }
         val here = localPaths()
@@ -90,6 +147,9 @@ class Sync(
                 // Deleted on this phone. The server's copy goes too, unless it has changed since,
                 // in which case the deletion was of something the deleter never saw, and the
                 // newer version comes back.
+                // Moved here while this sync ran: the next one makes it a move on the server.
+                movePending(path) && (local == null || known == null) -> Unit
+
                 known != null && etag != null && local == null -> {
                     // A moved etag is not proof the note changed: a server may never have said
                     // it, or move it for sharing or a rescan. Before a deletion here is undone
@@ -222,6 +282,7 @@ class Sync(
                         upload(path, Expect.Absent)
                     }
                 }
+                movePending(path) && (local == null || known == null) -> Unit
                 known != null && etag != null && local == null -> {
                     val unchanged = etag == known.first || hash(remote.getBytes(path).bytes) == known.second
                     if (unchanged) {
@@ -431,6 +492,37 @@ class Sync(
         temp.writeText(state.entries.sortedBy { it.key }.joinToString("") { "${it.key}\t${it.value}\n" })
         temp.renameTo(stateFile)
     }
+}
+
+/** Where the moves waiting for the sync that keeps [stateFile] are noted. */
+fun movesFileFor(stateFile: File) = File(stateFile.parentFile, stateFile.name + ".moves")
+
+/**
+ * Note moves made on the phone ("from" to "to", paths in the notes folder) for the sync that keeps
+ * [stateFile] to make on the server. Called under the notes' lock, with the files already moved.
+ */
+fun recordMoves(stateFile: File, moves: List<Pair<String, String>>) {
+    if (moves.isEmpty()) return
+    val file = movesFileFor(stateFile)
+    writeMoves(file, readMoves(file) + moves)
+}
+
+private fun readMoves(file: File): List<Pair<String, String>> =
+    if (!file.isFile) emptyList()
+    else file.readLines().mapNotNull { line ->
+        val tab = line.indexOf('\t')
+        if (tab <= 0) null else line.substring(0, tab) to line.substring(tab + 1)
+    }
+
+private fun writeMoves(file: File, moves: List<Pair<String, String>>) {
+    if (moves.isEmpty()) {
+        file.delete()
+        return
+    }
+    file.parentFile?.mkdirs()
+    val temp = File(file.parentFile, file.name + ".part")
+    temp.writeText(moves.joinToString("") { "${it.first}\t${it.second}\n" })
+    temp.renameTo(file)
 }
 
 /** Whether a file is something a note can hold: a recording, a scan, a picture. */

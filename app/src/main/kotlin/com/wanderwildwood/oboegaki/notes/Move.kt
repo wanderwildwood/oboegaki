@@ -51,12 +51,19 @@ fun attachmentPlan(
 }
 
 /**
+ * Where a moved note is now, and every file that moved, from and to, the note last: what the sync
+ * repeats on the server as moves of its own, so a share, which Nextcloud ties to the file and not
+ * to its name, stays with the note. Copies are not in it; they go up as new files.
+ */
+data class MoveResult(val path: String, val moves: List<Pair<String, String>>)
+
+/**
  * Move the note at [path] into [folder] on [shelf], with what it links, under its own name or,
  * when that is taken there, the next free one ("kiln 2.md"). [others] are the other notes, to see
- * which attachments they share. Returns where the note is now, or null when it is not there.
- * The caller holds [notesLock].
+ * which attachments they share. Returns what moved, or null when the note is not there.
+ * The caller holds [notesLock]. Archiving and bringing back are moves too.
  */
-fun moveOnShelf(shelf: Shelf, path: String, folder: String, others: List<Note>): String? {
+fun moveOnShelf(shelf: Shelf, path: String, folder: String, others: List<Note>): MoveResult? {
     val text = shelf.read(path) ?: return null
     val fromFolder = path.substringBeforeLast('/', "")
     val stem = path.substringAfterLast('/').substringBeforeLast('.')
@@ -72,7 +79,11 @@ fun moveOnShelf(shelf: Shelf, path: String, folder: String, others: List<Note>):
     for ((from, to) in plan.copy) {
         runCatching { shelf.readBytes(from)?.let { shelf.writeBytes(to, it, "application/octet-stream") } }
     }
-    for ((from, to) in plan.move) runCatching { shelf.move(from, to) }
+    val moves = mutableListOf<Pair<String, String>>()
+    for ((from, to) in plan.move) {
+        if (runCatching { shelf.move(from, to) }.isSuccess) moves += from to to
+    }
     shelf.move(path, target)
-    return target
+    moves += path to target
+    return MoveResult(target, moves)
 }

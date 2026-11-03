@@ -30,6 +30,14 @@ interface Remote {
 
     /** Remove the note at [path], only if it is still [etag]. Throws [Moved] if it is not. */
     fun delete(path: String, etag: String)
+
+    /**
+     * Move the file at [from] to [to] on the server itself (WebDAV MOVE), never over a file
+     * already there. The file stays the same file: on Nextcloud it keeps its id, and with it its
+     * shares. Throws [Moved] when [from] is not there or [to] is taken; the sync then falls back
+     * to a deletion and a new file. A server that cannot move says so the same way.
+     */
+    fun move(from: String, to: String): Unit = throw Moved("this server does not move files")
 }
 
 /** A note as read from the server, and when the server says it last changed, if it says. */

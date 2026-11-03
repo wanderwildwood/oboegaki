@@ -18,6 +18,7 @@ import com.wanderwildwood.oboegaki.sync.isNote
 import com.wanderwildwood.oboegaki.sync.Sync
 import com.wanderwildwood.oboegaki.sync.Unreachable
 import com.wanderwildwood.oboegaki.sync.merge
+import com.wanderwildwood.oboegaki.sync.recordMoves
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -594,32 +595,31 @@ object Notes {
      * where it is now, or null when it is not there.
      */
     fun moveTo(path: String, folder: String): String? {
-        val shelf = shelf() ?: return null
-        val moved = synchronized(notesLock) { moveOnShelf(shelf, path, folder, _list.value) } ?: return null
+        val moved = shift(path, folder) ?: return null
         repin(path, moved)
         Reminders.moved(appContext, path, moved)
         afterEdit()
         return moved
     }
 
-    private fun relocate(path: String, to: (String) -> String): String? {
+    /**
+     * Move a note and what it links on the shelf ([moveOnShelf]), and, with the notes on a
+     * server, note the moves for the next sync to make there as moves, not as a deletion and a
+     * new file: on Nextcloud a share is tied to the file, so it stays with the note. Written
+     * under the same lock the sync reads it under, so a sync never sees the files moved without it.
+     */
+    private fun shift(path: String, folder: String): String? {
         val shelf = shelf() ?: return null
-        val folder = path.substringBeforeLast('/', "")
-        val target = to(folder)
-        val prefix = if (folder.isEmpty()) "" else "$folder/"
-        val targetPrefix = if (target.isEmpty()) "" else "$target/"
-        val name = path.substringAfterLast('/')
-        val moved = free(target, name.substringBeforeLast('.'))
-        synchronized(notesLock) {
-            val text = shelf.read(path) ?: return null
-            // The attachments go first and keep their names, so the note's links still find them.
-            for (attachment in embeds(text)) {
-                if (shelf.exists(prefix + attachment) && !shelf.exists(targetPrefix + attachment)) {
-                    runCatching { shelf.move(prefix + attachment, targetPrefix + attachment) }
-                }
-            }
-            shelf.move(path, moved)
+        val place = preferences.keeping
+        return synchronized(notesLock) {
+            val result = moveOnShelf(shelf, path, folder, _list.value) ?: return null
+            if (place.isServer) recordMoves(File(syncDir(place), "state"), result.moves)
+            result.path
         }
+    }
+
+    private fun relocate(path: String, to: (String) -> String): String? {
+        val moved = shift(path, to(path.substringBeforeLast('/', ""))) ?: return null
         // A note put away is not one to keep at the top; brought back, it is pinned again by hand.
         repin(path, null)
         // Its reminders go with it.

@@ -179,6 +179,20 @@ class WebDavRemote(
         }
     }
 
+    override fun move(from: String, to: String) {
+        makeParents(to)
+        val request = request(url(from))
+            .method("MOVE", null)
+            .header("Destination", url(to))
+            .header("Overwrite", "F")
+            .build()
+        call(request) { response ->
+            // 412: something is at [to] already; 404: [from] is gone. Either way, not moved.
+            if (response.code == 412 || response.code == 404 || response.code == 409) throw Moved("$from could not be moved")
+            check(response, from)
+        }
+    }
+
     /**
      * Ask the server once, before anything is kept: that the address is a WebDAV folder these
      * credentials open, and that the notes folder is there, made if it was not. Throws

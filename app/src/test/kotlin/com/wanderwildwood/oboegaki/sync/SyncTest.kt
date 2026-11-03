@@ -25,7 +25,34 @@ private class FakeRemote : Remote {
 
     fun set(path: String, text: String) {
         files[path] = text to "\"e${++counter}\""
+        ids.getOrPut(path) { ++lastId }
     }
+
+    /**
+     * Each file's id, as Nextcloud keeps one: the same through a write and a MOVE, new for a file
+     * deleted and put again. A share hangs on the id ([shares]: id to person), as Nextcloud's do
+     * (oc_share.file_source), so a deletion takes the share with it and a MOVE does not.
+     */
+    val ids = mutableMapOf<String, Long>()
+    private var lastId = 0L
+    val shares = mutableMapOf<Long, String>()
+    var moves = 0
+
+    fun share(path: String, with: String) { shares[ids.getValue(path)] = with }
+    fun sharedWith(path: String): String? = ids[path]?.let { shares[it] }
+
+    override fun move(from: String, to: String) {
+        if (files.containsKey(to) || blobs.containsKey(to)) throw Moved("taken")
+        when {
+            files.containsKey(from) -> files[to] = files.remove(from)!!
+            blobs.containsKey(from) -> blobs[to] = blobs.remove(from)!!
+            else -> throw Moved("gone")
+        }
+        ids[to] = ids.remove(from)!!
+        moves++
+    }
+
+    private fun forgetId(path: String) { ids.remove(path)?.let { shares.remove(it) } }
 
     override fun get(path: String): Fetched {
         val (text, etag) = files[path] ?: throw Moved("gone")
@@ -58,6 +85,7 @@ private class FakeRemote : Remote {
             is Expect.Unchanged -> if (now?.second != expect.etag) throw Moved("changed")
         }
         blobs[path] = bytes to "\"b${++counter}\""
+        ids.getOrPut(path) { ++lastId }
         return if (silentPuts) null else blobs[path]!!.second
     }
 
@@ -65,17 +93,20 @@ private class FakeRemote : Remote {
         if (blobs.containsKey(path)) {
             if (blobs[path]?.second != etag) throw Moved("changed")
             blobs.remove(path)
+            forgetId(path)
             return
         }
         if (files[path]?.second != etag) throw Moved("changed")
         files.remove(path)
+        forgetId(path)
     }
 }
 
 /** One phone: its notes folder, and the sync that keeps it. */
 private class Phone(root: File) {
     val notes = File(root, "notes")
-    val sync = Sync(notes, File(root, "base"), File(root, "state"))
+    val state = File(root, "state")
+    val sync = Sync(notes, File(root, "base"), state)
 
     fun write(path: String, text: String) = File(notes, path).apply { parentFile?.mkdirs() }.writeText(text)
     fun read(path: String): String? = File(notes, path).takeIf { it.isFile }?.readText()
@@ -380,8 +411,9 @@ class SyncTest {
 
         // Moved on his phone, the way the note's "Move to folder" moves it.
         val shelf = com.wanderwildwood.oboegaki.notes.FileShelf(his.notes)
-        val moved = com.wanderwildwood.oboegaki.notes.moveOnShelf(shelf, "Voice 0214.md", "Field notes", shelf.list())
-        assertEquals("Field notes/Voice 0214.md", moved)
+        val moved = com.wanderwildwood.oboegaki.notes.moveOnShelf(shelf, "Voice 0214.md", "Field notes", shelf.list())!!
+        assertEquals("Field notes/Voice 0214.md", moved.path)
+        recordMoves(his.state, moved.moves)
         his.sync.run(server)
 
         // On Nextcloud the folder is the note's category: the note is there now, and not at the top.
@@ -406,11 +438,106 @@ class SyncTest {
         hers.write("kiln.md", "fire\nglaze\n")
         hers.sync.run(server)
         val shelf = com.wanderwildwood.oboegaki.notes.FileShelf(his.notes)
-        com.wanderwildwood.oboegaki.notes.moveOnShelf(shelf, "kiln.md", "Shed", shelf.list())
+        val moved = com.wanderwildwood.oboegaki.notes.moveOnShelf(shelf, "kiln.md", "Shed", shelf.list())!!
+        recordMoves(his.state, moved.moves)
         his.sync.run(server)
 
-        // Her edit is kept, where she left it; his move is there too. Nothing is dropped.
-        assertEquals("fire\nglaze\n", his.read("kiln.md"))
-        assertEquals("fire\n", his.read("Shed/kiln.md"))
+        // The server moved the note as it stood, her edit in it; his phone takes that. Nothing is dropped.
+        assertEquals("fire\nglaze\n", his.read("Shed/kiln.md"))
+        assertNull(his.read("kiln.md"))
+        hers.sync.run(server)
+        assertEquals("fire\nglaze\n", hers.read("Shed/kiln.md"))
+        assertNull(hers.read("kiln.md"))
+    }
+
+    // ------------------------------------------------ moves keep the file, and its share
+
+    /** Moves [path] to [folder] on [phone] as the app does, noting the moves for the sync. */
+    private fun moveThere(phone: Phone, path: String, folder: String): String {
+        val shelf = com.wanderwildwood.oboegaki.notes.FileShelf(phone.notes)
+        val moved = com.wanderwildwood.oboegaki.notes.moveOnShelf(shelf, path, folder, shelf.list())!!
+        recordMoves(phone.state, moved.moves)
+        return moved.path
+    }
+
+    @Test
+    fun aSharedNoteMovedToAnotherFolderKeepsItsShare() {
+        val his = phone("his")
+        his.writeBytes("creek.m4a", byteArrayOf(1, 2))
+        his.write("creek.md", "Creek\n![[creek.m4a]]\n")
+        his.sync.run(server)
+        server.share("creek.md", "ada")
+        server.share("creek.m4a", "ada")
+        val id = server.ids.getValue("creek.md")
+
+        assertEquals("Field notes/creek.md", moveThere(his, "creek.md", "Field notes"))
+        his.sync.run(server)
+
+        assertEquals(id, server.ids["Field notes/creek.md"])
+        assertEquals("ada", server.sharedWith("Field notes/creek.md"))
+        assertEquals("ada", server.sharedWith("Field notes/creek.m4a"))
+        assertNull(server.files["creek.md"])
+        assertEquals(2, server.moves)
+        // Nothing left to do: a second sync sends and fetches nothing.
+        val again = his.sync.run(server)
+        assertEquals(0, again.sent)
+        assertFalse(movesFileFor(his.state).exists())
+    }
+
+    @Test
+    fun aSharedNoteArchivedAndBroughtBackKeepsItsShare() {
+        val his = phone("his")
+        val hers = phone("hers")
+        his.write("Garden/kiln.md", "fire\n")
+        his.sync.run(server)
+        hers.sync.run(server)
+        server.share("Garden/kiln.md", "tomas")
+        val id = server.ids.getValue("Garden/kiln.md")
+
+        // Archive is a move into Archive/, under the folder it was in.
+        assertEquals("Archive/Garden/kiln.md", moveThere(his, "Garden/kiln.md", "Archive/Garden"))
+        his.sync.run(server)
+        assertEquals(id, server.ids["Archive/Garden/kiln.md"])
+        assertEquals("tomas", server.sharedWith("Archive/Garden/kiln.md"))
+        hers.sync.run(server)
+        assertEquals("fire\n", hers.read("Archive/Garden/kiln.md"))
+        assertNull(hers.read("Garden/kiln.md"))
+
+        // Brought back, and moved again before the next sync: both made as moves, in order.
+        moveThere(his, "Archive/Garden/kiln.md", "Garden")
+        moveThere(his, "Garden/kiln.md", "Shed")
+        his.sync.run(server)
+        assertEquals(id, server.ids["Shed/kiln.md"])
+        assertEquals("tomas", server.sharedWith("Shed/kiln.md"))
+    }
+
+    @Test
+    fun withoutAMoveTheShareWouldHaveGone() {
+        // The check can fail: the old way, a deletion and a new file, loses the share.
+        val his = phone("his")
+        his.write("kiln.md", "fire\n")
+        his.sync.run(server)
+        server.share("kiln.md", "tomas")
+        his.delete("kiln.md")
+        his.write("Shed/kiln.md", "fire\n")
+        his.sync.run(server)
+        assertNull(server.sharedWith("Shed/kiln.md"))
+    }
+
+    @Test
+    fun aMoveTheServerRefusesFallsBackToADeletionAndANewFile() {
+        val his = phone("his")
+        his.write("kiln.md", "fire\n")
+        his.sync.run(server)
+        server.set("Shed/kiln.md", "someone else's")
+        // The name is free here but taken on the server, so the MOVE is refused.
+        moveThere(his, "kiln.md", "Shed")
+        his.sync.run(server)
+        assertEquals(0, server.moves)
+        assertNull(server.files["kiln.md"])
+        assertFalse(movesFileFor(his.state).exists())
+        // Both kept: nothing is dropped.
+        assertTrue(server.files.values.any { "fire" in it.first })
+        assertTrue(server.files.values.any { "someone else's" in it.first })
     }
 }

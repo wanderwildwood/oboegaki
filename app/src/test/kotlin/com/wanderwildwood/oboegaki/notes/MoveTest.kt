@@ -47,9 +47,11 @@ class MoveTest {
         shelf.writeBytes("Garden/kiln.m4a", byteArrayOf(1, 2, 3), "audio/mp4")
         shelf.writeBytes("Garden/plan.jpg", byteArrayOf(4, 5), "image/jpeg")
 
-        val moved = moveOnShelf(shelf, "Garden/kiln.md", "Shed/Pottery", shelf.list())
+        val moved = moveOnShelf(shelf, "Garden/kiln.md", "Shed/Pottery", shelf.list())!!
 
-        assertEquals("Shed/Pottery/kiln.md", moved)
+        assertEquals("Shed/Pottery/kiln.md", moved.path)
+        // What the sync repeats on the server: the recording, then the note; not the copy.
+        assertEquals(listOf("Garden/kiln.m4a" to "Shed/Pottery/kiln.m4a", "Garden/kiln.md" to "Shed/Pottery/kiln.md"), moved.moves)
         assertEquals("Firing\n![[kiln.m4a]]\n![[plan.jpg]]\n", shelf.read("Shed/Pottery/kiln.md"))
         assertFalse(shelf.exists("Garden/kiln.md"))
         assertTrue(shelf.exists("Shed/Pottery/kiln.m4a"))
@@ -64,7 +66,7 @@ class MoveTest {
         val shelf = FileShelf(tmp.newFolder("notes2"))
         shelf.write("kiln.md", "mine")
         shelf.write("Shed/kiln.md", "already there")
-        assertEquals("Shed/kiln 2.md", moveOnShelf(shelf, "kiln.md", "Shed", shelf.list()))
+        assertEquals("Shed/kiln 2.md", moveOnShelf(shelf, "kiln.md", "Shed", shelf.list())?.path)
         assertEquals("already there", shelf.read("Shed/kiln.md"))
         assertEquals("mine", shelf.read("Shed/kiln 2.md"))
     }
