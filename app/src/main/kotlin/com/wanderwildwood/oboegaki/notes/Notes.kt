@@ -659,16 +659,39 @@ object Notes {
         val names = mutableListOf<String>()
         for (uri in uris) {
             val (bytes, ext) = runCatching { pictureBytes(uri) }.getOrNull() ?: continue
-            var name = if (names.isEmpty()) "$stem.$ext" else "$stem ${names.size + 1}.$ext"
-            var n = names.size + 2
-            while (shelf.exists(inFolder(folder, name))) name = "$stem ${n++}.$ext"
-            shelf.writeBytes(inFolder(folder, name), bytes, if (ext == "jpg") "image/jpeg" else "image/$ext")
-            names += name
+            names += keepPicture(shelf, folder, stem, names.size + 1, bytes, ext)
         }
         if (names.isEmpty()) return null
         shelf.write(notePath, names.joinToString("\n\n", postfix = "\n") { "![[$it]]" })
         afterEdit()
         return notePath
+    }
+
+    /**
+     * Keep a picture in [folder] named for [stem] ("stem.jpg", or "stem 2.jpg" from the second
+     * on), never over a file already there, and return the name it got.
+     */
+    private fun keepPicture(shelf: Shelf, folder: String, stem: String, nth: Int, bytes: ByteArray, ext: String): String {
+        var name = if (nth <= 1) "$stem.$ext" else "$stem $nth.$ext"
+        var n = maxOf(nth, 1) + 1
+        while (shelf.exists(inFolder(folder, name))) name = "$stem ${n++}.$ext"
+        shelf.writeBytes(inFolder(folder, name), bytes, if (ext == "jpg") "image/jpeg" else "image/$ext")
+        return name
+    }
+
+    /**
+     * Add a picture to the note at [path], already checked and cleaned by the caller: kept beside
+     * the note and named for it, as [savePictures] names them, and shown at the end of the note.
+     * Returns the picture's name, or null when the note is gone or there is nowhere to keep it.
+     */
+    fun addPicture(path: String, bytes: ByteArray, ext: String): String? {
+        val shelf = shelf() ?: return null
+        val folder = path.substringBeforeLast('/', "")
+        val stem = path.substringAfterLast('/').substringBeforeLast('.')
+        var name: String? = null
+        // Under the note's lock: the picture is written only if the note is still there to show it.
+        change(path) { now -> keepPicture(shelf, folder, stem, 1, bytes, ext).also { name = it }.let { withPicture(now, it) } }
+        return name
     }
 
     private fun pictureBytes(uri: Uri): Pair<ByteArray, String> {

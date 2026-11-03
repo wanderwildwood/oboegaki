@@ -91,6 +91,27 @@ class RoutesTest {
     }
 
     @Test
+    fun theSmallActionsAndThePictureUploadAreGuardedLikeEveryOtherChange() {
+        val added = listOf("/api/notes/removeitem", "/api/notes/itemreminder", "/api/notes/itemtotasks", "/api/notes/picture", "/api/tasks/move")
+        for (path in added) {
+            assertTrue(path, Route("POST", path) in API_ROUTES)
+            // No token at all.
+            assertEquals(path, Gate.NO_TOKEN, gate("POST", path, headers(fromPage = true), valid))
+            // The token only in the address.
+            assertEquals(path, Gate.NO_TOKEN, gate("POST", "$path?token=$good", headers(fromPage = true), valid))
+            assertEquals(path, Gate.NO_TOKEN, gate("POST", "$path?id=a.md&token=$good", headers(fromPage = true), valid))
+            // A token the phone never gave out.
+            assertEquals(path, Gate.NO_TOKEN, gate("POST", path, headers("b".repeat(64), fromPage = true), valid))
+            // The token, but not the page's own header.
+            assertEquals(path, Gate.NOT_FROM_PAGE, gate("POST", path, headers(good), valid))
+            // Not by GET.
+            assertEquals(path, Gate.NO_TOKEN, gate("GET", path, headers(), valid))
+            assertTrue(path, Route("GET", path) !in API_ROUTES)
+            assertEquals(path, Gate.API, gate("POST", path, headers(good, fromPage = true), valid))
+        }
+    }
+
+    @Test
     fun theTokenMustBeSentAsBearer() {
         assertEquals(Gate.NO_TOKEN, gate("GET", "/api/state", mapOf("authorization" to good), valid))
         assertEquals(Gate.NO_TOKEN, gate("GET", "/api/state", mapOf("authorization" to "Basic $good"), valid))

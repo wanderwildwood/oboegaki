@@ -80,7 +80,7 @@ follow an edit on the phone follow an edit from the browser too.
 | trash | `Notes.trash`: notes in the hidden `.trash` folder (see Trash below); `id` is the note's folder in the trash, never a path |
 | folder (the nearest thing to a label; Nextcloud Notes' category) | the note's folder; set on create, changed with `POST /api/notes/move` (`Notes.moveTo`, the phone's *Move to folder*; the folder is checked by `moveTarget`, never used as sent) |
 | reminder | `reminder:` in front matter (note) or `⏰ yyyy-MM-dd HH:mm` on an item line |
-| pictures | `![[name.jpg]]` embeds; fetched through `GET /api/file` (pictures only, only beside a note) |
+| pictures | `![[name.jpg]]` embeds; fetched through `GET /api/file` (pictures only, only beside a note); added with `POST /api/notes/picture` (see Pictures from the computer) |
 | tasks | `Tasks.shown`: lists, and per task summary, description, due (day or time), priority, done |
 
 What the app does not have is not invented: there are no colours and no labels. *Delete* moves
@@ -95,6 +95,39 @@ page fetches the file and plays or shows it from memory (a `blob:` address), whi
 lets a recording seek anywhere. The server answers a `Range` (206, 416 past the end), as
 Messaging's does for audio, so a long recording can be asked for in parts. Play-only and
 view-only: neither can be recorded, changed or added from the browser.
+
+**Checklist items.** Beside each item, on a card and in an open note, a ⋯ opens what holding an
+item does on the phone: *Remind me* (a day-and-time picker; *Set*, or *Take the reminder off*),
+*Move to Tasks · <list>* and *Remove item* (tap, then tap again within six seconds). Each goes
+through the phone's own code: the reminder is `withItemReminder` and rings on the phone
+(`Reminders.claim`, as the Remind dialog does), and a time gone by is refused as there; Move to
+Tasks is `itemAsTask`/`itemRingsHere` (remind/ItemToTask.kt, which the phone's menu now calls
+too): the line leaves the note and becomes a task in the default list, its reminder the due time,
+ringing here if it rang here; Remove is `removeLine`, and a reminder on the line goes with it.
+Like a tick, each names the item by its line and its words, and is refused with 409 if the line
+no longer says that. In an open note, what is typed is saved first.
+
+**Pictures, full size.** A picture on a card or in an open note opens over the whole window,
+fitted; a click (or *Full size / fit*) shows it at its own size, to scroll about, and back. Esc
+or *Close* shuts it. Nothing new on the server: it is the same `GET /api/file`.
+
+**Pictures from the computer.** An open note has *Add picture*: a JPEG, PNG or WebP, up to 8 MB,
+put at the end of the note as its own paragraph and kept beside it, named for the note as a
+shared-in picture is (`Notes.addPicture`, sharing `keepPicture` with `savePictures`). The body
+of `POST /api/notes/picture?id=<note>` is the picture itself; the token is in the header as
+everywhere, the note in the address. What it is comes from its first bytes, never its name or
+the type the browser says (`cleanUpload`, desktop/Upload.kt). It is never kept as it came: it
+is rewritten with only what draws it, so Exif (GPS, time, camera), XMP, IPTC, comments, PNG
+text chunks, JFIF thumbnails and anything after the picture's end (where some phones put a
+second picture or a video) are left out; a JPEG keeps only its orientation, as a one-entry Exif.
+The phone must then be able to read its size (`BitmapFactory`), or it is refused. 413 over 8 MB
+(by the declared length, before a byte is read), 415 for anything else. (The phone's own
+share-in path, `savePictures`, keeps a JPEG, PNG or WebP as it came, Exif included; only other
+kinds are re-encoded there.)
+
+**Tasks to another list.** The task editor has *List* (only lists that can take tasks, shown when
+there is more than one): `POST /api/tasks/move`, `Tasks.move`, then the fields are written, the
+order the phone's task screen uses.
 
 **Sharing.** With the notes on Nextcloud, an open note has *Share*: who it is shared with, a *Can
 edit* box beside each, *Stop sharing* (tap, then tap again within six seconds), and the people it
@@ -124,6 +157,12 @@ All JSON, all except the first three need the token and `X-Notes: 1` on POST.
 - `POST /api/notes/update` `{id, v, baseText, title, text, reminder?}` (see conflicts)
 - `POST /api/notes/tick` `{id, line, expect}` ticks/unticks one line
 - `POST /api/notes/additem` `{id, text}` a new item after the last
+- `POST /api/notes/removeitem` `{id, line, expect}` takes the item out (`removeLine`)
+- `POST /api/notes/itemreminder` `{id, line, expect, reminder}` sets the item's reminder
+  (`yyyy-MM-dd HH:mm`, still to come) or takes it off (`null`); it rings on the phone
+- `POST /api/notes/itemtotasks` `{id, line, expect}` the item becomes a task in the default list
+  -> `{note, list, task}`
+- `POST /api/notes/picture?id=<note>` body: the picture's bytes -> `{note}` (see Pictures from the computer)
 - `POST /api/notes/pin` `{id, pinned}`, `/archive` `{id, archived}`, `/delete` `{id, v?}`
   (moves the note to the trash; see conflicts for `v`; answers `{deleted, trash}`)
 - `POST /api/trash/restore` `{id}` -> `{note, restored, trash}`; `/api/trash/delete` `{id}` (for
@@ -131,6 +170,7 @@ All JSON, all except the first three need the token and `X-Notes: 1` on POST.
   entry's id as `state` gave it out (a folder name in the trash, a number); anything else is 404.
 - `POST /api/tasks/add` `{list, summary, description?, due?, priority?}`
 - `POST /api/tasks/update` `{list, name, from:{...}, to:{...}}`, `/tick`, `/delete` `{list, name}`
+- `POST /api/tasks/move` `{list, name, to}` to another list that can take tasks -> `{list, task}`
 - `GET /api/file?id=<note>&name=<picture>` the picture bytes.
 - `GET /api/media?id=<note>&name=<file>` a recording (`m4a mp3 wav ogg opus aac`) or a scan
   (`pdf`) the note embeds, streamed, with `Accept-Ranges: bytes`; one `bytes=` range is answered
@@ -210,7 +250,8 @@ the last two behind a confirm. Tasks are not in it: they come from CalDAV and ha
 Request body 512 KB (pairing: 512 bytes). Note text 200,000 characters, title 120, folder 200 and
 no `..`/dot-segments/archive (the app's `cleanFolder`), 3,000 characters per added item, reminder
 must parse as `yyyy-MM-dd HH:mm`. Task summary 500, description 20,000. Pictures up to 8 MB and
-only `jpg/jpeg/png/webp` that are linked by a note. Recordings and scans up to 256 MB, likewise. Unknown JSON fields are ignored; wrong types
+only `jpg/jpeg/png/webp` that are linked by a note; one added from the computer up to 8 MB, a
+JPEG, PNG or WebP by its bytes, cleaned before it is kept. Recordings and scans up to 256 MB, likewise. Unknown JSON fields are ignored; wrong types
 are 400.
 
 ## Idle cost

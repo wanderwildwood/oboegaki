@@ -30,4 +30,17 @@ class MoveToTasksTest {
         assertEquals(listOf(task), left)
         assertEquals(listOf(task), decode(encode(listOf(task))))
     }
+
+    @Test
+    fun anItemBecomesATaskWithItsWordsTimeAndTick() {
+        val text = "# Groceries\n- [ ] milk ⏰ 2026-10-08 17:00\n- [x] bread\n"
+        val zone = java.time.ZoneId.of("America/New_York")
+        val milk = com.wanderwildwood.oboegaki.notes.lines(text)[1] as com.wanderwildwood.oboegaki.notes.Line.Task
+        val bread = com.wanderwildwood.oboegaki.notes.lines(text)[2] as com.wanderwildwood.oboegaki.notes.Line.Task
+        assertEquals(
+            com.wanderwildwood.oboegaki.tasks.Fields("milk", due = com.wanderwildwood.oboegaki.tasks.Due.At(java.time.LocalDateTime.of(2026, 10, 8, 17, 0), zone), done = false),
+            itemAsTask(milk, zone),
+        )
+        assertEquals(com.wanderwildwood.oboegaki.tasks.Fields("bread", done = true), itemAsTask(bread, zone))
+    }
 }

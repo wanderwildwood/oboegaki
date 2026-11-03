@@ -79,11 +79,10 @@ import com.wanderwildwood.oboegaki.notes.withItemReminder
 import com.wanderwildwood.oboegaki.notes.withNoteReminder
 import com.wanderwildwood.oboegaki.notes.withoutReminder
 import com.wanderwildwood.oboegaki.remind.Reminders
-import com.wanderwildwood.oboegaki.notes.reminderTime
 import com.wanderwildwood.oboegaki.notes.removeLine
-import com.wanderwildwood.oboegaki.tasks.Due
-import com.wanderwildwood.oboegaki.tasks.Fields
 import com.wanderwildwood.oboegaki.tasks.Tasks
+import com.wanderwildwood.oboegaki.remind.itemAsTask
+import com.wanderwildwood.oboegaki.remind.itemRingsHere
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import kotlinx.coroutines.delay
@@ -380,14 +379,11 @@ fun NoteScreen(
                 // on both lists, and its reminder goes with it rather than ringing twice.
                 MenuRow(stringResource(R.string.item_to_tasks, toList.name)) {
                     holding = null
-                    val words = withoutReminder(item.text)
-                    val time = itemReminder(item.text)
                     // It rings as a task where it rang as an item: on this phone if it was set here.
-                    val ringsHere = time != null && Reminders.isHere(context, at, Reminder(words, time))
+                    val ringsHere = itemRingsHere(context, at, item)
                     body = body.copy(text = removeLine(body.text, line))
                     save()
-                    val due = time?.let(::reminderTime)?.let { Due.At(it, java.time.ZoneId.systemDefault()) }
-                    Tasks.add(toList.id, Fields(words, due = due, done = item.done), ring = ringsHere)
+                    Tasks.add(toList.id, itemAsTask(item), ring = ringsHere)
                 }
             }
         }

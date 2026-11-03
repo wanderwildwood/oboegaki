@@ -269,6 +269,17 @@ fun requireReminder(value: String?): String? {
     return value
 }
 
+/**
+ * A reminder set from the item's time picker, as the phone's Remind dialog takes it: a real
+ * time, and one still to come by the phone's clock ([now]); null takes it off.
+ */
+fun requireFutureReminder(value: String?, now: java.time.LocalDateTime): String? {
+    val at = requireReminder(value) ?: return null
+    val time = java.time.LocalDateTime.parse(at, java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+    if (!time.isAfter(now)) throw Refusal(400, "that time has gone by")
+    return at
+}
+
 /** Whether [name] is a picture file name that cannot climb out of a folder. */
 fun isSafePictureName(name: String): Boolean =
     name.isNotEmpty() && name.length <= 255 && '/' !in name && '\\' !in name && !name.startsWith(".") &&

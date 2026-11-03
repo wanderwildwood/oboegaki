@@ -282,6 +282,18 @@ class LimitsTest {
     }
 
     @Test
+    fun anItemReminderFromThePickerMustBeARealTimeStillToCome() {
+        val now = java.time.LocalDateTime.of(2026, 11, 3, 9, 30)
+        assertEquals("2026-11-03 09:31", requireFutureReminder("2026-11-03 09:31", now))
+        assertNull(requireFutureReminder(null, now))
+        assertNull(requireFutureReminder("", now))
+        refused(400) { requireFutureReminder("2026-11-03 09:30", now) }
+        refused(400) { requireFutureReminder("2026-11-02 18:00", now) }
+        refused(400) { requireFutureReminder("2026-02-30 10:00", now) }
+        refused(400) { requireFutureReminder("tomorrow", now) }
+    }
+
+    @Test
     fun textAtTheLimitPassesAndOneOverIsTooLarge() {
         assertEquals("x".repeat(Limits.TITLE), requireText("x".repeat(Limits.TITLE), "t", Limits.TITLE))
         refused(413) { requireText("x".repeat(Limits.TITLE + 1), "t", Limits.TITLE) }

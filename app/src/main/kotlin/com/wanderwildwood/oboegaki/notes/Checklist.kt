@@ -93,6 +93,13 @@ fun toggleTaskLine(text: String, cursor: Int): Pair<String, Int> {
 fun embeds(text: String): List<String> =
     Regex("""!\[\[([^\]|]+)(?:\|[^\]]*)?]]""").findAll(text).map { it.groupValues[1].trim() }.toList()
 
+/** [text] with a picture shown at its end, as a paragraph of its own: `![[name.jpg]]`. */
+fun withPicture(text: String, name: String): String {
+    val embed = "![[$name]]\n"
+    val kept = text.trimEnd('\n')
+    return if (kept.isEmpty()) embed else "$kept\n\n$embed"
+}
+
 /** Whether a line is only a link to a recording. */
 fun recordingOn(line: String): String? =
     embeds(line.trim()).singleOrNull()?.takeIf { line.trim().startsWith("![[") && line.trim().endsWith("]]") && isSound(it) }

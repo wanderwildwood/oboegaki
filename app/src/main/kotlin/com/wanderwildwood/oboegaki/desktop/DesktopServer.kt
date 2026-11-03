@@ -19,6 +19,10 @@ import com.wanderwildwood.oboegaki.notes.notesLock
 import com.wanderwildwood.oboegaki.notes.toggle
 import com.wanderwildwood.oboegaki.notes.withNoteReminder
 import com.wanderwildwood.oboegaki.notes.withoutReminder
+import com.wanderwildwood.oboegaki.notes.removeLine
+import com.wanderwildwood.oboegaki.notes.withItemReminder
+import com.wanderwildwood.oboegaki.remind.itemAsTask
+import com.wanderwildwood.oboegaki.remind.itemRingsHere
 import com.wanderwildwood.oboegaki.remind.Reminders
 import com.wanderwildwood.oboegaki.remind.TASK
 import com.wanderwildwood.oboegaki.remind.isTask
@@ -195,6 +199,7 @@ class DesktopServer(
         404 -> Response.Status.NOT_FOUND
         405 -> Response.Status.METHOD_NOT_ALLOWED
         409 -> Response.Status.CONFLICT
+        415 -> Response.Status.UNSUPPORTED_MEDIA_TYPE
         206 -> Response.Status.PARTIAL_CONTENT
         413 -> object : Response.IStatus {
             override fun getDescription() = "413 Payload Too Large"
@@ -247,6 +252,10 @@ class DesktopServer(
             method == Method.POST && uri == "/api/notes/update" -> updateNote(body(session))
             method == Method.POST && uri == "/api/notes/tick" -> tickItem(body(session))
             method == Method.POST && uri == "/api/notes/additem" -> addItem(body(session))
+            method == Method.POST && uri == "/api/notes/removeitem" -> removeItem(body(session))
+            method == Method.POST && uri == "/api/notes/itemreminder" -> itemReminderSet(body(session))
+            method == Method.POST && uri == "/api/notes/itemtotasks" -> itemToTasks(body(session))
+            method == Method.POST && uri == "/api/notes/picture" -> addPicture(session)
             method == Method.POST && uri == "/api/notes/pin" -> pinNote(body(session))
             method == Method.POST && uri == "/api/notes/archive" -> archiveNote(body(session))
             method == Method.POST && uri == "/api/notes/move" -> moveNote(body(session))
@@ -258,6 +267,7 @@ class DesktopServer(
             method == Method.POST && uri == "/api/tasks/update" -> updateTask(body(session))
             method == Method.POST && uri == "/api/tasks/tick" -> tickTask(body(session))
             method == Method.POST && uri == "/api/tasks/delete" -> deleteTask(body(session))
+            method == Method.POST && uri == "/api/tasks/move" -> moveTask(body(session))
             method == Method.POST && uri == "/api/unpair" -> unpair(session)
             else -> json(404, JSONObject().put("error", "not found"))
         }
@@ -531,6 +541,102 @@ class DesktopServer(
         return noteReply(id)
     }
 
+    /**
+     * One checklist item changed by [edit], under the note's lock. The item is the one at [line]
+     * in the whole file, and only if it still says what the page showed ([expect]); otherwise 409
+     * and the page reloads, as for a tick. Returns the item and the note before and after.
+     */
+    private fun changeItem(o: JSONObject, edit: (String, Line.Task) -> String): Triple<Line.Task, String, String> {
+        val id = requireNote(o)
+        val line = o.optInt("line", -1)
+        val expect = requireText(o.optString("expect", ""), "expect", Limits.ITEM)
+        var item: Line.Task? = null
+        var before = ""
+        var after = ""
+        Notes.change(id) { now ->
+            before = now
+            val l = lines(now).getOrNull(line)
+            if (l !is Line.Task || withoutReminder(l.text) != expect) {
+                now
+            } else {
+                item = l
+                edit(now, l).also { after = it }
+            }
+        }
+        val found = item ?: throw Refusal(409, "that item has changed; reloading")
+        return Triple(found, before, after)
+    }
+
+    /** Take one item out of a list: its line goes, and a reminder on it with it. */
+    private fun removeItem(o: JSONObject): Response {
+        val id = requireNote(o)
+        val (_, before, after) = changeItem(o) { now, l -> removeLine(now, l.index) }
+        Reminders.edited(context, id, id, before, after)
+        Notes.reloadNow()
+        return noteReply(id)
+    }
+
+    /**
+     * An item's reminder set or taken off, as the phone's Remind dialog does it: the time goes at
+     * the end of the item's line, and one set here rings on this phone.
+     */
+    private fun itemReminderSet(o: JSONObject): Response {
+        val id = requireNote(o)
+        val at = requireFutureReminder(if (o.isNull("reminder")) null else o.optString("reminder"), java.time.LocalDateTime.now())
+        val (item, before, after) = changeItem(o) { now, l -> withItemReminder(now, l.index, at) }
+        Reminders.edited(context, id, id, before, after)
+        if (at != null) Reminders.claim(context, id, withoutReminder(item.text), at)
+        Notes.reloadNow()
+        return noteReply(id)
+    }
+
+    /** "Move to Tasks", as on the phone: the item leaves the note for the default list, reminder and all. */
+    private fun itemToTasks(o: JSONObject): Response {
+        val id = requireNote(o)
+        Tasks.init(context)
+        val list = Tasks.defaultList()
+        if (list.readOnly) throw Refusal(409, "the task list cannot take tasks")
+        // Asked before the item goes: the note's record of where it rings goes with it.
+        var rings = false
+        val (item, before, after) = changeItem(o) { now, l ->
+            rings = itemRingsHere(context, id, l)
+            removeLine(now, l.index)
+        }
+        Reminders.edited(context, id, id, before, after)
+        val task = Tasks.add(list.id, itemAsTask(item), ring = rings)
+        Notes.reloadNow()
+        return noteReply(id, JSONObject().put("list", list.name).put("task", taskJson(task, rings)))
+    }
+
+    /**
+     * A picture from the computer added to a note. The body is the picture itself, at most
+     * [Limits.PICTURE_BYTES]; the note is named in the address (never the token). Only a JPEG,
+     * PNG or WebP that reads through is kept, rewritten without Exif, GPS or anything else that
+     * is not the picture ([cleanUpload]), beside the note, the way a shared-in picture is kept.
+     */
+    private fun addPicture(session: IHTTPSession): Response {
+        val id = requireNote(JSONObject().put("id", session.parameters["id"]?.firstOrNull() ?: ""))
+        val declared = uploadLength(session.headers["content-length"])
+        val buffer = ByteArray(declared)
+        var read = 0
+        val input = session.inputStream
+        while (read < declared) {
+            val n = input.read(buffer, read, declared - read)
+            if (n <= 0) break
+            read += n
+        }
+        if (read != declared) throw Refusal(400, "short body")
+        val clean = cleanUpload(buffer)
+        // And the phone itself must be able to draw it.
+        val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        android.graphics.BitmapFactory.decodeByteArray(clean.bytes, 0, clean.bytes.size, bounds)
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) throw Refusal(415, "that picture could not be read")
+        Notes.addPicture(id, clean.bytes, clean.ext) ?: throw Refusal(404, "that note is gone")
+        Log.i(TAG, "a picture was added from the browser")
+        Notes.reloadNow()
+        return noteReply(id)
+    }
+
     private fun pinNote(o: JSONObject): Response {
         val id = requireNote(o)
         if (o.optBoolean("pinned") != (id in Notes.pins.value)) Notes.togglePin(id)
@@ -718,6 +824,16 @@ class DesktopServer(
         val item = requireTaskItem(o)
         Tasks.tick(item)
         return taskReply(Tasks.store.item(item.list, item.name))
+    }
+
+    /** To another list, as the task screen's List row does: only a list that can take tasks. */
+    private fun moveTask(o: JSONObject): Response {
+        val item = requireTaskItem(o)
+        val to = o.optString("to", "")
+        if (Tasks.writableLists().none { it.id == to }) throw Refusal(404, "that list cannot take tasks")
+        if (to == item.list) return taskReply(item)
+        val moved = Tasks.move(item, to) ?: throw Refusal(404, "that task is gone")
+        return json(200, JSONObject().put("list", to).put("task", taskJson(moved, Reminders.isTaskHere(context, moved.task.uid))))
     }
 
     private fun deleteTask(o: JSONObject): Response {

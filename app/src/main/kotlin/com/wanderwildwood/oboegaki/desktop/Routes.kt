@@ -23,6 +23,10 @@ val API_ROUTES: Set<Route> = setOf(
     Route("POST", "/api/notes/update"),
     Route("POST", "/api/notes/tick"),
     Route("POST", "/api/notes/additem"),
+    Route("POST", "/api/notes/removeitem"),
+    Route("POST", "/api/notes/itemreminder"),
+    Route("POST", "/api/notes/itemtotasks"),
+    Route("POST", "/api/notes/picture"),
     Route("POST", "/api/notes/pin"),
     Route("POST", "/api/notes/archive"),
     Route("POST", "/api/notes/move"),
@@ -34,6 +38,7 @@ val API_ROUTES: Set<Route> = setOf(
     Route("POST", "/api/tasks/update"),
     Route("POST", "/api/tasks/tick"),
     Route("POST", "/api/tasks/delete"),
+    Route("POST", "/api/tasks/move"),
     Route("POST", "/api/unpair"),
 )
 

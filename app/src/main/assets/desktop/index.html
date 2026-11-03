@@ -137,6 +137,25 @@ button.armed { color: var(--warn); font-weight: 700; }
 .note { color: var(--warn); font-size: 13px; margin: 6px 0; }
 .hint { color: var(--muted); font-size: 12.5px; margin: 4px 0; }
 .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--paper); padding: 9px 16px; border-radius: 4px; z-index: 90; max-width: 80vw; }
+.itemline { display: flex; align-items: flex-start; gap: 2px; }
+.itemline label.item, .itemline .itemtext { flex: 1; }
+.itemline button.more { padding: 0 6px; line-height: 1.4; color: var(--muted); }
+.itemline button.more:hover { color: var(--ink); }
+.itemmenu { border: 1px solid var(--ink); border-radius: 4px; padding: 4px 10px; margin: 2px 0 8px; font-size: 13px; }
+.itemmenu .row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 6px 0; }
+.itemmenu .row > label { color: var(--muted); }
+.itemmenu input[type=datetime-local] { width: auto; flex: 1; min-width: 170px; padding: 4px 6px; }
+.items { margin: 8px 0; }
+.items .itemtext { padding: 3px 0; overflow-wrap: anywhere; }
+.items .itemtext.done { text-decoration: line-through; color: var(--muted); }
+.card img, .modal img.pic { cursor: zoom-in; }
+.viewer { position: fixed; inset: 0; z-index: 80; background: var(--paper); display: flex; flex-direction: column; }
+.viewer:focus { outline: none; }
+.viewer .vbar { display: flex; gap: 8px; align-items: center; padding: 10px 16px; border-bottom: 3px solid var(--ink); }
+.viewer .vbar .grow { flex: 1; overflow-wrap: anywhere; font-weight: 700; }
+.viewer .vbody { flex: 1; overflow: auto; display: flex; }
+.viewer img.full { margin: auto; max-width: 100%; max-height: 100%; cursor: zoom-in; }
+.viewer img.full.zoom { max-width: none; max-height: none; cursor: zoom-out; }
 .pair { max-width: 380px; margin: 16vh auto; padding: 0 20px; text-align: center; }
 .pair h1 { margin: 0 0 4px; font-size: 20px; font-weight: 700; padding-bottom: 10px; border-bottom: 3px solid var(--ink); }
 .pair input { font-size: 22px; letter-spacing: .25em; text-align: center; margin: 14px 0 10px; }
@@ -193,13 +212,21 @@ button.armed { color: var(--warn); font-weight: 700; }
   function api(method, path, body) {
     var opts = { method: method, cache: "no-store", headers: { "Authorization": "Bearer " + S.token } };
     if (method === "POST") { opts.headers["X-Notes"] = "1"; opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body || {}); }
-    return fetch(path, opts).then(function (r) {
-      if (r.status === 401) { signOut(); throw new Error("signed out"); }
-      return r.json().catch(function () { return {}; }).then(function (j) {
-        if (!r.ok) { var e = new Error(j.error || ("error " + r.status)); e.status = r.status; throw e; }
-        return j;
-      });
+    return fetch(path, opts).then(reply);
+  }
+  function reply(r) {
+    if (r.status === 401) { signOut(); throw new Error("signed out"); }
+    return r.json().catch(function () { return {}; }).then(function (j) {
+      if (!r.ok) { var e = new Error(j.error || ("error " + r.status)); e.status = r.status; throw e; }
+      return j;
     });
+  }
+  // A picture from this computer, sent as it is; the phone keeps only a clean copy (no location,
+  // no camera details). The note is named in the address, the token only in the header.
+  var PICTURE_TYPES = ["image/jpeg", "image/png", "image/webp"], PICTURE_BYTES = 8 * 1024 * 1024;
+  function upload(noteId, file) {
+    return fetch("/api/notes/picture?id=" + encodeURIComponent(noteId), { method: "POST", cache: "no-store",
+      headers: { "Authorization": "Bearer " + S.token, "X-Notes": "1", "Content-Type": "application/octet-stream" }, body: file }).then(reply);
   }
   function signOut() { var had = !!S.token; S.token = null; store("notes.token", null); closeSocket(); S.wasSignedOut = had; draw(); }
 
@@ -296,6 +323,63 @@ button.armed { color: var(--warn); font-weight: 700; }
       .then(function (r) { if (!r.ok) throw 0; return r.blob(); })
       .then(function (b) { pics[key] = URL.createObjectURL(b); show(pics[key]); })
       .catch(function () { into.alt = name; });
+  }
+
+  // A picture full size, over the whole window: it opens fitted, a click shows it at its own
+  // size (scroll to move about), another fits it again. Esc or Close shuts it.
+  function openViewer(n, name) {
+    var img = h("img", { alt: name, class: "full" });
+    picture(n, name, img);
+    var zoomed = false;
+    function fit() { img.classList.toggle("zoom", zoomed); img.title = zoomed ? "Click to fit the window" : "Click for full size"; }
+    img.addEventListener("click", function () { zoomed = !zoomed; fit(); });
+    var v = h("div", { class: "viewer", role: "dialog", "aria-label": name, tabIndex: -1 },
+      h("div", { class: "vbar" }, h("span", { class: "grow", text: name }),
+        h("button", { class: "quiet", text: "Full size / fit", onclick: function () { zoomed = !zoomed; fit(); } }),
+        h("button", { text: "Close", onclick: shut })),
+      h("div", { class: "vbody" }, img));
+    function shut() { v.remove(); }
+    v.addEventListener("keydown", function (e) { if (e.key === "Escape") { e.stopPropagation(); shut(); } });
+    document.body.appendChild(v); fit(); v.focus();
+  }
+
+  // ---------------------------------------------------------------- one checklist item (the phone's hold-an-item menu)
+  function pad2(x) { return (x < 10 ? "0" : "") + x; }
+  function inputTime(d) { return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()) + "T" + pad2(d.getHours()) + ":" + pad2(d.getMinutes()); }
+  function defaultList() { var l = S.taskLists.filter(function (x) { return x.id === S.defaultTaskList; })[0]; return l && !l.readOnly ? l : null; }
+  // An item with a ⋯ beside it that opens its actions: Remind me (a day and time), Move to
+  // Tasks, Remove. [run](path, fields, said) sends one of them to the phone for this item.
+  function itemLine(it, content, run) {
+    var menu = null;
+    var more = h("button", { class: "more", text: "⋯", title: "Remind, move to Tasks, remove", "aria-label": "More for " + it.text, "aria-expanded": "false", onclick: function () {
+      if (menu) { menu.remove(); menu = null; more.setAttribute("aria-expanded", "false"); return; }
+      menu = itemMenu(it, run); wrap.appendChild(menu); more.setAttribute("aria-expanded", "true");
+    } });
+    var wrap = h("div", { class: "itemwrap" }, h("div", { class: "itemline" }, content, more));
+    return wrap;
+  }
+  function itemMenu(it, run) {
+    var next = new Date(); next.setMinutes(0, 0, 0); next.setHours(next.getHours() + 1);
+    var when = h("input", { type: "datetime-local", value: it.reminder ? it.reminder.replace(" ", "T") : inputTime(next), "aria-label": "Reminder for " + it.text });
+    function remind(v) { run("/api/notes/itemreminder", { reminder: v }, v ? "Reminder set for " + v + ". It rings on the phone." : "Reminder taken off."); }
+    var rows = [h("div", { class: "row" }, h("label", { text: "Remind me" }), when,
+      h("button", { class: "solid", text: "Set", onclick: function () {
+        if (!when.value) return;
+        if (new Date(when.value) <= new Date()) { toast("That time has gone by."); return; }
+        remind(when.value.replace("T", " ").slice(0, 16));
+      } }),
+      it.reminder ? h("button", { class: "quiet", text: "Take the reminder off", onclick: function () { remind(null); } }) : null)];
+    var to = defaultList();
+    if (to) rows.push(h("div", { class: "row" }, h("button", { class: "pill", text: "Move to Tasks · " + to.name,
+      title: "It leaves this note and becomes a task; its reminder becomes the due time.",
+      onclick: function () { run("/api/notes/itemtotasks", {}, "Moved to " + to.name + "."); } })));
+    var armed = false, timer = null;
+    var rm = h("button", { class: "quiet", text: "Remove item", onclick: function () {
+      if (!armed) { armed = true; rm.textContent = "Tap again to remove"; rm.classList.add("armed"); timer = setTimeout(function () { armed = false; rm.textContent = "Remove item"; rm.classList.remove("armed"); }, 6000); return; }
+      clearTimeout(timer); run("/api/notes/removeitem", {}, "Item removed.");
+    } });
+    rows.push(h("div", { class: "row" }, rm));
+    return h("div", { class: "itemmenu" }, rows);
   }
 
   // ---------------------------------------------------------------- voice notes and scans
@@ -504,12 +588,12 @@ button.armed { color: var(--warn); font-weight: 700; }
 
   function card(n) {
     var c = h("article", { class: "card", tabIndex: 0 });
-    c.addEventListener("click", function (e) { if (e.target.closest("button, input, label, a")) return; editNote(n); });
+    c.addEventListener("click", function (e) { if (e.target.closest("button, input, label, a, img, .itemmenu")) return; editNote(n); });
     c.addEventListener("keydown", function (e) { if (e.key === "Enter" && e.target === c) editNote(n); });
     if (n.title) c.appendChild(h("h4", { text: n.title }));
     var lines = n.body.split("\n"), items = n.items.slice(), shown = 0, cut = false;
     var firstPic = n.pictures[0];
-    if (firstPic) { var img = h("img", { alt: "" }); picture(n, firstPic, img); c.appendChild(img); }
+    if (firstPic) { var img = h("img", { alt: "", title: "Full size", onclick: function () { openViewer(n, firstPic); } }); picture(n, firstPic, img); c.appendChild(img); }
     for (var i = 0; i < lines.length; i++) {
       var raw = lines[i];
       if (/^\s*!\[\[.*\]\]\s*$/.test(raw)) continue;
@@ -557,7 +641,12 @@ button.armed { color: var(--warn); font-weight: 700; }
     box.addEventListener("change", function () {
       act(api("POST", "/api/notes/tick", { id: n.id, line: it.line, expect: it.text }), function (j) { replaceNote(j.note); redraw(); }, function () { load(true); });
     });
-    return h("label", { class: "item" + (it.done ? " done" : "") }, box, h("span", { text: it.text + (it.reminder ? "  ⏰ " + it.reminder : "") }));
+    var label = h("label", { class: "item" + (it.done ? " done" : "") }, box, h("span", { text: it.text + (it.reminder ? "  ⏰ " + it.reminder : "") }));
+    if (n.archived) return label;
+    return itemLine(it, label, function (path, fields, said) {
+      fields.id = n.id; fields.line = it.line; fields.expect = it.text;
+      return act(api("POST", path, fields), function (j) { replaceNote(j.note); redraw(); toast(said); if (j.task) load(true); }, function (e) { if (e.status === 409) load(true); });
+    });
   }
   function redraw() { drawSide(); drawMain(); }
   function act(p, ok, fail) {
@@ -665,7 +754,7 @@ button.armed { color: var(--warn); font-weight: 700; }
         if (j.conflict === "kept-both") toast("This note was also edited on the phone. Both versions are kept: the phone's is at the end under “Edited elsewhere”.");
         else if (j.conflict === "merged") toast("This note was also edited on the phone. The two edits were joined.");
         if (thenClose) { closeModal(); redraw(); }
-        else { base = { id: j.note.id, v: j.note.v, text: j.note.body, title: j.note.title }; original = { title: title.value, body: body.value, rem: rem.value }; redraw(); }
+        else { base = { id: j.note.id, v: j.note.v, text: j.note.body, title: j.note.title }; original = { title: title.value, body: body.value, rem: rem.value }; if (n) n = j.note; drawItems(); redraw(); }
       }, function () { });
     }
     function close() { save(true).then(function () { }); }
@@ -688,17 +777,66 @@ button.armed { color: var(--warn); font-weight: 700; }
     } }) : null;
 
     var pics = h("div", null);
-    if (n) n.pictures.forEach(function (p) { var img = h("img", { alt: "", class: "pic" }); picture(n, p, img); pics.appendChild(img); });
-    if (n) n.recordings.forEach(function (r) { pics.appendChild(player(n, r, false)); });
-    if (n) n.scans.forEach(function (r) { pics.appendChild(scanRow(n, r)); });
+    function drawPics() {
+      pics.textContent = "";
+      if (!n) return;
+      var at = n;
+      at.pictures.forEach(function (p) { var img = h("img", { alt: "", class: "pic", title: "Full size", onclick: function () { openViewer(at, p); } }); picture(at, p, img); pics.appendChild(img); });
+      at.recordings.forEach(function (r) { pics.appendChild(player(at, r, false)); });
+      at.scans.forEach(function (r) { pics.appendChild(scanRow(at, r)); });
+    }
+    drawPics();
+
+    // After the phone changed this note for an item or a picture: show what it now holds.
+    function took(j) {
+      replaceNote(j.note, base.id); n = j.note;
+      base = { id: n.id, v: n.v, text: n.body, title: n.title };
+      body.value = n.body; original.body = body.value;
+      drawItems(); redraw();
+    }
+
+    // Each item with its ⋯ (Remind me, Move to Tasks, Remove), as on the card. What is typed is
+    // saved first, then the item is asked for by its words in the note as the phone has it.
+    var items = h("div", { class: "items" });
+    function drawItems() {
+      items.textContent = "";
+      var cur = n && (noteById(base.id) || n);
+      if (!cur || cur.archived || !cur.items.length) return;
+      items.appendChild(h("div", { class: "hint", text: "Items" }));
+      cur.items.forEach(function (it) {
+        var words = h("div", { class: "itemtext" + (it.done ? " done" : ""), text: it.text + (it.reminder ? "  ⏰ " + it.reminder : "") });
+        items.appendChild(itemLine(it, words, function (path, fields, said) {
+          return save(false).then(function () {
+            var now = (noteById(base.id) || n).items.filter(function (x) { return x.text === it.text; })[0];
+            if (!now) { toast("That item has changed."); drawItems(); return; }
+            fields.id = base.id; fields.line = now.line; fields.expect = now.text;
+            return act(api("POST", path, fields), function (j) { took(j); toast(said); if (j.task) load(true); }, function (e) { if (e.status === 409) load(true); });
+          });
+        }));
+      });
+    }
+
+    // A picture from this computer, at the end of the note (JPEG, PNG or WebP, up to 8 MB).
+    var chooser = h("input", { type: "file", accept: PICTURE_TYPES.join(","), hidden: true, "aria-hidden": "true" });
+    var picBtn = n && !n.archived ? h("button", { text: "Add picture", title: "JPEG, PNG or WebP, up to 8 MB. The phone keeps it without its location or camera details.", onclick: function () { chooser.click(); } }) : null;
+    chooser.addEventListener("change", function () {
+      var f = chooser.files && chooser.files[0]; chooser.value = "";
+      if (!f) return;
+      if (PICTURE_TYPES.indexOf(f.type) < 0) { toast("Only a JPEG, PNG or WebP picture can be added."); return; }
+      if (f.size > PICTURE_BYTES) { toast("That picture is over 8 MB."); return; }
+      picBtn.disabled = true; picBtn.textContent = "Adding…";
+      save(false).then(function () {
+        return act(upload(base.id, f), function (j) { took(j); drawPics(); toast("Picture added, without its location or camera details."); });
+      }).then(function () { picBtn.disabled = false; picBtn.textContent = "Add picture"; });
+    });
 
     var m = h("div", { class: "modal", role: "dialog", "aria-label": "Note" },
       warn, title, body,
-      pics,
-      h("div", { class: "hint", text: "A line starting “- [ ] ” is a checklist item. Put “⏰ 2026-10-08 17:00” at the end of an item for a reminder on that item." }),
+      pics, chooser, items,
+      h("div", { class: "hint", text: "A line starting “- [ ] ” is a checklist item. The ⋯ beside an item sets its reminder, moves it to Tasks, or removes it." }),
       h("div", { class: "row" }, h("label", { text: "Reminder" }), rem, h("button", { class: "quiet", text: "Clear", onclick: function () { rem.value = ""; } })),
       h("div", { class: "row" }, h("label", { text: "Folder" }), isNew || !n.archived ? folder : h("span", { text: n.folder || "Top level" })),
-      h("div", { class: "bar" }, toggleList, addItem, pinBtn, shareBtn, archBtn, delBtn, h("span", { class: "grow" }),
+      h("div", { class: "bar" }, toggleList, addItem, picBtn, pinBtn, shareBtn, archBtn, delBtn, h("span", { class: "grow" }),
         h("button", { text: "Close", onclick: close }), h("button", { class: "solid", text: "Save", onclick: function () { save(true); } })),
       shareBox);
     var scrim = h("div", { class: "scrim" }, m);
@@ -708,11 +846,13 @@ button.armed { color: var(--warn); font-weight: 700; }
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") save(true);
     });
     modal = scrim; document.body.appendChild(scrim);
+    drawItems();
     (isNew ? (asList ? body : title) : body).focus();
     // If the phone changes this note while it is open, say so; the save then joins the two.
     scrim.noteChanged = function () {
       var now = n && noteById(base.id);
       if (now && now.v !== base.v) { warn.hidden = false; warn.textContent = "This note changed on the phone while it was open. Saving will keep both versions."; }
+      drawItems();
     };
   }
 
@@ -815,17 +955,27 @@ button.armed { color: var(--warn); font-weight: 700; }
     var pri = h("select", null, [[0, "None"], [9, "Low"], [5, "Medium"], [1, "High"]].map(function (p) { return h("option", { value: String(p[0]), text: p[1] }); }));
     pri.value = String(i.priority === 0 ? 0 : i.priority <= 4 ? 1 : i.priority === 5 ? 5 : 9);
     var rings = h("input", { type: "checkbox", checked: i.rings });
+    // Another list, as the phone's List row: only lists that can take tasks, and only if there is more than one.
+    var writable = S.taskLists.filter(function (x) { return !x.readOnly; });
+    var inList = h("select", { "aria-label": "List" }, writable.map(function (x) { return h("option", { value: x.id, text: x.name }); }));
+    inList.value = l.id;
     var from = { summary: i.summary, description: i.description, due: i.due, priority: i.priority, done: i.done };
     function save() {
       var due = day.value ? (time.value ? day.value + "T" + time.value : day.value) : null;
       var to = { summary: summary.value, description: desc.value, due: due, priority: parseInt(pri.value, 10) };
       if (pri.value === String(from.priority === 0 ? 0 : from.priority <= 4 ? 1 : from.priority === 5 ? 5 : 9)) to.priority = from.priority;
-      act(api("POST", "/api/tasks/update", { list: l.id, name: i.name, from: from, to: to, rings: rings.checked }), function () { closeModal(); load(true); });
+      // Moved first, then the fields written, in the order the phone's task screen does it.
+      var where = inList.value && inList.value !== l.id
+        ? api("POST", "/api/tasks/move", { list: l.id, name: i.name, to: inList.value }).then(function (j) { return { list: j.task.list, name: j.task.name }; })
+        : Promise.resolve({ list: l.id, name: i.name });
+      act(where.then(function (w) { return api("POST", "/api/tasks/update", { list: w.list, name: w.name, from: from, to: to, rings: rings.checked }); }),
+        function () { closeModal(); load(true); }, function () { load(true); });
     }
     var m = h("div", { class: "modal", role: "dialog", "aria-label": "Task" },
       h("div", { class: "title", text: "Task in " + l.name }), summary, h("div", { class: "row" }, desc),
       h("div", { class: "row" }, h("label", { text: "Due" }), day, time, h("button", { class: "quiet", text: "Clear", onclick: function () { day.value = ""; time.value = ""; } })),
       h("div", { class: "row" }, h("label", { text: "Priority" }), pri),
+      writable.length > 1 ? h("div", { class: "row" }, h("label", { text: "List" }), inList) : null,
       h("div", { class: "row" }, h("label", { text: "Rings" }), rings, h("span", { class: "hint", text: "Ring on the phone when it is due (needs a time)." })),
       i.repeats ? h("div", { class: "hint", text: "It repeats. Ticking it moves it on to the next time." }) : null,
       h("div", { class: "bar" }, h("span", { class: "grow" }), h("button", { text: "Close", onclick: closeModal }), h("button", { class: "solid", text: "Save", onclick: save })));

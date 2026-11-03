@@ -82,4 +82,13 @@ class ChecklistTest {
         assertEquals(null, recordingOn("![[scan.pdf]]"))
         assertEquals(null, recordingOn("see ![[Voice 0200.m4a]] here"))
     }
+
+    @Test
+    fun aPictureGoesAtTheEndAsItsOwnParagraph() {
+        assertEquals("![[Garden.jpg]]\n", withPicture("", "Garden.jpg"))
+        assertEquals("# Garden\n- [ ] kiln\n\n![[Garden.jpg]]\n", withPicture("# Garden\n- [ ] kiln\n", "Garden.jpg"))
+        assertEquals("words\n\n![[a 2.png]]\n", withPicture("words\n\n\n", "a 2.png"))
+        assertEquals(listOf("Garden.jpg"), embeds(withPicture("words", "Garden.jpg")))
+        assertEquals("Garden.jpg", pictureOn(withPicture("words", "Garden.jpg").lines().last { it.isNotBlank() }))
+    }
 }
