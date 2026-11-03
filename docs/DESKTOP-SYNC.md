@@ -87,8 +87,11 @@ What the app does not have is not invented: there are no colours and no labels. 
 a note to the trash, exactly as on the phone, and can be undone from the page's *Trash*; *Delete
 forever* and *Empty trash* are permanent, and the page asks first.
 
-**Voice notes and scans.** A voice note plays in the browser, with seeking: in an open note, and
-from the *Voice note* button on its card. A scan's PDF opens in a new tab in the browser's own
+**Voice notes and scans.** A voice note plays in the browser, with seeking. On a card its *Play
+voice note* button sits where the recording is in the note, so the words the phone wrote under it
+(`Notes.addUnder`) follow it; the recording is fetched only when it is pressed. In an open note
+each recording has its player with its transcript under it (the paragraph after its line; it is
+body text, so it is corrected in the text above), or a line saying the phone has not listened yet. A scan's PDF opens in a new tab in the browser's own
 PDF viewer (*Open*), or is saved (*Save*). Both come through `GET /api/media` with the token in
 the `Authorization` header like every other route. There is no link with a token in it, so the
 page fetches the file and plays or shows it from memory (a `blob:` address), which is also what

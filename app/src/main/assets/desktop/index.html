@@ -431,6 +431,23 @@ button.armed { color: var(--warn); font-weight: 700; }
     mediaUrl(n, name).then(function (u) { var a = h("a", { href: u, download: name }); document.body.appendChild(a); a.click(); a.remove(); })
       .catch(function (e) { if (e.message !== "signed out") toast("Could not fetch " + name + ": " + e.message); });
   }
+  // On a card: a button where the recording sits, which becomes its player when pressed (the
+  // recording is fetched only then).
+  function voiceLine(n, name) {
+    var box = h("div", { class: "voiceline" });
+    box.appendChild(h("button", { class: "pill", text: "▶ Play voice note", title: "Play " + name, onclick: function () { box.replaceChildren(player(n, name, true)); } }));
+    return box;
+  }
+  // The words the phone wrote under a recording: the paragraph after its line in the note.
+  function transcriptOf(body, name) {
+    var lines = body.split("\n"), at = -1;
+    for (var i = 0; i < lines.length; i++) { var m = /^\s*!\[\[([^\]|]+)(?:\|[^\]]*)?\]\]\s*$/.exec(lines[i]); if (m && m[1].trim() === name) { at = i; break; } }
+    if (at < 0) return "";
+    var out = [], j = at + 1;
+    while (j < lines.length && !lines[j].trim()) j++;
+    for (; j < lines.length && lines[j].trim() && !/^\s*!\[\[/.test(lines[j]) && !TASK.test(lines[j]); j++) out.push(lines[j]);
+    return out.join("\n");
+  }
   function scanRow(n, name) {
     return h("div", { class: "scan" }, h("span", { class: "hint", text: "Scan · " + name }),
       h("button", { class: "pill", text: "Open " + name, onclick: function () { openScan(n, name); } }),
@@ -761,9 +778,16 @@ button.armed { color: var(--warn); font-weight: 700; }
     var lines = n.body.split("\n"), items = n.items.slice(), shown = 0, cut = false;
     var firstPic = n.pictures[0];
     if (firstPic) { var img = h("img", { alt: "", title: "Full size", onclick: function () { openViewer(n, firstPic); } }); picture(n, firstPic, img); c.appendChild(img); }
+    var placed = {};
     for (var i = 0; i < lines.length; i++) {
       var raw = lines[i];
-      if (/^\s*!\[\[.*\]\]\s*$/.test(raw)) continue;
+      var em = /^\s*!\[\[([^\]|]+)(?:\|[^\]]*)?\]\]\s*$/.exec(raw);
+      if (em) {
+        // A voice note plays where it sits in the note, so its words (the phone writes them under it) follow it.
+        var rec = em[1].trim();
+        if (n.recordings.indexOf(rec) >= 0 && !placed[rec] && shown < 14) { placed[rec] = true; c.appendChild(voiceLine(n, rec)); shown++; }
+        continue;
+      }
       var t = TASK.exec(raw);
       if (t) {
         var it = items.shift(); if (!it) continue;
@@ -784,6 +808,7 @@ button.armed { color: var(--warn); font-weight: 700; }
     if (n.folder) chips.appendChild(h("span", { class: "chip", text: n.folder }));
     var playing = h("div", null);
     n.recordings.forEach(function (r) {
+      if (placed[r]) return;
       chips.appendChild(h("button", { class: "chip", text: "▶ Voice note", title: "Play " + r, onclick: function () { if (!playing.firstChild) playing.appendChild(player(n, r, true)); } }));
     });
     n.scans.forEach(function (r) { chips.appendChild(h("button", { class: "chip", text: "Open scan", title: "Open " + r + " in a new tab", onclick: function () { openScan(n, r); } })); });
@@ -947,7 +972,12 @@ button.armed { color: var(--warn); font-weight: 700; }
       if (!n) return;
       var at = n;
       at.pictures.forEach(function (p) { var img = h("img", { alt: "", class: "pic", title: "Full size", onclick: function () { openViewer(at, p); } }); picture(at, p, img); pics.appendChild(img); });
-      at.recordings.forEach(function (r) { pics.appendChild(player(at, r, false)); });
+      at.recordings.forEach(function (r) {
+        pics.appendChild(player(at, r, false));
+        var words = transcriptOf(at.body, r);
+        pics.appendChild(words ? h("div", { class: "transcript", text: words, title: "The phone's transcript; it is part of the note, so it can be corrected above." })
+          : h("div", { class: "hint", text: "No words yet: the phone writes them under the recording once it has listened." }));
+      });
       at.scans.forEach(function (r) { pics.appendChild(scanRow(at, r)); });
     }
     drawPics();
