@@ -72,3 +72,23 @@ internal fun DottedRule(modifier: Modifier = Modifier, start: androidx.compose.u
         )
     }
 }
+
+/**
+ * Whether the window is short: the phone turned on its side, where the Kompakt is about 360 dp
+ * tall (600 dp upright). Screens give up fixed heights and floating buttons' room by this.
+ */
+fun isShortWindow(heightDp: Int): Boolean = heightDp < SHORT_WINDOW_DP
+
+private const val SHORT_WINDOW_DP = 480
+
+/** How tall a dialog's own list may be: [wanted], and no more than what is left once the dialog's frame and the bar above it are allowed for. */
+fun dialogListHeightDp(wanted: Int, windowHeightDp: Int): Int = wanted.coerceAtMost((windowHeightDp - DIALOG_FRAME_DP).coerceAtLeast(MIN_DIALOG_LIST_DP))
+
+private const val DIALOG_FRAME_DP = 120
+private const val MIN_DIALOG_LIST_DP = 120
+
+@Composable
+fun rememberShortWindow(): Boolean = isShortWindow(androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp)
+
+@Composable
+fun rememberWindowHeightDp(): Int = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp

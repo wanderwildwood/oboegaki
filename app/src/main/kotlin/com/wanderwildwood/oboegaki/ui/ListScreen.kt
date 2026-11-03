@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -192,6 +193,9 @@ fun ListScreen(
                 PagedColumn(
                     modifier = Modifier.fillMaxSize(),
                     state = listState,
+                    // Sideways the buttons stand in a column at the right edge of a wide screen:
+                    // the rows end before them rather than run under.
+                    contentPadding = if (rememberShortWindow() && !searching && !keyboardUp) PaddingValues(end = FAB_ROOM) else PaddingValues(0.dp),
                     onPullAtTop = if (onPull != null) pull::pull else null,
                 ) {
                     // A dotted rule under every row but the last, as Contacts draws its list.
@@ -292,7 +296,7 @@ private fun ViewDialog(
     onDismiss: () -> Unit,
 ) {
     EInkDialog(onDismiss = onDismiss) {
-        PagedColumn(modifier = Modifier.fillMaxWidth().height(440.dp)) {
+        PagedColumn(modifier = Modifier.fillMaxWidth().height(dialogListHeightDp(440, rememberWindowHeightDp()).dp)) {
             item { DialogHeading(stringResource(R.string.view_show)) }
             item { Choice(stringResource(R.string.view_all), showing == Showing.ALL) { onChoose(Showing.ALL, order) } }
             item { Choice(stringResource(R.string.view_lists), showing == Showing.LISTS) { onChoose(Showing.LISTS, order) } }
@@ -421,5 +425,8 @@ private fun NoteRow(note: Note, isShared: Boolean, isPinned: Boolean, showFolder
         }
     }
 }
+
+/** The width the floating buttons take at the right edge: 56 dp and their margin. */
+private val FAB_ROOM = 72.dp
 
 /** Room under the list for the three buttons that float over its foot; the page dots stop above it. */

@@ -34,7 +34,7 @@ class Preferences(context: Context) {
         get() = store.getBoolean("turnWithPhone", true)
         set(value) = store.edit().putBoolean("turnWithPhone", value).apply()
 
-    /** How big the words are: 0 small, 1 medium, 2 large. */
+    /** How big the words are: 0 smaller, 1 standard, 2 larger. */
     var textSize: Int
         get() = store.getInt("textSize", 1).coerceIn(0, 2)
         set(value) = store.edit().putInt("textSize", value.coerceIn(0, 2)).apply()

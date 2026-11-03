@@ -6,6 +6,9 @@ import android.provider.CalendarContract
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -416,35 +419,45 @@ private fun Writing(
     onRemind: () -> Unit,
 ) {
     val focusBody = remember { FocusRequester() }
-    TextFieldMMD(
-        value = title,
-        onValueChange = { onTitle(it.replace("\n", "")) },
-        modifier = Modifier.fillMaxWidth().textActions(),
-        textStyle = MaterialTheme.typography.titleLarge,
-        placeholder = { TextMMD(text = stringResource(R.string.note_title_hint), style = MaterialTheme.typography.titleLarge) },
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Next),
-        keyboardActions = KeyboardActions(onNext = { focusBody.requestFocus() }),
-    )
-    if (reminder != null) {
-        ReminderLabel(reminder, onClick = onRemind, modifier = Modifier.padding(start = 16.dp, top = 6.dp, bottom = 2.dp))
+    // On its side the window is about 360 dp tall, and the title, the bar and the keyboard leave
+    // the page a few lines: title and page then move together, and the page grows with its words.
+    val short = rememberShortWindow()
+    val form: @Composable () -> Unit = {
+        TextFieldMMD(
+            value = title,
+            onValueChange = { onTitle(it.replace("\n", "")) },
+            modifier = Modifier.fillMaxWidth().textActions(),
+            textStyle = MaterialTheme.typography.titleLarge,
+            placeholder = { TextMMD(text = stringResource(R.string.note_title_hint), style = MaterialTheme.typography.titleLarge) },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Next),
+            keyboardActions = KeyboardActions(onNext = { focusBody.requestFocus() }),
+        )
+        if (reminder != null) {
+            ReminderLabel(reminder, onClick = onRemind, modifier = Modifier.padding(start = 16.dp, top = 6.dp, bottom = 2.dp))
+        }
+        Spacer(Modifier.height(8.dp))
+        TextField(
+            value = body,
+            onValueChange = onBody,
+            modifier = (if (short) Modifier.fillMaxWidth().defaultMinSize(minHeight = 240.dp) else Modifier.fillMaxSize()).focusRequester(focusBody).textActions(body, onBody),
+            textStyle = MaterialTheme.typography.bodyLarge,
+            placeholder = { TextMMD(text = stringResource(R.string.note_body_hint), style = MaterialTheme.typography.bodyLarge) },
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+            // Not TextFieldMMD: its rule beneath belongs under a field, and this is the page.
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                focusedIndicatorColor = MaterialTheme.colorScheme.surface,
+                unfocusedIndicatorColor = MaterialTheme.colorScheme.surface,
+            ),
+        )
     }
-    Spacer(Modifier.height(8.dp))
-    TextField(
-        value = body,
-        onValueChange = onBody,
-        modifier = Modifier.fillMaxSize().focusRequester(focusBody).textActions(body, onBody),
-        textStyle = MaterialTheme.typography.bodyLarge,
-        placeholder = { TextMMD(text = stringResource(R.string.note_body_hint), style = MaterialTheme.typography.bodyLarge) },
-        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-        // Not TextFieldMMD: its rule beneath belongs under a field, and this is the page.
-        colors = TextFieldDefaults.colors(
-            focusedContainerColor = MaterialTheme.colorScheme.surface,
-            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-            focusedIndicatorColor = MaterialTheme.colorScheme.surface,
-            unfocusedIndicatorColor = MaterialTheme.colorScheme.surface,
-        ),
-    )
+    if (short) {
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) { form() }
+    } else {
+        form()
+    }
     if (focus) {
         LaunchedEffect(Unit) { focusBody.requestFocus() }
     }

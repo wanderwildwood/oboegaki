@@ -128,7 +128,7 @@ class MainActivity : ComponentActivity() {
         Voice.init(this)
         if (savedInstanceState == null) capture.value = captureFrom(intent)
         setContent {
-            // Small, Medium or Large: the text scale, for everything inside, dialogs too.
+            // Smaller, Standard or Larger: the text scale, for everything inside, dialogs too.
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, density.fontScale * TextSize.factor())) {
                 ThemeMMD(colorScheme = monochrome) {

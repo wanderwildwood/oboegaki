@@ -522,39 +522,53 @@ internal fun Leave(label: String, confirm: String, onConfirm: () -> Unit) {
 private fun KeptDialog(onDone: (to: Keeping, bring: Boolean) -> Unit, onDismiss: () -> Unit) {
     var bring by remember { mutableStateOf(true) }
     EInkDialog(onDismiss = onDismiss) {
-        TextMMD(text = stringResource(R.string.setup_where), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-        Spacer(Modifier.height(16.dp))
-        ButtonMMD(onClick = { onDone(Keeping.NEXTCLOUD, bring) }, modifier = Modifier.fillMaxWidth().height(48.dp)) {
-            TextMMD(text = stringResource(R.string.setup_nextcloud))
+        // Pages by whole rows, so on its side, where the dialog is taller than the window, the
+        // last choices are a page turn away rather than cut off.
+        PagedColumn(modifier = Modifier.fillMaxWidth().heightIn(max = dialogListHeightDp(MAX_KEPT_DP, rememberWindowHeightDp()).dp)) {
+            item {
+                TextMMD(text = stringResource(R.string.setup_where), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                Spacer(Modifier.height(16.dp))
+                ButtonMMD(onClick = { onDone(Keeping.NEXTCLOUD, bring) }, modifier = Modifier.fillMaxWidth().height(48.dp)) {
+                    TextMMD(text = stringResource(R.string.setup_nextcloud))
+                }
+            }
+            item {
+                Spacer(Modifier.height(8.dp))
+                OutlinedButtonMMD(onClick = { onDone(Keeping.WEBDAV, bring) }, modifier = Modifier.fillMaxWidth().height(48.dp)) {
+                    TextMMD(text = stringResource(R.string.setup_webdav))
+                }
+            }
+            item {
+                Spacer(Modifier.height(8.dp))
+                OutlinedButtonMMD(onClick = { onDone(Keeping.FOLDER, bring) }, modifier = Modifier.fillMaxWidth().height(48.dp)) {
+                    TextMMD(text = stringResource(R.string.setup_folder))
+                }
+                Spacer(Modifier.height(12.dp))
+            }
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { bring = !bring }
+                        .heightIn(min = 48.dp)
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    TextMMD(
+                        text = stringResource(R.string.settings_bring),
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Spacer(Modifier.width(16.dp))
+                    SwitchMMD(checked = bring, onCheckedChange = null)
+                }
+                TextMMD(text = stringResource(R.string.settings_bring_note), style = MaterialTheme.typography.labelSmall)
+            }
         }
-        Spacer(Modifier.height(8.dp))
-        OutlinedButtonMMD(onClick = { onDone(Keeping.WEBDAV, bring) }, modifier = Modifier.fillMaxWidth().height(48.dp)) {
-            TextMMD(text = stringResource(R.string.setup_webdav))
-        }
-        Spacer(Modifier.height(8.dp))
-        OutlinedButtonMMD(onClick = { onDone(Keeping.FOLDER, bring) }, modifier = Modifier.fillMaxWidth().height(48.dp)) {
-            TextMMD(text = stringResource(R.string.setup_folder))
-        }
-        Spacer(Modifier.height(12.dp))
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { bring = !bring }
-                .heightIn(min = 48.dp)
-                .padding(vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            TextMMD(
-                text = stringResource(R.string.settings_bring),
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.weight(1f),
-            )
-            Spacer(Modifier.width(16.dp))
-            SwitchMMD(checked = bring, onCheckedChange = null)
-        }
-        TextMMD(text = stringResource(R.string.settings_bring_note), style = MaterialTheme.typography.labelSmall)
     }
 }
+
+private const val MAX_KEPT_DP = 400
 
 /**
  * The language voice notes are heard in. A language that needs the download asks first, with
