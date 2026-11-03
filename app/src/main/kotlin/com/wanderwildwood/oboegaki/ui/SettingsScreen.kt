@@ -420,9 +420,12 @@ fun SettingsScreen(
     }
 
     if (choosingFolder) {
-        NewFolderDialog(
+        FolderDialog(
+            heading = stringResource(R.string.settings_new_in),
+            note = stringResource(R.string.settings_new_note),
             current = newFolder,
             folders = folders(Notes.list.value),
+            useLabel = stringResource(R.string.settings_new_use),
             onDone = { folder ->
                 choosingFolder = false
                 if (folder != null) {
@@ -605,11 +608,18 @@ private fun SpeechDialog(current: String, onDone: (String?) -> Unit) {
 }
 
 /**
- * Where new notes go: the top, a folder the notes already have, or a new one typed in, which is
- * made with the first note put there.
+ * A folder: the top, one the notes already have, or a new one typed in, which is made with the
+ * first note put there. Where new notes go, in settings; where a note moves to, from the note.
  */
 @Composable
-private fun NewFolderDialog(current: String, folders: List<String>, onDone: (String?) -> Unit) {
+internal fun FolderDialog(
+    heading: String,
+    note: String?,
+    current: String,
+    folders: List<String>,
+    useLabel: String,
+    onDone: (String?) -> Unit,
+) {
     var typed by remember { mutableStateOf("") }
     var refused by remember { mutableStateOf(false) }
     fun useTyped() {
@@ -617,9 +627,11 @@ private fun NewFolderDialog(current: String, folders: List<String>, onDone: (Str
         if (clean == null) refused = true else onDone(clean)
     }
     EInkDialog(onDismiss = { onDone(null) }) {
-        TextMMD(text = stringResource(R.string.settings_new_in), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-        Spacer(Modifier.height(4.dp))
-        TextMMD(text = stringResource(R.string.settings_new_note), style = MaterialTheme.typography.labelSmall)
+        TextMMD(text = heading, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+        if (note != null) {
+            Spacer(Modifier.height(4.dp))
+            TextMMD(text = note, style = MaterialTheme.typography.labelSmall)
+        }
         PagedColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 220.dp)) {
             item { FolderChoice(stringResource(R.string.settings_new_top), current.isEmpty()) { onDone("") } }
             for (folder in folders) {
@@ -645,13 +657,13 @@ private fun NewFolderDialog(current: String, folders: List<String>, onDone: (Str
         }
         Spacer(Modifier.height(12.dp))
         ButtonMMD(onClick = { useTyped() }, enabled = typed.isNotBlank(), modifier = Modifier.fillMaxWidth().height(48.dp)) {
-            TextMMD(text = stringResource(R.string.settings_new_use))
+            TextMMD(text = useLabel)
         }
     }
 }
 
 @Composable
-private fun FolderChoice(label: String, chosen: Boolean, onClick: () -> Unit) {
+internal fun FolderChoice(label: String, chosen: Boolean, onClick: () -> Unit) {
     TextMMD(
         text = label,
         style = MaterialTheme.typography.bodyLarge,

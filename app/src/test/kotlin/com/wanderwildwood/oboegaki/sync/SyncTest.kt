@@ -367,4 +367,50 @@ class SyncTest {
         his.sync.run(server)
         assertTrue(server.files.isEmpty())
     }
+
+    @Test
+    fun aNoteMovedToAnotherFolderMovesOnTheServerAndOnTheOtherPhone() {
+        val his = phone("his")
+        val hers = phone("hers")
+        val sound = byteArrayOf(7, 8, 9)
+        his.writeBytes("Voice 0214.m4a", sound)
+        his.write("Voice 0214.md", "Creek\n![[Voice 0214.m4a]]\n")
+        his.sync.run(server)
+        hers.sync.run(server)
+
+        // Moved on his phone, the way the note's "Move to folder" moves it.
+        val shelf = com.wanderwildwood.oboegaki.notes.FileShelf(his.notes)
+        val moved = com.wanderwildwood.oboegaki.notes.moveOnShelf(shelf, "Voice 0214.md", "Field notes", shelf.list())
+        assertEquals("Field notes/Voice 0214.md", moved)
+        his.sync.run(server)
+
+        // On Nextcloud the folder is the note's category: the note is there now, and not at the top.
+        assertEquals("Creek\n![[Voice 0214.m4a]]\n", server.files["Field notes/Voice 0214.md"]?.first)
+        assertNull(server.files["Voice 0214.md"])
+        assertTrue(server.blobs.containsKey("Field notes/Voice 0214.m4a"))
+
+        hers.sync.run(server)
+        assertEquals("Creek\n![[Voice 0214.m4a]]\n", hers.read("Field notes/Voice 0214.md"))
+        assertNull(hers.read("Voice 0214.md"))
+        assertTrue(sound.contentEquals(hers.readBytes("Field notes/Voice 0214.m4a")))
+    }
+
+    @Test
+    fun aNoteMovedHereWhileEditedThereIsNotLost() {
+        val his = phone("his")
+        val hers = phone("hers")
+        his.write("kiln.md", "fire\n")
+        his.sync.run(server)
+        hers.sync.run(server)
+
+        hers.write("kiln.md", "fire\nglaze\n")
+        hers.sync.run(server)
+        val shelf = com.wanderwildwood.oboegaki.notes.FileShelf(his.notes)
+        com.wanderwildwood.oboegaki.notes.moveOnShelf(shelf, "kiln.md", "Shed", shelf.list())
+        his.sync.run(server)
+
+        // Her edit is kept, where she left it; his move is there too. Nothing is dropped.
+        assertEquals("fire\nglaze\n", his.read("kiln.md"))
+        assertEquals("fire\n", his.read("Shed/kiln.md"))
+    }
 }

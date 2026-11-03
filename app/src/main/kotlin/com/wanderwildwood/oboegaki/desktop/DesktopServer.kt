@@ -11,6 +11,8 @@ import com.wanderwildwood.oboegaki.notes.addTask
 import com.wanderwildwood.oboegaki.notes.cleanFolder
 import com.wanderwildwood.oboegaki.notes.embeds
 import com.wanderwildwood.oboegaki.notes.folders
+import com.wanderwildwood.oboegaki.notes.MoveRefusal
+import com.wanderwildwood.oboegaki.notes.moveTarget
 import com.wanderwildwood.oboegaki.notes.lines
 import com.wanderwildwood.oboegaki.notes.note
 import com.wanderwildwood.oboegaki.notes.notesLock
@@ -247,6 +249,7 @@ class DesktopServer(
             method == Method.POST && uri == "/api/notes/additem" -> addItem(body(session))
             method == Method.POST && uri == "/api/notes/pin" -> pinNote(body(session))
             method == Method.POST && uri == "/api/notes/archive" -> archiveNote(body(session))
+            method == Method.POST && uri == "/api/notes/move" -> moveNote(body(session))
             method == Method.POST && uri == "/api/notes/delete" -> deleteNote(body(session))
             method == Method.POST && uri == "/api/trash/restore" -> restoreNote(body(session))
             method == Method.POST && uri == "/api/trash/delete" -> deleteForever(body(session))
@@ -540,6 +543,26 @@ class DesktopServer(
         val moved = (if (o.optBoolean("archived")) Notes.archive(id) else Notes.unarchive(id)) ?: throw Refusal(404, "that note is gone")
         Notes.reloadNow()
         return noteReply(moved, JSONObject().put("was", id))
+    }
+
+    /**
+     * Move a note to another folder (on Nextcloud, its category), as the note's "Move to folder"
+     * does on the phone: the folder is tidied and checked the way a typed one is, never used as
+     * it came. The same folder is no change; an archived note is brought back first.
+     */
+    private fun moveNote(o: JSONObject): Response {
+        val id = requireNote(o)
+        val typed = requireText(if (o.has("folder")) o.optString("folder") else null, "folder", Limits.FOLDER)
+        val (folder, refusal) = moveTarget(id, typed)
+        when (refusal) {
+            MoveRefusal.SAME_FOLDER -> return noteReply(id, JSONObject().put("was", id))
+            MoveRefusal.ARCHIVED -> throw Refusal(409, "bring the note back from the archive first")
+            MoveRefusal.BAD_FOLDER -> throw Refusal(400, "that folder name will not do")
+            null -> Unit
+        }
+        val moved = Notes.moveTo(id, folder!!) ?: throw Refusal(404, "that note is gone")
+        Notes.reloadNow()
+        return noteReply(moved, JSONObject().put("was", id).put("folders", JSONArray(folders(Notes.list.value))))
     }
 
     /**

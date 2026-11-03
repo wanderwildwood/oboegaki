@@ -76,6 +76,21 @@ class RoutesTest {
     }
 
     @Test
+    fun movingANoteToAnotherFolderIsGuardedLikeEveryOtherChange() {
+        val move = Route("POST", "/api/notes/move")
+        assertTrue(move in API_ROUTES)
+        // No token at all.
+        assertEquals(Gate.NO_TOKEN, gate("POST", "/api/notes/move", headers(fromPage = true), valid))
+        // The token only in the address.
+        assertEquals(Gate.NO_TOKEN, gate("POST", "/api/notes/move?token=$good", headers(fromPage = true), valid))
+        // The token, but not the page's own header.
+        assertEquals(Gate.NOT_FROM_PAGE, gate("POST", "/api/notes/move", headers(good), valid))
+        // Not by GET.
+        assertEquals(Gate.NO_TOKEN, gate("GET", "/api/notes/move", headers(), valid))
+        assertEquals(Gate.API, gate("POST", "/api/notes/move", headers(good, fromPage = true), valid))
+    }
+
+    @Test
     fun theTokenMustBeSentAsBearer() {
         assertEquals(Gate.NO_TOKEN, gate("GET", "/api/state", mapOf("authorization" to good), valid))
         assertEquals(Gate.NO_TOKEN, gate("GET", "/api/state", mapOf("authorization" to "Basic $good"), valid))

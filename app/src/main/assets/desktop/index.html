@@ -623,6 +623,32 @@ button.armed { color: var(--warn); font-weight: 700; }
     var fl = S.folders.slice(); if (isNew && S.newFolder && fl.indexOf(S.newFolder) < 0) fl.push(S.newFolder);
     fl.forEach(function (f) { folder.appendChild(h("option", { value: f, text: f })); });
     folder.value = isNew ? S.newFolder : (n.folder || "");
+    // An open note moves to another folder (on Nextcloud, its category) as on the phone: what is
+    // typed here is saved first, then the phone moves it. Not offered for an archived note.
+    var NEW_FOLDER = "\u0000new";
+    if (!isNew && !n.archived) folder.appendChild(h("option", { value: NEW_FOLDER, text: "New folder…" }));
+    function moveTo(to) {
+      return save(false).then(function () {
+        return act(api("POST", "/api/notes/move", { id: base.id, folder: to }), function (j) {
+          replaceNote(j.note, j.was);
+          if (j.folders) S.folders = j.folders;
+          n = j.note; base = { id: n.id, v: n.v, text: n.body, title: n.title }; S.openNote = n.id;
+          folder.value = n.folder || "";
+          redraw(); toast("Moved to " + (n.folder || "the top level") + ".");
+        }, function () { folder.value = n.folder || ""; });
+      });
+    }
+    folder.addEventListener("change", function () {
+      if (isNew) return;
+      var to = folder.value;
+      if (to === NEW_FOLDER) {
+        to = prompt("Name of the new folder (a slash makes one inside another):", "");
+        if (to === null || !to.trim()) { folder.value = n.folder || ""; return; }
+        to = to.trim();
+      }
+      if (to === (n.folder || "")) return;
+      moveTo(to);
+    });
     var warn = h("div", { class: "note", hidden: true });
     var original = { title: title.value, body: body.value, rem: rem.value };
 
@@ -671,7 +697,7 @@ button.armed { color: var(--warn); font-weight: 700; }
       pics,
       h("div", { class: "hint", text: "A line starting “- [ ] ” is a checklist item. Put “⏰ 2026-10-08 17:00” at the end of an item for a reminder on that item." }),
       h("div", { class: "row" }, h("label", { text: "Reminder" }), rem, h("button", { class: "quiet", text: "Clear", onclick: function () { rem.value = ""; } })),
-      h("div", { class: "row" }, h("label", { text: "Folder" }), isNew ? folder : h("span", { text: n.folder || "Top level" })),
+      h("div", { class: "row" }, h("label", { text: "Folder" }), isNew || !n.archived ? folder : h("span", { text: n.folder || "Top level" })),
       h("div", { class: "bar" }, toggleList, addItem, pinBtn, shareBtn, archBtn, delBtn, h("span", { class: "grow" }),
         h("button", { text: "Close", onclick: close }), h("button", { class: "solid", text: "Save", onclick: function () { save(true); } })),
       shareBox);

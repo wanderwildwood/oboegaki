@@ -67,6 +67,8 @@ import com.wanderwildwood.oboegaki.notes.reminderText
 import com.mudita.mmd.components.buttons.OutlinedButtonMMD
 import com.wanderwildwood.oboegaki.notes.embeds
 import com.wanderwildwood.oboegaki.notes.isArchived
+import com.wanderwildwood.oboegaki.notes.folders
+import com.wanderwildwood.oboegaki.notes.moveTarget
 import com.wanderwildwood.oboegaki.hearing.Voice
 import com.wanderwildwood.oboegaki.notes.Reminder
 import com.wanderwildwood.oboegaki.notes.frontMatter
@@ -189,6 +191,7 @@ fun NoteScreen(
 
     val armed = rememberArmed()
     var menuOpen by remember { mutableStateOf(false) }
+    var moving by remember { mutableStateOf(false) }
     var noCalendar by remember { mutableStateOf(false) }
     // The note's own reminder being set (-1), or an item's, by its line.
     var reminding by remember { mutableStateOf<Int?>(null) }
@@ -324,6 +327,37 @@ fun NoteScreen(
                     deleted = true
                     if (archived) Notes.unarchive(at) else Notes.archive(at)
                     onClose()
+                }
+                // To another folder; on Nextcloud, another category. An archived note goes back first.
+                if (!archived) {
+                    MenuRow(stringResource(R.string.note_move)) {
+                        menuOpen = false
+                        moving = true
+                    }
+                }
+            }
+        }
+    }
+
+    if (moving) {
+        val here = at.substringBeforeLast('/', "")
+        FolderDialog(
+            heading = stringResource(R.string.note_move_heading),
+            note = null,
+            current = here,
+            folders = remember { folders(Notes.list.value) },
+            useLabel = stringResource(R.string.note_move_use),
+        ) { chosen ->
+            moving = false
+            // The folder it is in already, or a name that cannot be one, is no move.
+            val folder = chosen?.let { moveTarget(at, it).first }
+            if (folder != null) {
+                save()
+                val moved = Notes.moveTo(at, folder)
+                if (moved != null) {
+                    at = moved
+                    val where = folder.ifEmpty { context.getString(R.string.settings_new_top) }
+                    android.widget.Toast.makeText(context, context.getString(R.string.note_moved, where), android.widget.Toast.LENGTH_SHORT).show()
                 }
             }
         }

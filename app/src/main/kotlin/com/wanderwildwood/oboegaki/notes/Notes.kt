@@ -588,6 +588,20 @@ object Notes {
         folder.removePrefix(ARCHIVE_FOLDER).trimStart('/')
     }
 
+    /**
+     * Move a note to another folder, [folder] already checked by [moveTarget]: on Nextcloud that is
+     * its category. Its pin and reminders go with it, and the sync takes it to the server. Returns
+     * where it is now, or null when it is not there.
+     */
+    fun moveTo(path: String, folder: String): String? {
+        val shelf = shelf() ?: return null
+        val moved = synchronized(notesLock) { moveOnShelf(shelf, path, folder, _list.value) } ?: return null
+        repin(path, moved)
+        Reminders.moved(appContext, path, moved)
+        afterEdit()
+        return moved
+    }
+
     private fun relocate(path: String, to: (String) -> String): String? {
         val shelf = shelf() ?: return null
         val folder = path.substringBeforeLast('/', "")

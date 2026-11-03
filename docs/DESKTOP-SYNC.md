@@ -69,7 +69,7 @@ follow an edit on the phone follow an edit from the browser too.
 | `pinned` | in the pins file (`Notes.pins`, `Notes.togglePin`) |
 | `archived` | under `Archive/` (`Notes.archive`/`unarchive`, the same move the phone makes) |
 | trash | `Notes.trash`: notes in the hidden `.trash` folder (see Trash below); `id` is the note's folder in the trash, never a path |
-| folder (the nearest thing to a label) | the note's folder; shown and settable on create |
+| folder (the nearest thing to a label; Nextcloud Notes' category) | the note's folder; set on create, changed with `POST /api/notes/move` (`Notes.moveTo`, the phone's *Move to folder*; the folder is checked by `moveTarget`, never used as sent) |
 | reminder | `reminder:` in front matter (note) or `⏰ yyyy-MM-dd HH:mm` on an item line |
 | pictures | `![[name.jpg]]` embeds; fetched through `GET /api/file` (pictures only, only beside a note) |
 | tasks | `Tasks.shown`: lists, and per task summary, description, due (day or time), priority, done |

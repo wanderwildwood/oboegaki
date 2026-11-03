@@ -25,6 +25,7 @@ val API_ROUTES: Set<Route> = setOf(
     Route("POST", "/api/notes/additem"),
     Route("POST", "/api/notes/pin"),
     Route("POST", "/api/notes/archive"),
+    Route("POST", "/api/notes/move"),
     Route("POST", "/api/notes/delete"),
     Route("POST", "/api/trash/restore"),
     Route("POST", "/api/trash/delete"),

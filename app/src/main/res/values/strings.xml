@@ -86,6 +86,10 @@
     <string name="cd_more">More</string>
     <!-- In that menu: opens a calendar app's new event with the note's title and words -->
     <string name="note_remind">Remind me…</string>
+    <string name="note_move">Move to folder…</string>
+    <string name="note_move_heading">Move this note to</string>
+    <string name="note_move_use">Move to this folder</string>
+    <string name="note_moved">Moved to %1$s</string>
     <string name="calendar_would_not_take_it">The calendar would not take it. The note\'s words are copied instead, to paste where you like.</string>
     <string name="no_app_for_that">No app on this phone can open that.</string>
     <string name="signin_plain_http">That address starts with http:// and is out on the internet, so your login would travel unprotected. Use an https:// address, or an address on your home network or VPN.</string>
