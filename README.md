@@ -41,7 +41,7 @@ a voice note heard and written down, a page photographed and handed to the scann
   and it mishears: the recording stays, and is the real one.
 - **Scans.** A photograph of a page, from a camera app or one already taken. The page's
   corners are guessed and dragged where the guess is wrong, and it can be turned a quarter at
-  a time. Each page is straightened and kept in black and white, in greys, or in color, and the
+  a time. Each page is straightened and kept in black and white, in grays, or in color, and the
   pages become one PDF beside a note that shows them. There is no live preview, which on E Ink
   would be a smear, and no reading of the words on the page.
 - **One list of everything**, the last note touched at the top, its folder named on the row.
@@ -58,7 +58,7 @@ a voice note heard and written down, a page photographed and handed to the scann
   link to it. New note and Record are shortcuts on the icon; a Markdown or text file opened
   from Files is shown, and kept as a note if you want it.
 - **Pictures** shared from a gallery, a camera app or Files become a note that shows them, in
-  greys at the width of the screen, with the pictures beside it (`![[Picture 2026-10-05
+  grays at the width of the screen, with the pictures beside it (`![[Picture 2026-10-05
   1412.jpg]]`); or they are scanned, each one a page of the same PDF.
 - **Reminders** ring on the phone, as an alarm clock does: *Remind me…* in a note's menu, or a
   long press on one item of a list. With the screen off the reminder fills the screen over the
@@ -93,7 +93,7 @@ Design and protocol: [docs/DESKTOP-SYNC.md](docs/DESKTOP-SYNC.md).
 - Live in both directions over a WebSocket, with polling as a fallback. Light and dark.
 - If a note is changed on both at once, the edit that arrives last wins, and the other text is
   kept at the end of the note under *Edited elsewhere*. Edits to different lines are joined.
-- Only what the app has is shown: there are no colours and no labels. *Delete* moves a note to
+- Only what the app has is shown: there are no colors and no labels. *Delete* moves a note to
   the trash, as on the phone; *Delete forever* and *Empty trash* ask first.
 
 **Setup.** Settings, *Desktop Sync*, switch on. *Show link* gives the address, a six-digit code
@@ -195,7 +195,7 @@ else is needed on the phone, DAVx5 included.
 - A task has a title, a due day or day and time, a priority, notes, and its list. A tick is one
   tap; a task opens to be changed; Delete asks twice. *New list* makes another list on the
   Nextcloud, and *New tasks go in*, in the settings, says which one new tasks go to.
-- Anything else in a task that another app put there (subtasks, categories, alarms, colours)
+- Anything else in a task that another app put there (subtasks, categories, alarms, colors)
   is kept exactly as it was when Memo writes the task back.
 - Changes made with no signal wait on the phone and go when there is one. Each list says when it
   last synced. If the same task was changed on the phone and somewhere else meanwhile, each
@@ -246,7 +246,7 @@ and the SHA-256 of the certificate it is signed with; any other caller is `refus
   Stop button, only while its switch is on. It uses the `INTERNET` permission to listen, not to
   call out.
 - `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, so that turning Desktop Sync on can show Android's own
-  dialog asking to leave Memo out of battery optimisation. Without it the phone's battery
+  dialog asking to leave Memo out of battery optimization. Without it the phone's battery
   manager can restrict Memo and end Desktop Sync a minute after you leave the app. You can say no.
 - `ACCESS_NETWORK_STATE`, to notice the phone is back on a network, so what was changed
   without one goes up then.
@@ -294,13 +294,13 @@ A release is signed by a keystore in `signing/`, which is not in this repository
 the release APK builds **unsigned** and will not install anywhere; there is no fallback key by
 design.
 
-## Licence
+## License
 
 GNU General Public License v3.0 only. Copyright wander wildwood.
 
-The same list, with the full licence texts, is in the app under About > Licences.
+The same list, with the full license texts, is in the app under About > Licenses.
 
-Bundled, under their own licences:
+Bundled, under their own licenses:
 
 - [whisper.cpp](https://github.com/ggml-org/whisper.cpp) v1.9.4, MIT, in
   `app/src/main/cpp/whisper.cpp`, trimmed to the parts an Android CPU build compiles

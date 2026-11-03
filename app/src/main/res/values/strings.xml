@@ -268,7 +268,7 @@
     <string name="scan_corners">Drag the corners onto the page\'s corners.</string>
     <!-- The button that steps through the three ways a page is kept; it names the one chosen -->
     <string name="scan_ink">Black and white</string>
-    <string name="scan_grey">Greys</string>
+    <string name="scan_grey">Grays</string>
     <string name="scan_colour">Color</string>
     <string name="scan_keep">Keep this page</string>
     <string name="cd_rotate">Turn a quarter clockwise</string>
@@ -512,17 +512,17 @@
     <!-- %1$s is the phone's address, %2$d the port -->
     <string name="desktop_listening">Listening on %1$s:%2$d</string>
     <string name="desktop_waiting">Waiting for a network…</string>
-    <string name="licences_title">Licences</string>
+    <string name="licences_title">Licenses</string>
     <string name="licences_back">Back</string>
     <string name="licences_source_head">Source code</string>
-    <string name="licences_no_text">%s needs no licence text here.</string>
+    <string name="licences_no_text">%s needs no license text here.</string>
     <string name="licences_licence">This app is released under the GNU General Public License, version 3 only. Copyright wander wildwood.</string>
     <string name="licences_full_head">Full texts</string>
     <string name="licences_full_gpl">GNU General Public License v3 (full text)</string>
     <string name="licences_full_apache">Apache License 2.0 (full text)</string>
-    <string name="licences_full_mit">MIT licence (full text)</string>
-    <string name="licences_full_bsd">BSD licence (full text)</string>
-    <string name="licences_full_ofl">SIL Open Font Licence 1.1 (full text)</string>
+    <string name="licences_full_mit">MIT license (full text)</string>
+    <string name="licences_full_bsd">BSD license (full text)</string>
+    <string name="licences_full_ofl">SIL Open Font License 1.1 (full text)</string>
     <string name="text_size_title">Text size</string>
     <string name="text_size_small">Smaller</string>
     <string name="text_size_medium">Standard</string>
