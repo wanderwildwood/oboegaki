@@ -147,6 +147,14 @@ browser), Lato, the app's name in bold over a 3 px rule, the connection in words
 the search box; in an open note Ctrl/Cmd+F is the browser's own find. Esc closes the cog's panel
 and an open note.
 
+**Views and order.** The side list has the phone's views beside the page's own: *Notes*,
+*Reminders*, *Tasks*, *Lists* (notes with checklist items), *Voice*, *Scans*, *Shared* and *Shared
+with me* (on Nextcloud only; the second only when something is), *Archive*, *Trash*, then folders.
+The cog's *Order* turns between *Newest first*, *Oldest first* and *By title*, as the phone's
+order does, kept per browser; pinned notes stay above the rest in *Notes* and folders, and
+*Reminders* are always soonest first. The rules match `notes/View.kt`; the page sorts and filters
+what the state already holds, so there is no server change.
+
 ## Conflicts
 
 Each note has `v`, a version tag: the first 12 hex digits of the SHA-256 of its whole text. (A

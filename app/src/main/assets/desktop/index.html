@@ -262,6 +262,23 @@ button.armed { color: var(--warn); font-weight: 700; }
     var hay = (n.title + "\n" + n.body).toLowerCase();
     return words.every(function (w) { return hay.indexOf(w) >= 0; });
   }
+  // The phone's views (notes/View.kt): a list has checklist items; voice and scans embed one.
+  var VIEWS = {
+    lists: function (n) { return n.items.length > 0; },
+    voice: function (n) { return n.recordings.length > 0; },
+    scans: function (n) { return n.scans.length > 0; },
+    shared: function (n) { return !!n.shared; },
+    withme: function (n) { return !!n.sharedWithMe; }
+  };
+  // The phone's orders: newest changed first, oldest first, or by title. Kept per browser.
+  var ORDERS = ["newest", "oldest", "title"], ORDER_WORDS = { newest: "Newest first", oldest: "Oldest first", title: "By title" };
+  var order = ORDERS.indexOf(recall("notes.order")) >= 0 ? recall("notes.order") : "newest";
+  function sorted(list) {
+    var by = order === "title"
+      ? function (a, b) { return a.title.localeCompare(b.title, undefined, { sensitivity: "base", numeric: true }); }
+      : order === "oldest" ? function (a, b) { return a.modified - b.modified; } : function (a, b) { return b.modified - a.modified; };
+    return list.slice().sort(by);
+  }
   function hasReminder(n) { return !!n.reminder || n.items.some(function (i) { return i.reminder && !i.done; }); }
   function nextReminder(n) {
     var all = []; if (n.reminder) all.push(n.reminder);
@@ -392,6 +409,10 @@ button.armed { color: var(--warn); font-weight: 700; }
     p.textContent = ""; p.hidden = false; document.getElementById("settingsBtn").setAttribute("aria-expanded", "true");
     p.appendChild(h("h3", { text: "This browser" }));
     p.appendChild(panelRow("Theme", themeLabel(), function () { cycleTheme(); this.querySelector(".val").textContent = themeLabel(); }));
+    p.appendChild(panelRow("Order", ORDER_WORDS[order], function () {
+      order = ORDERS[(ORDERS.indexOf(order) + 1) % ORDERS.length]; store("notes.order", order === "newest" ? null : order);
+      this.querySelector(".val").textContent = ORDER_WORDS[order]; drawMain();
+    }));
     p.appendChild(h("hr"));
     p.appendChild(h("h3", { text: "Pairing" }));
     p.appendChild(h("p", { text: "The phone lists each paired computer in Settings, Desktop Sync, where it can be removed." }));
@@ -431,6 +452,15 @@ button.armed { color: var(--warn); font-weight: 700; }
     side.appendChild(navButton("Notes", "notes", 0));
     side.appendChild(navButton("Reminders", "reminders", live.filter(hasReminder).length));
     side.appendChild(navButton("Tasks", "tasks", S.taskLists.reduce(function (a, l) { return a + l.items.filter(function (i) { return !i.done; }).length; }, 0)));
+    // The phone's own views (Lists, Voice, Scans, Shared), with what each holds counted.
+    side.appendChild(navButton("Lists", "lists", live.filter(VIEWS.lists).length));
+    side.appendChild(navButton("Voice", "voice", live.filter(VIEWS.voice).length));
+    side.appendChild(navButton("Scans", "scans", live.filter(VIEWS.scans).length));
+    if (S.sharing) {
+      side.appendChild(navButton("Shared", "shared", live.filter(VIEWS.shared).length));
+      var mine = live.filter(VIEWS.withme).length;
+      if (mine) side.appendChild(navButton("Shared with me", "withme", mine));
+    }
     side.appendChild(navButton("Archive", "archive", S.notes.length - live.length));
     side.appendChild(navButton("Trash", "trash", S.trash.length));
     if (S.folders.length) {
@@ -452,21 +482,24 @@ button.armed { color: var(--warn); font-weight: 700; }
     else if (words.length) list = S.notes;
     else list = S.notes.filter(function (n) { return !n.archived; });
     if (S.view === "folder") list = list.filter(function (n) { return n.folder === S.folder || n.folder.indexOf(S.folder + "/") === 0; });
-    if (S.view === "reminders") list = list.filter(hasReminder).sort(function (a, b) { return nextReminder(a) < nextReminder(b) ? -1 : 1; });
+    if (VIEWS[S.view]) list = list.filter(VIEWS[S.view]);
     list = list.filter(function (n) { return matches(n, words); });
+    list = sorted(list);
+    if (S.view === "reminders") list = list.filter(hasReminder).sort(function (a, b) { return nextReminder(a) < nextReminder(b) ? -1 : 1; });
 
-    if (S.view !== "archive" && S.view !== "reminders") {
+    if (S.view === "notes" || S.view === "folder" || S.view === "lists") {
       main.appendChild(h("div", { class: "composer" },
         h("button", { class: "ghost", text: "Take a note…", onclick: function () { editNote(null, false); } }),
         h("button", { class: "act", text: "New list", onclick: function () { editNote(null, true); } })));
     }
-    if (!list.length) { main.appendChild(h("p", { class: "empty", text: words.length ? "Nothing matches." : S.view === "archive" ? "Nothing in the archive." : S.view === "reminders" ? "No reminders." : "No notes yet." })); return; }
+    if (!list.length) { main.appendChild(h("p", { class: "empty", text: words.length ? "Nothing matches." : EMPTY[S.view] || "No notes yet." })); return; }
     var pinned = S.view === "notes" || S.view === "folder" ? list.filter(function (n) { return n.pinned && !n.archived; }) : [];
     var rest = list.filter(function (n) { return pinned.indexOf(n) < 0; });
     if (pinned.length) { main.appendChild(h("h3", { class: "sec", text: "Pinned" })); main.appendChild(grid(pinned)); }
     if (pinned.length && rest.length) main.appendChild(h("h3", { class: "sec", text: "Others" }));
     if (rest.length) main.appendChild(grid(rest));
   }
+  var EMPTY = { archive: "Nothing in the archive.", reminders: "No reminders.", lists: "No lists.", voice: "No voice notes.", scans: "No scans.", shared: "Nothing shared.", withme: "Nothing shared with you." };
   function grid(notes) { return h("div", { class: "grid" }, notes.map(card)); }
 
   function card(n) {
