@@ -165,4 +165,22 @@ class TrashMappingTest {
         val j = trashJson(com.wanderwildwood.oboegaki.notes.Trashed("5", "x", "a/b/x.md", 5))
         assertFalse(j.getString("id").contains('/'))
     }
+
+    @Test
+    fun aRepeatInWords() {
+        assertEquals("Every day", repeatWords("FREQ=DAILY"))
+        assertEquals("Every 2 weeks", repeatWords("FREQ=WEEKLY;INTERVAL=2"))
+        assertEquals("Every week on Monday, Thursday", repeatWords("FREQ=WEEKLY;BYDAY=MO,TH"))
+        assertEquals("Every month, until 2026-12-31", repeatWords("FREQ=MONTHLY;UNTIL=20261231T000000Z"))
+        assertEquals("Every year, 3 times", repeatWords("RRULE:FREQ=YEARLY;COUNT=3"))
+        assertEquals("Every day, once", repeatWords("freq=daily;count=1"))
+        // What the words do not cover is left to "Repeats".
+        assertNull(repeatWords(null))
+        assertNull(repeatWords(""))
+        assertNull(repeatWords("FREQ=MONTHLY;BYMONTHDAY=15"))
+        assertNull(repeatWords("FREQ=MONTHLY;BYDAY=1MO"))
+        assertNull(repeatWords("FREQ=HOURLY"))
+        assertNull(repeatWords("FREQ=DAILY;INTERVAL=0"))
+        assertNull(repeatWords("FREQ=DAILY;UNTIL=soon"))
+    }
 }

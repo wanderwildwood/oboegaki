@@ -128,6 +128,11 @@ The phone must then be able to read its size (`BitmapFactory`), or it is refused
 share-in path, `savePictures`, keeps a JPEG, PNG or WebP as it came, Exif included; only other
 kinds are re-encoded there.)
 
+**Repeating tasks.** A task's rule is shown in words ("Every 2 weeks on Monday", "Every month,
+until 2026-12-31"; `repeatWords`, from its RRULE), or just *Repeats* for a rule the words don't
+cover. The task editor says what a tick does, as the phone's task screen does: it moves the task
+on (`movesOn`), or, for a rule Memo can't follow, finishes it. A rule can't be set from the page.
+
 **Tasks to another list.** The task editor has *List* (only lists that can take tasks, shown when
 there is more than one): `POST /api/tasks/move`, `Tasks.move`, then the fields are written, the
 order the phone's task screen uses.

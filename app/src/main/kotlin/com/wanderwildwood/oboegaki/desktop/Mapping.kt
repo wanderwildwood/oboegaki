@@ -20,6 +20,7 @@ import com.wanderwildwood.oboegaki.tasks.Item
 import com.wanderwildwood.oboegaki.tasks.TaskList
 import com.wanderwildwood.oboegaki.tasks.day
 import com.wanderwildwood.oboegaki.tasks.local
+import com.wanderwildwood.oboegaki.tasks.nextOccurrence
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.LocalDate
@@ -109,6 +110,9 @@ fun taskJson(item: Item, rings: Boolean): JSONObject {
         .put("priority", f.priority)
         .put("done", f.done)
         .put("repeats", item.task.repeats != null)
+        .put("repeatWords", repeatWords(item.task.repeats) ?: JSONObject.NULL)
+        // As the phone's task screen says it: a tick moves it on, or (a rule Memo can't follow) finishes it.
+        .put("movesOn", item.task.repeats != null && runCatching { nextOccurrence(item.text) }.getOrNull() != null)
         .put("rings", rings)
 }
 
@@ -135,4 +139,46 @@ fun fieldsFrom(o: JSONObject, base: Fields? = null, titleNeeded: Boolean = true)
         priority = priority,
         done = if (o.has("done")) o.optBoolean("done") else (base?.done ?: false),
     )
+}
+
+private val DAY_WORDS = mapOf(
+    "MO" to "Monday", "TU" to "Tuesday", "WE" to "Wednesday", "TH" to "Thursday",
+    "FR" to "Friday", "SA" to "Saturday", "SU" to "Sunday",
+)
+
+/**
+ * A task's RRULE in words for the page ("Every 2 weeks on Monday, Thursday, until 2026-12-31"),
+ * or null if there is none or it says something these words don't cover; the page then says
+ * only that it repeats.
+ */
+fun repeatWords(rule: String?): String? {
+    if (rule.isNullOrBlank()) return null
+    val parts = rule.removePrefix("RRULE:").split(';').mapNotNull { p ->
+        p.split('=', limit = 2).takeIf { it.size == 2 }?.let { it[0].trim().uppercase() to it[1].trim() }
+    }.toMap()
+    if (!parts.keys.all { it in setOf("FREQ", "INTERVAL", "UNTIL", "COUNT", "BYDAY", "WKST") }) return null
+    val every = parts["INTERVAL"]?.let { it.toIntOrNull()?.takeIf { n -> n in 1..999 } ?: return null } ?: 1
+    val unit = when (parts["FREQ"]?.uppercase()) {
+        "DAILY" -> "day"
+        "WEEKLY" -> "week"
+        "MONTHLY" -> "month"
+        "YEARLY" -> "year"
+        else -> return null
+    }
+    val out = StringBuilder(if (every == 1) "Every $unit" else "Every $every ${unit}s")
+    parts["BYDAY"]?.let { days ->
+        if (unit != "week") return null
+        val named = days.split(',').map { DAY_WORDS[it.trim().uppercase()] ?: return null }
+        out.append(" on ").append(named.joinToString(", "))
+    }
+    parts["UNTIL"]?.let { until ->
+        val d = until.take(8)
+        if (d.length != 8 || !d.all(Char::isDigit)) return null
+        out.append(", until ").append(d.substring(0, 4)).append('-').append(d.substring(4, 6)).append('-').append(d.substring(6, 8))
+    }
+    parts["COUNT"]?.let { count ->
+        val n = count.toIntOrNull()?.takeIf { it > 0 } ?: return null
+        out.append(if (n == 1) ", once" else ", $n times")
+    }
+    return out.toString()
 }

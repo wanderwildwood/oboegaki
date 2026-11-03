@@ -1137,7 +1137,7 @@ button.armed { color: var(--warn); font-weight: 700; }
     var bits = [];
     if (i.due) bits.push("Due " + dueWords(i.due));
     if (i.priority) bits.push(priWord(i.priority) + " priority");
-    if (i.repeats) bits.push("Repeats");
+    if (i.repeats) bits.push(i.repeatWords || "Repeats");
     if (i.rings) bits.push("Rings on the phone");
     var what = h("div", { class: "what" }, h("b", { text: i.summary || "(no title)" }), bits.length ? h("small", { text: bits.join(" · ") }) : null, i.description ? h("small", { text: i.description.length > 160 ? i.description.slice(0, 160) + "…" : i.description }) : null);
     if (!l.readOnly) what.addEventListener("click", function () { editTask(l, i); });
@@ -1175,7 +1175,8 @@ button.armed { color: var(--warn); font-weight: 700; }
       h("div", { class: "row" }, h("label", { text: "Priority" }), pri),
       writable.length > 1 ? h("div", { class: "row" }, h("label", { text: "List" }), inList) : null,
       h("div", { class: "row" }, h("label", { text: "Rings" }), rings, h("span", { class: "hint", text: "Ring on the phone when it is due (needs a time)." })),
-      i.repeats ? h("div", { class: "hint", text: "It repeats. Ticking it moves it on to the next time." }) : null,
+      i.repeats ? h("div", { class: "hint", text: (i.repeatWords ? "It repeats: " + i.repeatWords.charAt(0).toLowerCase() + i.repeatWords.slice(1) + ". " : "It repeats. ")
+        + (i.movesOn ? "Ticking it moves it on to the next time." : "Memo can't follow this rule, so ticking it here finishes it.") }) : null,
       h("div", { class: "bar" }, h("span", { class: "grow" }), h("button", { text: "Close", onclick: closeModal }), h("button", { class: "solid", text: "Save", onclick: save })));
     var scrim = h("div", { class: "scrim" }, m);
     scrim.addEventListener("mousedown", function (e) { if (e.target === scrim) closeModal(); });
