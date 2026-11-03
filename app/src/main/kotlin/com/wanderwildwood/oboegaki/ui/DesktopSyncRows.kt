@@ -136,7 +136,7 @@ fun LazyListScope.desktopSyncRows() {
     item {
         val list by DesktopSync.browsers().list.collectAsState()
         // Drops what has gone 30 days unused as the screen is drawn; nothing polls for it.
-        remember { DesktopSync.browsers().refresh() }
+        LaunchedEffect(Unit) { DesktopSync.browsers().refresh() }
         Column {
             TextMMD(
                 text = stringResource(R.string.desktop_browsers),
