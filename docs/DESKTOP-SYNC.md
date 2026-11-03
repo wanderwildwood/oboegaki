@@ -194,7 +194,18 @@ Messaging's: black on white (a dark theme under the cog, *Auto*, *Light* or *Dar
 browser), Lato, the app's name in bold over a 3 px rule, the connection in words beside the cog
 ("connecting…", "live", "reconnecting…", "the phone did not answer"). Ctrl/Cmd+F or `/` goes to
 the search box; in an open note Ctrl/Cmd+F is the browser's own find. Esc closes the cog's panel
-and an open note.
+and an open note. Cards are kept, in ink: a thin black border, a thicker one under the pointer.
+
+**Whole pages, no scrollbars.** As in the apps, nothing scrolls and no scrollbar is drawn. The
+notes, the trash, the tasks and the side list show what fits, whole, and turn by whole pages:
+the chevrons at the right (shown only when there is more than one page), the mouse wheel (one
+page per push), Page Up / Page Down, and Home / End. Cards are laid in columns, each under the
+shortest; a card that would run past the foot of the window starts the next page, and a
+heading (*Pinned*, *Others*, a task list's name) is never left alone at the foot of one. A card's
+picture has a set height, so the page knows what fits before the picture arrives. The page
+shown is remembered by its first item for each view, folder and search, so a change from the
+phone, a tick or a resized window keeps the same notes in view. An open note and the cog's
+panel are not lists: the note's text moves with its cursor, without a bar.
 
 **Views and order.** The side list has the phone's views beside the page's own: *Notes*,
 *Reminders*, *Tasks*, *Lists* (notes with checklist items), *Voice*, *Scans*, *Shared* and *Shared

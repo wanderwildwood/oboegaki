@@ -27,12 +27,11 @@
     --warn: #e07070; --shadow: rgba(0,0,0,.6); color-scheme: dark;
   }
 }
-* { box-sizing: border-box; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
-::-webkit-scrollbar { width: 12px; height: 12px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--line); border-radius: 6px; border: 3px solid var(--paper); background-clip: padding-box; }
-::-webkit-scrollbar-thumb:hover { background: var(--muted); background-clip: padding-box; }
-html, body { margin: 0; height: 100%; }
+/* No scrollbars, as in the apps: lists turn by whole pages (the chevrons, the wheel, Page Up and
+   Page Down), so a card or a row is never cut at the foot of the window. */
+* { box-sizing: border-box; scrollbar-width: none; }
+::-webkit-scrollbar { display: none; width: 0; height: 0; }
+html, body { margin: 0; height: 100%; overflow: hidden; }
 body { background: var(--paper); color: var(--ink); font: 15px/1.45 Lato, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; background: none; border: 1px solid transparent; border-radius: 4px; padding: 5px 10px; }
@@ -52,7 +51,7 @@ textarea { resize: vertical; min-height: 220px; line-height: 1.5; }
 :focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
 [hidden] { display: none !important; }
 
-.app { display: grid; grid-template-columns: 230px 1fr; grid-template-rows: auto 1fr; height: 100%; }
+.app { display: grid; grid-template-columns: 230px 1fr; grid-template-rows: auto minmax(0, 1fr); height: 100%; }
 header.top { grid-column: 1 / 3; display: flex; gap: 12px; align-items: center; padding: 14px 20px; border-bottom: 3px solid var(--ink); position: relative; }
 header.top h1 { font-size: 20px; margin: 0; font-weight: 700; letter-spacing: -0.01em; width: 190px; }
 header.top .search { flex: 1; max-width: 640px; }
@@ -70,20 +69,34 @@ header.top .search { flex: 1; max-width: 640px; }
 #settingsPanel p { margin: 4px 14px 8px; font-size: 12px; color: var(--muted); line-height: 1.45; }
 #settingsPanel hr { margin: 6px 0; border: 0; border-top: 1px solid var(--line); }
 
-.side { padding: 12px 8px; overflow-y: auto; border-right: 1px solid var(--line); }
+.side { padding: 12px 8px; overflow: hidden; border-right: 1px solid var(--line); display: flex; gap: 4px; min-height: 0; }
+.side .paged { flex: 1; }
 .side button { display: block; width: 100%; text-align: left; border-radius: 4px; padding: 8px 12px; }
 .side button.on { background: var(--active); font-weight: 700; }
-.side h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 18px 12px 4px; font-weight: 700; }
+.side h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0; padding: 18px 12px 4px; font-weight: 700; }
 .side .count { float: right; color: var(--muted); font-weight: 400; }
-main { overflow-y: auto; padding: 18px 24px 60px; }
-.composer { max-width: 620px; margin: 0 auto 26px; display: flex; gap: 8px; align-items: stretch; }
+main { overflow: hidden; padding: 18px 24px 14px; display: flex; flex-direction: column; min-height: 0; }
+main > .hint { flex: none; }
+/* The paged part: what fits is shown, whole, and the chevrons beside it turn to the next page. */
+.pagedwrap { flex: 1; display: flex; gap: 10px; min-height: 0; }
+.paged { flex: 1; position: relative; overflow: hidden; min-width: 0; }
+.paged > * { position: absolute; margin: 0; }
+.measure { position: absolute; left: 0; top: 0; visibility: hidden; pointer-events: none; }
+.measure > * { margin: 0; }
+.turns { flex: none; width: 32px; display: flex; flex-direction: column; justify-content: space-between; }
+.turns[hidden] { display: none; }
+.turns button { width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center; border: 2px solid var(--ink); border-radius: 999px; background: var(--paper); color: var(--ink); }
+.turns button:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
+.turns button:disabled { border-color: var(--line); color: var(--line); cursor: default; }
+.side .turns { width: 26px; } .side .turns button { width: 26px; height: 26px; }
+.composer { flex: none; width: 100%; max-width: 620px; margin: 0 auto 22px; display: flex; gap: 8px; align-items: stretch; }
 .composer .ghost { flex: 1; text-align: left; color: var(--muted); background: var(--paper); border: 1px solid var(--ink); border-radius: 4px; padding: 11px 14px; }
 .composer .ghost:hover { background: var(--hover); }
 .composer button.act { border: 1px solid var(--ink); border-radius: 4px; padding: 0 14px; }
-h3.sec { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 18px 4px 10px; font-weight: 700; }
-.grid { column-width: 250px; column-gap: 14px; }
-.card { break-inside: avoid; display: inline-block; width: 100%; margin: 0 0 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px 8px; cursor: default; }
-.card:hover, .card:focus-within { border-color: var(--ink); }
+h3.sec { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0; padding: 4px 4px 0; font-weight: 700; }
+/* Cards, in ink: a thin ink border, a thicker one under the pointer or the keyboard. */
+.card { display: block; background: var(--paper); border: 1px solid var(--ink); border-radius: 6px; padding: 12px 14px 8px; cursor: default; overflow: hidden; max-height: var(--page-h, none); }
+.card:hover, .card:focus-within { box-shadow: inset 0 0 0 1px var(--ink); }
 .card h4 { margin: 0 0 6px; font-size: 16px; font-weight: 700; overflow-wrap: anywhere; }
 .card .line { margin: 2px 0; overflow-wrap: anywhere; }
 .card .line.head { font-weight: 700; }
@@ -108,20 +121,23 @@ button.armed { color: var(--warn); font-weight: 700; }
 .card .acts { display: flex; flex-wrap: wrap; gap: 2px; margin: 6px -6px 0; opacity: 0; }
 .card .acts.shown { opacity: 1; }
 .card:hover .acts, .card:focus-within .acts { opacity: 1; }
-.card img { max-width: 100%; border-radius: 4px; margin: 6px 0; display: block; }
+/* A card's picture has a set height, so the page knows how much fits before the picture comes. */
+.card img { width: 100%; height: 150px; object-fit: cover; border-radius: 4px; margin: 6px 0; display: block; }
+.card .voiceline { margin: 6px 0 2px; }
 .card .add { margin: 4px 0 2px; }
 .card .add input { border: 0; border-bottom: 1px dashed var(--line); border-radius: 0; background: none; padding: 4px 2px; font-size: 14px; }
-.empty { text-align: center; color: var(--muted); margin: 60px 0; }
+.empty { text-align: center; color: var(--muted); margin: 60px 0; width: 100%; }
 
-.tasklist { max-width: 760px; margin: 0 auto 30px; border: 1px solid var(--line); border-radius: 6px; padding: 8px 16px 14px; }
-.tasklist h3 { margin: 10px 0 8px; font-size: 17px; font-weight: 700; }
-.task { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; border-top: 1px solid var(--line); }
-.task:first-of-type { border-top: 0; }
+.listhead { margin: 0; padding: 18px 0 8px; font-size: 17px; font-weight: 700; border-bottom: 2px solid var(--ink); }
+.listhead.first { padding-top: 0; }
+.task { display: flex; gap: 10px; align-items: flex-start; padding: 7px 0; border-bottom: 1px dotted var(--muted); }
 .task input { margin-top: 5px; flex: none; accent-color: var(--ink); }
 .task .what { flex: 1; cursor: pointer; overflow-wrap: anywhere; }
 .task .what small { display: block; color: var(--muted); }
 .task.done .what b { text-decoration: line-through; color: var(--muted); font-weight: 400; }
-.addtask { display: flex; gap: 8px; margin: 8px 0 4px; }
+.addtask { display: flex; gap: 8px; padding: 8px 0 6px; }
+.donetoggle { padding: 6px 0; }
+.transcript { white-space: pre-wrap; overflow-wrap: anywhere; margin: 4px 0 10px; padding-left: 10px; border-left: 2px solid var(--ink); }
 .addtask input[type=date] { width: 150px; } .addtask input[type=time] { width: 120px; }
 
 .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: flex; align-items: flex-start; justify-content: center; padding: 6vh 16px; overflow-y: auto; z-index: 50; }
@@ -421,6 +437,137 @@ button.armed { color: var(--warn); font-weight: 700; }
       h("button", { class: "quiet", text: "Save", title: "Save the PDF on this computer", onclick: function () { saveScan(n, name); } }));
   }
 
+  // ---------------------------------------------------------------- whole pages, no scrollbars
+  // A list here turns the way the apps' lists do: what fits is shown whole, and the chevrons,
+  // the mouse wheel, Page Up / Page Down (and Home / End) turn to the next page. Nothing scrolls.
+  // Cards are laid in columns, each card under the shortest column, and a card that would run
+  // past the foot of the window starts the next page; a heading runs across, and does not stay
+  // alone at the foot of a page. Rows (tasks, the side list) are the same with one column.
+  // The page shown is remembered by its first item, so a change from the phone, a tick or a
+  // resized window keeps the same notes in view.
+  var GAP = 14, COL_W = 250;
+  function chevron(up) {
+    var NS = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(NS, "svg"); svg.setAttribute("viewBox", "0 0 24 24"); svg.setAttribute("width", "16"); svg.setAttribute("height", "16"); svg.setAttribute("aria-hidden", "true");
+    var p = document.createElementNS(NS, "path"); p.setAttribute("fill", "none"); p.setAttribute("stroke", "currentColor"); p.setAttribute("stroke-width", "2.5");
+    p.setAttribute("stroke-linecap", "round"); p.setAttribute("stroke-linejoin", "round"); p.setAttribute("d", up ? "M6 15l6-6 6 6" : "M6 9l6 6 6-6");
+    svg.appendChild(p); return svg;
+  }
+  // [opts]: cards (lay out in columns), maxWidth (rows: the widest a row runs), gap.
+  function makePager(opts) {
+    var area = h("div", { class: "paged" });
+    var prev = h("button", { title: "Previous page (Page Up)", "aria-label": "Previous page", onclick: function () { turn(-1); } }, chevron(true));
+    var next = h("button", { title: "Next page (Page Down)", "aria-label": "Next page", onclick: function () { turn(1); } }, chevron(false));
+    var turns = h("div", { class: "turns", hidden: true }, prev, next);
+    var wrap = h("div", { class: "pagedwrap" }, area, turns);
+    var P = { el: wrap, area: area, blocks: [], pages: [], at: 0, anchor: null, key: null };
+    var gap = opts.gap === undefined ? GAP : opts.gap;
+    var watch = typeof ResizeObserver === "function" ? new ResizeObserver(function (es) {
+      // A card grew or shrank in place (a player opened, an item's menu): lay the pages out again.
+      for (var i = 0; i < es.length; i++) {
+        var b = es[i].target.__block; if (!b) continue;
+        if (Math.abs(es[i].target.offsetHeight - b.h) > 1) { relaySoon(); return; }
+      }
+    }) : null;
+    var relayTimer = null;
+    function relaySoon() { clearTimeout(relayTimer); relayTimer = setTimeout(function () { layout(); }, 30); }
+    function layout() {
+      if (!area.isConnected) return;
+      var W = area.clientWidth, H = area.clientHeight;
+      if (W <= 0 || H <= 0) return;
+      var n = opts.cards ? Math.max(1, Math.floor((W + gap) / (COL_W + gap))) : 1;
+      var cw = opts.cards ? (W - (n - 1) * gap) / n : Math.min(W, opts.maxWidth || W);
+      var x0 = opts.cards ? 0 : (W - cw) / 2;
+      area.style.setProperty("--page-h", H + "px");
+      // Measured at the width each will have, off to the side and unseen.
+      var m = h("div", { class: "measure" });
+      area.replaceChildren(m);
+      P.blocks.forEach(function (b) { b.el.style.cssText = "width:" + (opts.cards && b.head ? W : cw) + "px"; m.appendChild(b.el); });
+      P.blocks.forEach(function (b) { b.h = b.el.offsetHeight; });
+      m.remove();
+      var pages = [], cur;
+      function fresh() { cur = { items: [], cols: [] }; for (var i = 0; i < n; i++) cur.cols.push(0); pages.push(cur); }
+      fresh();
+      P.blocks.forEach(function (b, i) {
+        if (b.head || !opts.cards) {
+          var top = Math.max.apply(null, cur.cols);
+          // A heading keeps at least the block after it on its page.
+          var need = b.h + (b.head && P.blocks[i + 1] ? P.blocks[i + 1].h : 0);
+          if (top > 0 && top + need > H) { fresh(); top = 0; }
+          cur.items.push({ b: b, x: opts.cards ? 0 : x0, y: top, w: opts.cards && b.head ? W : cw });
+          for (var c = 0; c < n; c++) cur.cols[c] = top + b.h + (b.head || !opts.cards ? 0 : gap);
+          if (opts.cards && b.head) for (c = 0; c < n; c++) cur.cols[c] = top + b.h + 8;
+          return;
+        }
+        var col = 0; for (var k = 1; k < n; k++) if (cur.cols[k] < cur.cols[col]) col = k;
+        var y = cur.cols[col];
+        if (y > 0 && y + b.h > H) { fresh(); col = 0; y = 0; }
+        cur.items.push({ b: b, x: col * (cw + gap), y: y, w: cw });
+        cur.cols[col] = y + b.h + gap;
+      });
+      P.pages = pages;
+      // Back to the page that holds the item that was first on screen.
+      var at = -1;
+      if (P.anchor !== null) pages.forEach(function (pg, i) { if (at < 0 && pg.items.some(function (it) { return it.b.key === P.anchor; })) at = i; });
+      P.at = Math.max(0, Math.min(at >= 0 ? at : P.at, pages.length - 1));
+      show();
+    }
+    function show() {
+      if (watch) watch.disconnect();
+      var pg = P.pages[P.at]; area.replaceChildren();
+      if (pg) pg.items.forEach(function (it) {
+        var s = it.b.el.style; s.cssText = ""; s.left = it.x + "px"; s.top = it.y + "px"; s.width = it.w + "px";
+        area.appendChild(it.b.el); it.b.el.__block = it.b; if (watch) watch.observe(it.b.el);
+      });
+      P.anchor = pg && pg.items.length ? pg.items[0].b.key : null;
+      turns.hidden = P.pages.length < 2;
+      prev.disabled = P.at <= 0; next.disabled = P.at >= P.pages.length - 1;
+      if (P.memo) P.memo[P.key] = P.anchor;
+    }
+    function turn(d) {
+      var to = Math.max(0, Math.min(P.at + d, P.pages.length - 1));
+      if (to === P.at) return false;
+      P.at = to; show(); return true;
+    }
+    // The wheel turns one page per push, however far a touchpad's swipe runs on.
+    var wheelSum = 0, wheelQuiet = 0;
+    area.addEventListener("wheel", function (e) {
+      e.preventDefault();
+      var now = Date.now();
+      if (now < wheelQuiet) { wheelQuiet = now + 180; return; }
+      wheelSum += e.deltaMode === 1 ? e.deltaY * 30 : e.deltaY;
+      if (Math.abs(wheelSum) >= 40) { turn(wheelSum > 0 ? 1 : -1); wheelSum = 0; wheelQuiet = now + 300; }
+    }, { passive: false });
+    P.turn = turn;
+    P.first = function () { if (P.at > 0) { P.at = 0; show(); } };
+    P.last = function () { if (P.at < P.pages.length - 1) { P.at = P.pages.length - 1; show(); } };
+    // [blocks]: {el, key, head?}. [key] names what is listed (a view, a folder, a search), so
+    // each keeps its own place; [memo] remembers places between draws.
+    P.set = function (blocks, key, memo) {
+      if (key !== P.key) { P.at = 0; P.anchor = memo && key in memo ? memo[key] : null; }
+      P.key = key; P.memo = memo; P.blocks = blocks;
+      if (area.isConnected) layout(); else setTimeout(layout, 0);
+    };
+    P.layout = layout;
+    P.destroy = function () { if (watch) watch.disconnect(); clearTimeout(relayTimer); };
+    return P;
+  }
+  var mainPager = null, sidePager = null, places = {}, sidePlaces = {};
+  var resizeTimer = null;
+  window.addEventListener("resize", function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () { if (mainPager) mainPager.layout(); if (sidePager) sidePager.layout(); }, 120);
+  });
+  // Page Up / Page Down, Home / End turn the main list, when nothing is being typed and no note is open.
+  document.addEventListener("keydown", function (e) {
+    if (modal || !mainPager || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test((e.target && e.target.tagName) || "") && e.target.type !== "checkbox") return;
+    if (document.querySelector(".viewer")) return;
+    var done = e.key === "PageDown" ? mainPager.turn(1) : e.key === "PageUp" ? mainPager.turn(-1)
+      : e.key === "Home" ? (mainPager.first(), true) : e.key === "End" ? (mainPager.last(), true) : null;
+    if (done !== null) e.preventDefault();
+  });
+
   // ---------------------------------------------------------------- drawing
   function draw() {
     root.textContent = "";
@@ -532,6 +679,16 @@ button.armed { color: var(--warn); font-weight: 700; }
   function drawSide() {
     var side = document.getElementById("side"); if (!side) return;
     side.textContent = "";
+    // The side list pages like the main one, if there are more folders than fit.
+    if (sidePager) sidePager.destroy();
+    sidePager = makePager({ gap: 0 });
+    var rows = [];
+    var into = { appendChild: function (el) { rows.push({ el: el, key: el.textContent }); } };
+    drawSideRows(into);
+    side.appendChild(sidePager.el);
+    sidePager.set(rows, "side", sidePlaces);
+  }
+  function drawSideRows(side) {
     var live = S.notes.filter(function (n) { return !n.archived; });
     side.appendChild(navButton("Notes", "notes", 0));
     side.appendChild(navButton("Reminders", "reminders", live.filter(hasReminder).length));
@@ -553,13 +710,22 @@ button.armed { color: var(--warn); font-weight: 700; }
     }
   }
 
+  // The main list in whole pages: [blocks] as makePager takes them, under whatever [above] it.
+  function paged(main, blocks, cards, maxWidth) {
+    if (mainPager) mainPager.destroy();
+    mainPager = makePager({ cards: cards, maxWidth: maxWidth, gap: cards ? GAP : 0 });
+    main.appendChild(mainPager.el);
+    mainPager.set(blocks, S.view + "|" + (S.folder || "") + "|" + S.query, places);
+  }
+  function cardBlocks(notes) { return notes.map(function (n) { return { el: card(n), key: n.id }; }); }
   function drawMain() {
     var main = document.getElementById("main"); if (!main) return;
     main.textContent = "";
+    if (mainPager) { mainPager.destroy(); mainPager = null; }
     if (!S.loaded) { main.appendChild(h("p", { class: "empty", text: "Opening your notes…" })); return; }
     if (!S.ready) { main.appendChild(h("p", { class: "empty", text: "Memo has nowhere to keep notes yet. Choose a place on the phone first." })); return; }
-    if (S.view === "tasks") { main.appendChild(tasksView()); return; }
-    if (S.view === "trash") { main.appendChild(trashView()); return; }
+    if (S.view === "tasks") { tasksView(main); return; }
+    if (S.view === "trash") { trashView(main); return; }
     var words = wordsOf(S.query);
     var list;
     if (S.view === "archive") list = S.notes.filter(function (n) { return n.archived; });
@@ -579,12 +745,13 @@ button.armed { color: var(--warn); font-weight: 700; }
     if (!list.length) { main.appendChild(h("p", { class: "empty", text: words.length ? "Nothing matches." : EMPTY[S.view] || "No notes yet." })); return; }
     var pinned = S.view === "notes" || S.view === "folder" ? list.filter(function (n) { return n.pinned && !n.archived; }) : [];
     var rest = list.filter(function (n) { return pinned.indexOf(n) < 0; });
-    if (pinned.length) { main.appendChild(h("h3", { class: "sec", text: "Pinned" })); main.appendChild(grid(pinned)); }
-    if (pinned.length && rest.length) main.appendChild(h("h3", { class: "sec", text: "Others" }));
-    if (rest.length) main.appendChild(grid(rest));
+    var blocks = [];
+    if (pinned.length) { blocks.push({ el: h("h3", { class: "sec", text: "Pinned" }), key: "§pinned", head: true }); blocks = blocks.concat(cardBlocks(pinned)); }
+    if (pinned.length && rest.length) blocks.push({ el: h("h3", { class: "sec", text: "Others" }), key: "§others", head: true });
+    blocks = blocks.concat(cardBlocks(rest));
+    paged(main, blocks, true);
   }
   var EMPTY = { archive: "Nothing in the archive.", reminders: "No reminders.", lists: "No lists.", voice: "No voice notes.", scans: "No scans.", shared: "Nothing shared.", withme: "Nothing shared with you." };
-  function grid(notes) { return h("div", { class: "grid" }, notes.map(card)); }
 
   function card(n) {
     var c = h("article", { class: "card", tabIndex: 0 });
@@ -662,14 +829,12 @@ button.armed { color: var(--warn); font-weight: 700; }
 
   // ---------------------------------------------------------------- the trash
   function whenText(ms) { try { return new Date(ms).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }); } catch (e) { return new Date(ms).toISOString(); } }
-  function trashView() {
-    var box = h("div", null);
-    box.appendChild(h("p", { class: "hint", text: "Deleted notes are kept " + S.trashDays + " days on the phone, then removed for good." }));
-    if (!S.trash.length) { box.appendChild(h("p", { class: "empty", text: "The trash is empty." })); return box; }
-    box.appendChild(h("div", { class: "composer" },
+  function trashView(main) {
+    main.appendChild(h("p", { class: "hint", text: "Deleted notes are kept " + S.trashDays + " days on the phone, then removed for good." }));
+    if (!S.trash.length) { main.appendChild(h("p", { class: "empty", text: "The trash is empty." })); return; }
+    main.appendChild(h("div", { class: "composer" },
       h("button", { class: "act", text: "Empty trash (" + S.trash.length + ")", onclick: emptyTrash })));
-    box.appendChild(h("div", { class: "grid" }, S.trash.map(trashCard)));
-    return box;
+    paged(main, S.trash.map(function (t) { return { el: trashCard(t), key: "trash|" + t.id }; }), true);
   }
   function trashCard(t) {
     var c = h("article", { class: "card" });
@@ -905,13 +1070,17 @@ button.armed { color: var(--warn); font-weight: 700; }
   var PRI = { 0: "", 1: "High", 5: "Medium", 9: "Low" };
   function priWord(p) { return p === 0 ? "" : p <= 4 ? "High" : p === 5 ? "Medium" : "Low"; }
 
-  function tasksView() {
-    var wrap = h("div", null);
-    if (!S.taskLists.length) wrap.appendChild(h("p", { class: "empty", text: "No task lists yet." }));
-    S.taskLists.forEach(function (l) {
+  // Lists open or shut their completed tasks; remembered while the page is open.
+  var showDone = {};
+  function tasksView(main) {
+    if (!S.taskLists.length) { main.appendChild(h("p", { class: "empty", text: "No task lists yet." })); return; }
+    var rows = [];
+    var box = { appendChild: function (el) { rows.push({ el: el, key: el.__key || ("r" + rows.length) }); } };
+    S.taskLists.forEach(function (l, li) {
       var open = l.items.filter(function (i) { return !i.done; }).sort(function (a, b) { return (a.due || "￿") < (b.due || "￿") ? -1 : 1; });
       var done = l.items.filter(function (i) { return i.done; });
-      var box = h("section", { class: "tasklist" }, h("h3", { text: l.name + (l.readOnly ? " (read only)" : "") + (l.onPhone ? "" : "") }));
+      var head = h("h3", { class: "listhead" + (li ? "" : " first"), text: l.name + (l.readOnly ? " (read only)" : "") });
+      head.__key = "list|" + l.id; box.appendChild(head);
       if (!l.readOnly) {
         var t = h("input", { type: "text", placeholder: "Add a task", maxLength: 500, "aria-label": "New task in " + l.name });
         var d = h("input", { type: "date", "aria-label": "Due day" }), tm = h("input", { type: "time", "aria-label": "Due time" });
@@ -923,15 +1092,14 @@ button.armed { color: var(--warn); font-weight: 700; }
         t.addEventListener("keydown", function (e) { if (e.key === "Enter") go(); });
         box.appendChild(h("div", { class: "addtask" }, t, d, tm, h("button", { class: "solid", text: "Add", onclick: go })));
       }
-      open.forEach(function (i) { box.appendChild(taskRow(l, i)); });
+      open.forEach(function (i) { var r = taskRow(l, i); r.__key = "task|" + l.id + "|" + i.name; box.appendChild(r); });
       if (done.length) {
-        var shown = h("div", { hidden: true }, done.map(function (i) { return taskRow(l, i); }));
-        box.appendChild(h("button", { class: "quiet", text: "Completed (" + done.length + ")", onclick: function () { shown.hidden = !shown.hidden; } }));
-        box.appendChild(shown);
+        box.appendChild(h("div", { class: "donetoggle" }, h("button", { class: "quiet", text: (showDone[l.id] ? "Hide completed" : "Completed") + " (" + done.length + ")", "aria-expanded": String(!!showDone[l.id]),
+          onclick: function () { showDone[l.id] = !showDone[l.id]; drawMain(); } })));
+        if (showDone[l.id]) done.forEach(function (i) { var r = taskRow(l, i); r.__key = "task|" + l.id + "|" + i.name; box.appendChild(r); });
       }
-      wrap.appendChild(box);
     });
-    return wrap;
+    paged(main, rows, false, 760);
   }
   function taskRow(l, i) {
     var box = h("input", { type: "checkbox", checked: i.done, disabled: l.readOnly, "aria-label": i.summary });
