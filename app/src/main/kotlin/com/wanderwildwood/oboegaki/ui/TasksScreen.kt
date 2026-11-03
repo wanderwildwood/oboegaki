@@ -31,7 +31,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mudita.mmd.components.buttons.FloatingActionButtonMMD
 import com.mudita.mmd.components.checkbox.CheckboxMMD
-import com.mudita.mmd.components.divider.HorizontalDividerMMD
 import androidx.compose.foundation.lazy.rememberLazyListState
 import com.mudita.mmd.components.text.TextMMD
 import com.mudita.mmd.components.top_app_bar.TopAppBarMMD
@@ -115,7 +114,7 @@ fun TasksScreen(
                     style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
                 )
-                HorizontalDividerMMD()
+                DottedRule(start = 20.dp)
             }
             val listState = rememberLazyListState()
             PagedColumn(
@@ -173,7 +172,7 @@ fun TasksScreen(
                             ) { Tasks.moveToNextcloud(to.id) }
                         }
                     }
-                    item(key = "rule:${list.id}") { HorizontalDividerMMD() }
+                    item(key = "rule:${list.id}") { DottedRule(start = 20.dp) }
                 }
                 if (nextcloud) {
                     item(key = "new-list") {

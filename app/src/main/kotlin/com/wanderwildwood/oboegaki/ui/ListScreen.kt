@@ -40,7 +40,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mudita.mmd.components.buttons.FloatingActionButtonMMD
-import com.mudita.mmd.components.divider.HorizontalDividerMMD
 import androidx.compose.foundation.lazy.rememberLazyListState
 import com.mudita.mmd.components.text.TextMMD
 import com.mudita.mmd.components.text_field.TextFieldMMD
@@ -152,7 +151,7 @@ fun ListScreen(
                     style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
                 )
-                HorizontalDividerMMD()
+                DottedRule(start = 20.dp)
             }
 
             if (searching) {
