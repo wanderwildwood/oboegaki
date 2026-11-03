@@ -93,6 +93,11 @@ h3.sec { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; colo
 .card label.item.done span { text-decoration: line-through; color: var(--muted); }
 .card .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 2px; }
 .chip { font-size: 12px; border: 1px solid var(--line); border-radius: 12px; padding: 1px 9px; color: var(--muted); }
+button.chip { border-color: var(--ink); color: var(--ink); background: var(--paper); }
+button.chip:hover { background: var(--ink); color: var(--paper); }
+.voice { margin: 8px 0; }
+.voice audio { width: 100%; display: block; }
+.scan { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
 .card .acts { display: flex; flex-wrap: wrap; gap: 2px; margin: 6px -6px 0; opacity: 0; }
 .card .acts.shown { opacity: 1; }
 .card:hover .acts, .card:focus-within .acts { opacity: 1; }
@@ -267,6 +272,45 @@ h3.sec { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; colo
       .then(function (r) { if (!r.ok) throw 0; return r.blob(); })
       .then(function (b) { pics[key] = URL.createObjectURL(b); show(pics[key]); })
       .catch(function () { into.alt = name; });
+  }
+
+  // ---------------------------------------------------------------- voice notes and scans
+  // Fetched with the token in the header like everything else (never a token in a link), then
+  // played or shown from memory: a whole recording in memory seeks anywhere.
+  var media = {};
+  function mediaUrl(n, name) {
+    var key = n.id + "|" + name;
+    if (media[key]) return Promise.resolve(media[key]);
+    return fetch("/api/media?id=" + encodeURIComponent(n.id) + "&name=" + encodeURIComponent(name), { cache: "no-store", headers: { "Authorization": "Bearer " + S.token } })
+      .then(function (r) {
+        if (r.status === 401) { signOut(); throw new Error("signed out"); }
+        if (!r.ok) return r.json().catch(function () { return {}; }).then(function (j) { throw new Error(j.error || ("the phone answered " + r.status)); });
+        return r.blob();
+      })
+      .then(function (b) { media[key] = URL.createObjectURL(b); return media[key]; });
+  }
+  function player(n, name, autoplay) {
+    var a = h("audio", { controls: true, preload: "metadata", "aria-label": "Voice note " + name });
+    var box = h("div", { class: "voice" }, h("div", { class: "hint", text: "Voice note · " + name }), a);
+    mediaUrl(n, name).then(function (u) { a.src = u; if (autoplay) a.play().catch(function () {}); })
+      .catch(function (e) { if (e.message !== "signed out") box.replaceChildren(h("div", { class: "note", text: "Could not fetch " + name + ": " + e.message })); });
+    return box;
+  }
+  // A scan opens in a new tab with the browser's own PDF viewer. The tab is opened at the click,
+  // so no pop-up blocker stops it, and pointed at the file once it has come.
+  function openScan(n, name) {
+    var w = window.open("", "_blank");
+    mediaUrl(n, name).then(function (u) { if (w) w.location.href = u; else toast("The browser blocked the new tab. Use Save instead."); })
+      .catch(function (e) { if (w) w.close(); if (e.message !== "signed out") toast("Could not fetch " + name + ": " + e.message); });
+  }
+  function saveScan(n, name) {
+    mediaUrl(n, name).then(function (u) { var a = h("a", { href: u, download: name }); document.body.appendChild(a); a.click(); a.remove(); })
+      .catch(function (e) { if (e.message !== "signed out") toast("Could not fetch " + name + ": " + e.message); });
+  }
+  function scanRow(n, name) {
+    return h("div", { class: "scan" }, h("span", { class: "hint", text: "Scan · " + name }),
+      h("button", { class: "pill", text: "Open " + name, onclick: function () { openScan(n, name); } }),
+      h("button", { class: "quiet", text: "Save", title: "Save the PDF on this computer", onclick: function () { saveScan(n, name); } }));
   }
 
   // ---------------------------------------------------------------- drawing
@@ -445,10 +489,14 @@ h3.sec { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; colo
     var chips = h("div", { class: "chips" });
     if (n.reminder) chips.appendChild(h("span", { class: "chip", text: "Reminder " + n.reminder }));
     if (n.folder) chips.appendChild(h("span", { class: "chip", text: n.folder }));
-    n.recordings.forEach(function (r) { chips.appendChild(h("span", { class: "chip", text: "Recording " + r })); });
-    n.scans.forEach(function (r) { chips.appendChild(h("span", { class: "chip", text: "Scan " + r })); });
+    var playing = h("div", null);
+    n.recordings.forEach(function (r) {
+      chips.appendChild(h("button", { class: "chip", text: "▶ Voice note", title: "Play " + r, onclick: function () { if (!playing.firstChild) playing.appendChild(player(n, r, true)); } }));
+    });
+    n.scans.forEach(function (r) { chips.appendChild(h("button", { class: "chip", text: "Open scan", title: "Open " + r + " in a new tab", onclick: function () { openScan(n, r); } })); });
     if (n.pictures.length > 1) chips.appendChild(h("span", { class: "chip", text: (n.pictures.length - 1) + " more picture" + (n.pictures.length > 2 ? "s" : "") }));
     if (chips.childNodes.length) c.appendChild(chips);
+    c.appendChild(playing);
     if (n.items.length && !n.archived) {
       var add = h("input", { type: "text", placeholder: "+ List item", "aria-label": "Add an item" });
       add.addEventListener("keydown", function (e) {
@@ -568,6 +616,8 @@ h3.sec { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; colo
 
     var pics = h("div", null);
     if (n) n.pictures.forEach(function (p) { var img = h("img", { alt: "", class: "pic" }); picture(n, p, img); pics.appendChild(img); });
+    if (n) n.recordings.forEach(function (r) { pics.appendChild(player(n, r, false)); });
+    if (n) n.scans.forEach(function (r) { pics.appendChild(scanRow(n, r)); });
 
     var m = h("div", { class: "modal", role: "dialog", "aria-label": "Note" },
       warn, title, body,

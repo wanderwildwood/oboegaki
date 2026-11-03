@@ -14,6 +14,7 @@ data class Route(val method: String, val path: String)
 val API_ROUTES: Set<Route> = setOf(
     Route("GET", "/api/state"),
     Route("GET", "/api/file"),
+    Route("GET", "/api/media"),
     Route("POST", "/api/notes/create"),
     Route("POST", "/api/notes/update"),
     Route("POST", "/api/notes/tick"),

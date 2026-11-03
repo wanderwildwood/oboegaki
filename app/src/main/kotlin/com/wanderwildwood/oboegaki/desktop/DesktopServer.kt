@@ -193,10 +193,12 @@ class DesktopServer(
         404 -> Response.Status.NOT_FOUND
         405 -> Response.Status.METHOD_NOT_ALLOWED
         409 -> Response.Status.CONFLICT
+        206 -> Response.Status.PARTIAL_CONTENT
         413 -> object : Response.IStatus {
             override fun getDescription() = "413 Payload Too Large"
             override fun getRequestStatus() = 413
         }
+        416 -> Response.Status.RANGE_NOT_SATISFIABLE
         else -> Response.Status.INTERNAL_ERROR
     }
 
@@ -233,6 +235,7 @@ class DesktopServer(
         return when {
             method == Method.GET && uri == "/api/state" -> state(session)
             method == Method.GET && uri == "/api/file" -> file(session)
+            method == Method.GET && uri == "/api/media" -> media(session)
             method == Method.POST && uri == "/api/notes/create" -> createNote(body(session))
             method == Method.POST && uri == "/api/notes/update" -> updateNote(body(session))
             method == Method.POST && uri == "/api/notes/tick" -> tickItem(body(session))
@@ -283,7 +286,7 @@ class DesktopServer(
         return newFixedLengthResponse(Response.Status.OK, "text/html; charset=utf-8", html).apply {
             addHeader(
                 "Content-Security-Policy",
-                "default-src 'none'; script-src 'nonce-$nonce'; style-src 'nonce-$nonce'; img-src 'self' blob: data:; " +
+                "default-src 'none'; script-src 'nonce-$nonce'; style-src 'nonce-$nonce'; img-src 'self' blob: data:; media-src blob:; " +
                     "font-src 'self'; connect-src 'self'$ws; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
             )
         }
@@ -364,6 +367,44 @@ class DesktopServer(
             else -> "image/jpeg"
         }
         return newFixedLengthResponse(Response.Status.OK, type, ByteArrayInputStream(bytes), bytes.size.toLong())
+    }
+
+    /**
+     * A recording or a scan a note embeds, by the note and the file's name, with the same rule as
+     * [file]: nothing else on the phone can be asked for. Streamed rather than read whole, and a
+     * `Range` is answered with that part (206), as Messaging's server does for audio.
+     */
+    private fun media(session: IHTTPSession): Response {
+        val id = session.parameters["id"]?.firstOrNull() ?: throw Refusal(400, "no note")
+        val name = session.parameters["name"]?.firstOrNull() ?: throw Refusal(400, "no file")
+        if (!isSafeMediaName(name)) throw Refusal(400, "not a recording or a scan")
+        val type = mediaType(name) ?: throw Refusal(400, "not a recording or a scan")
+        if (embeds(noteText(id)).none { it == name }) throw Refusal(404, "not in that note")
+        val folder = id.substringBeforeLast('/', "")
+        val path = if (folder.isEmpty()) name else "$folder/$name"
+        val uri = Notes.shelf()?.uriOf(path) ?: throw Refusal(404, "no such file")
+        val fd = context.contentResolver.openAssetFileDescriptor(uri, "r") ?: throw Refusal(404, "no such file")
+        val total = fd.length.takeIf { it >= 0 } ?: fd.parcelFileDescriptor.statSize
+        if (total < 0) { fd.close(); throw Refusal(404, "no such file") }
+        if (total > MEDIA_BYTES) { fd.close(); throw Refusal(413, "too large") }
+        return when (val range = byteRange(session.headers["range"], total)) {
+            ByteRange.Unsatisfiable -> {
+                fd.close()
+                newFixedLengthResponse(status(416), MIME_PLAINTEXT, "").apply { addHeader("Content-Range", "bytes */$total") }
+            }
+            ByteRange.Whole -> newFixedLengthResponse(Response.Status.OK, type, fd.createInputStream(), total)
+            is ByteRange.Part -> {
+                val input = fd.createInputStream()
+                var skipped = 0L
+                while (skipped < range.start) {
+                    val n = input.skip(range.start - skipped)
+                    if (n <= 0) { input.close(); throw Refusal(416, "past the end") }
+                    skipped += n
+                }
+                newFixedLengthResponse(status(206), type, input, range.length)
+                    .apply { addHeader("Content-Range", "bytes ${range.start}-${range.end}/$total") }
+            }
+        }.apply { addHeader("Accept-Ranges", "bytes") }
     }
 
     // ------------------------------------------------------------------ notes

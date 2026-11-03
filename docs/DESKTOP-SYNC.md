@@ -46,6 +46,7 @@ sensitive (`EXTRA_IS_SENSITIVE`, Android 13+) and clears it after 60 s if nothin
 
 Every response carries `Cache-Control: no-store`, a strict CSP (a per-response nonce for the one
 inline script and stylesheet; `default-src 'none'`; images only from the page itself and `blob:`;
+sound only from `blob:`; the typeface only from the page itself;
 no framing), `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`. No CORS headers
 are ever sent, `OPTIONS` is refused, and every POST needs the custom `X-Notes: 1` header, which a
 cross-origin page cannot add without a preflight that is never answered.
@@ -75,8 +76,16 @@ follow an edit on the phone follow an edit from the browser too.
 
 What the app does not have is not invented: there are no colours and no labels. *Delete* moves
 a note to the trash, exactly as on the phone, and can be undone from the page's *Trash*; *Delete
-forever* and *Empty trash* are permanent, and the page asks first. Voice notes and scans show as
-a line naming the file; they are not played or opened in the browser.
+forever* and *Empty trash* are permanent, and the page asks first.
+
+**Voice notes and scans.** A voice note plays in the browser, with seeking: in an open note, and
+from the *Voice note* button on its card. A scan's PDF opens in a new tab in the browser's own
+PDF viewer (*Open*), or is saved (*Save*). Both come through `GET /api/media` with the token in
+the `Authorization` header like every other route. There is no link with a token in it, so the
+page fetches the file and plays or shows it from memory (a `blob:` address), which is also what
+lets a recording seek anywhere. The server answers a `Range` (206, 416 past the end), as
+Messaging's does for audio, so a long recording can be asked for in parts. Play-only and
+view-only: neither can be recorded, changed or added from the browser.
 
 ## Endpoints
 
@@ -104,6 +113,10 @@ All JSON, all except the first three need the token and `X-Notes: 1` on POST.
 - `POST /api/tasks/add` `{list, summary, description?, due?, priority?}`
 - `POST /api/tasks/update` `{list, name, from:{...}, to:{...}}`, `/tick`, `/delete` `{list, name}`
 - `GET /api/file?id=<note>&name=<picture>` the picture bytes.
+- `GET /api/media?id=<note>&name=<file>` a recording (`m4a mp3 wav ogg opus aac`) or a scan
+  (`pdf`) the note embeds, streamed, with `Accept-Ranges: bytes`; one `bytes=` range is answered
+  with 206 and `Content-Range`, several or a malformed one with the whole file, one past the end
+  with 416. The name is a plain file name beside the note (`isSafeMediaName`), nothing else.
 - `POST /api/unpair` `{}` this browser forgets itself: its own token is removed on the phone,
   and only its own (the cog's *Forget this computer*).
 
@@ -166,7 +179,7 @@ the last two behind a confirm. Tasks are not in it: they come from CalDAV and ha
 Request body 512 KB (pairing: 512 bytes). Note text 200,000 characters, title 120, folder 200 and
 no `..`/dot-segments/archive (the app's `cleanFolder`), 3,000 characters per added item, reminder
 must parse as `yyyy-MM-dd HH:mm`. Task summary 500, description 20,000. Pictures up to 8 MB and
-only `jpg/jpeg/png/webp` that are linked by a note. Unknown JSON fields are ignored; wrong types
+only `jpg/jpeg/png/webp` that are linked by a note. Recordings and scans up to 256 MB, likewise. Unknown JSON fields are ignored; wrong types
 are 400.
 
 ## Idle cost
