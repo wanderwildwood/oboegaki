@@ -175,6 +175,8 @@ fun ListScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { choosing = true }
+                    .heightIn(min = 48.dp)
+                    .wrapContentHeight(Alignment.CenterVertically)
                     .padding(horizontal = 20.dp, vertical = 12.dp),
             )
 
