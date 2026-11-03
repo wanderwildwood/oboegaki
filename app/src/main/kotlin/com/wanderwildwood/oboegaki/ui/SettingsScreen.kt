@@ -420,11 +420,12 @@ fun SettingsScreen(
     }
 
     if (choosingFolder) {
+        val notes by Notes.list.collectAsState()
         FolderDialog(
             heading = stringResource(R.string.settings_new_in),
             note = stringResource(R.string.settings_new_note),
             current = newFolder,
-            folders = folders(Notes.list.value),
+            folders = folders(notes),
             useLabel = stringResource(R.string.settings_new_use),
             onDone = { folder ->
                 choosingFolder = false
