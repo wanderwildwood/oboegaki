@@ -17,6 +17,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <!-- Keeps the processor, not the screen, awake while recording and while hearing. -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Desktop Sync asks, with Android's own dialog, to be left out of battery optimisation. -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <!-- Reminders ring as an alarm clock does: exact, and through Doze. -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />

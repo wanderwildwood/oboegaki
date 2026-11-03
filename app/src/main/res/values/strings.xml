@@ -474,9 +474,9 @@
     <string name="desktop_show">Show link</string>
     <string name="desktop_show_what">The address and a code to type on your computer. If you used Desktop Sync before, each computer pairs again once.</string>
     <string name="desktop_restricted">Android will stop this soon</string>
-    <string name="desktop_restricted_what">Memo\'s battery use is set to Restricted, so Android ends Desktop Sync about a minute after you leave the app. Tap to open Memo\'s settings, then Battery, and choose Unrestricted.</string>
+    <string name="desktop_restricted_what">Memo\'s battery use is restricted, so Android ends Desktop Sync about a minute after you leave the app. Tap to open Memo\'s settings, then Battery, and choose Unrestricted. On the Kompakt there is no Battery entry there: go to Settings, System, Developer options, Battery Manager, and untick Memo.</string>
     <string name="desktop_stopped">Desktop Sync was stopped for you</string>
-    <string name="desktop_stopped_what">Android ended it while you were away from Memo. If this keeps happening, tap to open Memo\'s settings, then Battery, and choose Unrestricted.</string>
+    <string name="desktop_stopped_what">Android ended it while you were away from Memo. If this keeps happening, tap to open Memo\'s settings, then Battery, and choose Unrestricted. On the Kompakt there is no Battery entry there: go to Settings, System, Developer options, Battery Manager, and untick Memo.</string>
     <string name="desktop_stopped_duraspeed">The phone\'s background manager (DuraSpeed) ended it while you were away from Memo. Tap to open DuraSpeed\'s page, then Open, and switch Memo on in its list.</string>
     <string name="desktop_vpn_only">VPN only</string>
     <string name="desktop_vpn_only_on">Only a computer on your VPN can reach it.</string>

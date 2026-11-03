@@ -245,6 +245,9 @@ and the SHA-256 of the certificate it is signed with; any other caller is `refus
 - `FOREGROUND_SERVICE` is also what keeps Desktop Sync's server alive, with a notification and a
   Stop button, only while its switch is on. It uses the `INTERNET` permission to listen, not to
   call out.
+- `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, so that turning Desktop Sync on can show Android's own
+  dialog asking to leave Memo out of battery optimisation. Without it the phone's battery
+  manager can restrict Memo and end Desktop Sync a minute after you leave the app. You can say no.
 - `ACCESS_NETWORK_STATE`, to notice the phone is back on a network, so what was changed
   without one goes up then.
 - `RECORD_AUDIO`, asked the first time the microphone is pressed and not before.

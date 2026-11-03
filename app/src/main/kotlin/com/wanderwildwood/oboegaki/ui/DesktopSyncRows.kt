@@ -54,7 +54,14 @@ fun LazyListScope.desktopSyncRows() {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { if (running) DesktopSync.stop(context) else DesktopSync.start(context) }
+                .clickable {
+                    if (running) {
+                        DesktopSync.stop(context)
+                    } else {
+                        DesktopSync.start(context)
+                        if (!Keepalive.allowedToRun(context)) Keepalive.askToRun(context)
+                    }
+                }
                 .heightIn(min = 48.dp)
                 .padding(horizontal = 20.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
