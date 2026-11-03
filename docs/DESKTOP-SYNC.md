@@ -9,15 +9,17 @@ added).
 
 Off by default. The switch in Settings > Desktop Sync starts a foreground service (notification
 with **Stop**); switching it off, Stop, or a failed bind stops the server and the service. With it
-off there is no service, no socket, no timer and no receiver doing anything for it.
+off there is no service, no socket and no timer; the restart receiver wakes at boot and after an
+update, sees it off, and does nothing.
 
-It survives an update, but not a reboot. When it starts it saves which boot of the phone it is
-(`Settings.Global.BOOT_COUNT`, readable without a permission, with the time since boot as a
-check; where the count is missing, the clock time the boot began). After an update a
-`MY_PACKAGE_REPLACED` receiver starts it again if it was on in this boot; if the system stopped
-the app (low memory, DuraSpeed), it starts again when Memo is next opened, in this boot. There is
-no boot receiver for it and the service is not sticky: after a reboot the saved boot no longer
-matches, it is marked off, and nothing starts it.
+Once on, it stays on until the reader switches it off. The switch (`desktop_wanted`) is cleared
+only by Stop and by a start that fails (the port cannot be bound); a failure is kept with its
+reason and Settings shows it once. Everything else brings it back, by whichever route Android 12
+allows first: a receiver for `BOOT_COMPLETED` and `MY_PACKAGE_REPLACED` (both may start a
+foreground service from the background), the service being sticky, the process starting
+(`MemoApplication`), and Memo being opened. A start Android refuses leaves the switch on for the
+next route. Switching it on asks for Memo to be left out of battery optimization, which also lets
+the background starts through.
 
 ## Access control
 

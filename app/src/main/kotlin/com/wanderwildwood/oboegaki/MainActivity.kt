@@ -172,7 +172,7 @@ class MainActivity : ComponentActivity() {
         Voice.catchUp(this)
         // A reminder the app could not ring, because it was stopped, rings now and says so.
         Reminders.syncSoon(this)
-        // Desktop Sync left on and stopped by the system comes back, unless the phone restarted.
+        // Desktop Sync left on comes back if the system had stopped it.
         DesktopSync.resumeIfWanted(this)
     }
 

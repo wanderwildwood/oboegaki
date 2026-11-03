@@ -10,9 +10,9 @@ import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Desktop Sync as the rest of the app sees it: whether it is running, how to start and stop it,
- * and the pairing code. The switch shows whether the service is alive. An update, or the system
- * stopping the app, brings it back if the reader left it on and the phone has not restarted since;
- * a reboot turns it off, and nothing starts it after one (no boot receiver, not sticky).
+ * and the pairing code. The switch shows whether the service is alive. Once the reader switches
+ * it on it stays on until they switch it off: a reboot, an update or the system stopping the app
+ * brings it back ([resumeIfWanted]). Only a start that fails turns it off, and Settings says so.
  */
 object DesktopSync {
 
@@ -37,20 +37,16 @@ object DesktopSync {
     fun start(context: Context) = send(context, DesktopService.START, foreground = true)
 
     /**
-     * Starts the server again if the reader left it on and the phone has not restarted since it
-     * went on; forgets that it was on if the phone has. Called when the app is opened and after an
-     * update ([DesktopUpdateReceiver]), the two moments Android lets a foreground service start.
+     * Starts the server if the reader left it on and it is not running. Called when the process
+     * starts, when Memo is opened, and after a reboot or an update ([DesktopRestartReceiver]).
+     * Android 12 may refuse a start from the background (not for an app left out of battery
+     * optimization); the switch stays on, and the next of those starts it.
      */
     fun resumeIfWanted(context: Context) {
         Notes.init(context)
-        val preferences = Notes.preferences
-        val saved = BootMark.decode(preferences.desktopBootMark)
-        when (DesktopBoot.decide(preferences.desktopWanted, _running.value, saved, BootMark.now(context))) {
-            DesktopBoot.Decision.NOTHING -> Unit
-            DesktopBoot.Decision.OFF -> preferences.desktopWanted = false
-            DesktopBoot.Decision.START -> runCatching { start(context) }
-                .onFailure { android.util.Log.i("oboegaki-desktop", "not started again: ${it.javaClass.simpleName}") }
-        }
+        if (!Notes.preferences.desktopWanted || _running.value) return
+        runCatching { start(context) }
+            .onFailure { android.util.Log.i("oboegaki-desktop", "not started again: ${it.javaClass.simpleName}") }
     }
 
     fun stop(context: Context) {

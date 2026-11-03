@@ -25,10 +25,10 @@ import kotlinx.coroutines.launch
 private const val TAG = "oboegaki-desktop"
 
 /**
- * The foreground service that hosts the server, for exactly as long as the switch is on. It is
- * not sticky: if the system takes it away it comes back only after an update in the same boot, or
- * when the app is next opened in the same boot ([DesktopSync.resumeIfWanted]); after a reboot it
- * stays away until the reader switches it on again.
+ * The foreground service that hosts the server, for as long as the switch is on. Once on it stays
+ * on until the reader switches it off: it is sticky, and after a reboot, an update or the system
+ * taking it away it comes back by the first route Android allows ([DesktopRestartReceiver], the
+ * sticky restart, the process starting, Memo being opened: [DesktopSync.resumeIfWanted]).
  */
 class DesktopService : Service() {
 
@@ -51,15 +51,24 @@ class DesktopService : Service() {
             "$packageName.$START" -> begin()
             // The reader's own Stop (the switch or the notification button) is the only thing that says "no".
             "$packageName.$STOP" -> { Notes.init(this); Notes.preferences.desktopWanted = false; end(removeNotification = true) }
-            else -> end(removeNotification = true)
+            // The system restarting the sticky service (no intent), or a stray intent: back up if
+            // the reader left it on. Neither turns the switch off.
+            else -> { Notes.init(this); if (Notes.preferences.desktopWanted) begin() else end(removeNotification = true) }
         }
-        return START_NOT_STICKY
+        // Sticky: if the system ends the process, it starts the service again by itself.
+        return START_STICKY
     }
 
     @OptIn(FlowPreview::class)
     private fun begin() {
-        // The notification first: a foreground service has seconds to put one up.
-        startForeground(NOTIFICATION, notification(listening()))
+        // The notification first: a foreground service has seconds to put one up. A sticky restart
+        // in the background can be refused it on Android 12: the switch stays on, and the next
+        // allowed start (opening Memo, the next boot or update) brings it up.
+        if (runCatching { startForeground(NOTIFICATION, notification(listening())) }.isFailure) {
+            Log.i(TAG, "not allowed to run in the foreground now")
+            stopSelf()
+            return
+        }
         if (server != null) return
         Notes.init(this)
         Tasks.init(this)
@@ -74,16 +83,18 @@ class DesktopService : Service() {
             vpnOnly = { preferences.desktopVpnOnly },
             page = { html ?: "" },
         )
-        if (html == null || runCatching { next.start(0, false) }.isFailure) {
+        val failed = if (html == null) getString(R.string.desktop_failed_page) else runCatching { next.start(0, false) }.exceptionOrNull()
+            ?.let { it.message?.takeIf(String::isNotBlank) ?: it.javaClass.simpleName }
+        if (failed != null) {
             Log.w(TAG, "the server could not start")
+            // The one time it goes off without the reader: Settings says so, once, with why.
+            preferences.desktopFailure = failed
             preferences.desktopWanted = false
             end(removeNotification = true)
             return
         }
         server = next
         preferences.desktopWanted = true
-        // The boot it went on in: an update in this boot brings it back, a reboot does not.
-        preferences.desktopBootMark = BootMark.now(this).encode()
         DesktopSync.setRunning(true)
         Tasks.refresh()
 

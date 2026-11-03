@@ -98,7 +98,7 @@ Design and protocol: [docs/DESKTOP-SYNC.md](docs/DESKTOP-SYNC.md).
 
 **Setup.** Settings, *Desktop Sync*, switch on. *Show link* gives the address, a six-digit code
 (works once; a new one appears by itself when it runs out). Open the address on the computer, type the code;
-the browser remembers. Each computer gets its own key and is listed under *Paired computers* in the same settings, where it can be removed (or all of them); a computer not used for 30 days is removed by itself, and at most eight are kept. If you used Desktop Sync before this change, each computer pairs again once. Off by default. An app update leaves it as it was (if Android stopped Memo in the meantime, it comes back when you next open Memo); a reboot turns it off, and it never starts by itself after one.
+the browser remembers. Each computer gets its own key and is listed under *Paired computers* in the same settings, where it can be removed (or all of them); a computer not used for 30 days is removed by itself, and at most eight are kept. If you used Desktop Sync before this change, each computer pairs again once. Off by default. Once you switch it on it stays on until you switch it off: after a reboot, an app update or Android stopping Memo it comes back by itself. If it ever cannot start, it goes off and Settings says why, once.
 Switch it off with the same row or *Stop* on the notification.
 
 **Access.** *VPN only* is on by default: a request that does not come through a VPN (Tailscale,

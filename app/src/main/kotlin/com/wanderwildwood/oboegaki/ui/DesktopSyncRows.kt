@@ -41,8 +41,8 @@ import com.wanderwildwood.oboegaki.desktop.Network
 import com.wanderwildwood.oboegaki.notes.Notes
 
 /**
- * Desktop Sync's rows in Settings. Off until the switch is turned, and the switch is the only
- * thing that starts it. Nothing here counts down or redraws by itself: the code counts down only while its dialog is open,
+ * Desktop Sync's rows in Settings. Off until the switch is turned; once on it stays on, through
+ * reboots and updates, until the switch is turned off. Nothing here counts down or redraws by itself: the code counts down only while its dialog is open,
  * with how long it lasts, so the screen stays still.
  */
 fun LazyListScope.desktopSyncRows() {
@@ -58,6 +58,7 @@ fun LazyListScope.desktopSyncRows() {
                     if (running) {
                         DesktopSync.stop(context)
                     } else {
+                        Notes.preferences.desktopFailure = ""
                         DesktopSync.start(context)
                         if (!Keepalive.allowedToRun(context)) Keepalive.askToRun(context)
                     }
@@ -76,20 +77,15 @@ fun LazyListScope.desktopSyncRows() {
             Spacer(Modifier.width(16.dp))
             SwitchMMD(checked = running, onCheckedChange = null)
         }
-        val wanted = remember(running) { Notes.preferences.desktopWanted }
+        // A failed start is shown once: taking it clears it, so it is gone the next time.
+        val failure = remember(running) { if (running) null else Notes.preferences.takeDesktopFailure() }
         val restricted = remember(running) { Keepalive.backgroundRestricted(context) }
-        when (desktopWarning(running, wanted, restricted)) {
+        when (desktopWarning(running, failure != null, restricted)) {
             DesktopWarning.RESTRICTED -> SettingRow(stringResource(R.string.desktop_restricted), stringResource(R.string.desktop_restricted_what)) {
                 runCatching { context.startActivity(Keepalive.appInfo(context)) }
             }
-            DesktopWarning.STOPPED -> if (Keepalive.duraSpeedPresent(context)) {
-                SettingRow(stringResource(R.string.desktop_stopped), stringResource(R.string.desktop_stopped_duraspeed)) {
-                    runCatching { context.startActivity(Keepalive.duraSpeedInfo()) }
-                }
-            } else {
-                SettingRow(stringResource(R.string.desktop_stopped), stringResource(R.string.desktop_stopped_what)) {
-                    runCatching { context.startActivity(Keepalive.appInfo(context)) }
-                }
+            DesktopWarning.STOPPED -> SettingRow(stringResource(R.string.desktop_stopped), stringResource(R.string.desktop_stopped_what, failure ?: "")) {
+                DesktopSync.start(context)
             }
             DesktopWarning.NONE -> Unit
         }

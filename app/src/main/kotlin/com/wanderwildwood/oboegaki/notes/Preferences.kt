@@ -182,17 +182,20 @@ class Preferences(context: Context) {
         set(value) = store.edit().putBoolean(DESKTOP_VPN_ONLY, value).apply()
 
     /**
-     * Desktop Sync is meant to be on: set when it starts, cleared when the reader (or a failure to
-     * start) turns it off, and when the phone has restarted since it went on.
+     * Desktop Sync is meant to be on: set when it starts, cleared only when the reader turns it
+     * off or a start fails. A reboot, an update or the system stopping Memo leave it as it is.
      */
     var desktopWanted: Boolean
         get() = store.getBoolean(DESKTOP_WANTED, false)
         set(value) = store.edit().putBoolean(DESKTOP_WANTED, value).apply()
 
-    /** Which boot of the phone Desktop Sync went on in (a [com.wanderwildwood.oboegaki.desktop.BootMark]). */
-    var desktopBootMark: String
-        get() = store.getString(DESKTOP_BOOT_MARK, null) ?: ""
-        set(value) = store.edit().putString(DESKTOP_BOOT_MARK, value).apply()
+    /** Why Desktop Sync last failed to start and went off, until Settings has shown it once; or "". */
+    var desktopFailure: String
+        get() = store.getString(DESKTOP_FAILURE, null) ?: ""
+        set(value) = store.edit().putString(DESKTOP_FAILURE, value).apply()
+
+    /** The failure, for Settings to show once: read and cleared together. */
+    fun takeDesktopFailure(): String? = desktopFailure.takeIf { it.isNotEmpty() }?.also { desktopFailure = "" }
 
     var lastSync: Long
         get() = store.getLong(LAST_SYNC, 0L)
@@ -225,6 +228,6 @@ class Preferences(context: Context) {
         const val DESKTOP_BROWSERS = "desktop_browsers"
         const val DESKTOP_VPN_ONLY = "desktop_vpn_only"
         const val DESKTOP_WANTED = "desktop_wanted"
-        const val DESKTOP_BOOT_MARK = "desktop_boot_mark"
+        const val DESKTOP_FAILURE = "desktop_failure"
     }
 }

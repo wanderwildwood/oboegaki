@@ -78,6 +78,7 @@
     </queries>
 
     <application
+        android:name=".MemoApplication"
         android:allowBackup="false"
         android:dataExtractionRules="@xml/no_backup"
         android:fullBackupContent="false"
@@ -207,19 +208,19 @@
             android:exported="false"
             android:foregroundServiceType="microphone" />
 
-        <!-- Desktop Sync's server, for as long as the switch in Settings is on. Not restarted by
-             the system; started again only after an update, or when the app is opened, in the
-             same boot it was switched on in. -->
-        <!-- Desktop Sync after an update: started again if it was on in this boot. Not on
-             BOOT_COMPLETED: a reboot leaves it off. -->
+        <!-- Desktop Sync after a reboot or an update: started again if it was left on. Both
+             broadcasts may start a foreground service from the background on Android 12. -->
         <receiver
-            android:name=".desktop.DesktopUpdateReceiver"
+            android:name=".desktop.DesktopRestartReceiver"
             android:exported="false">
             <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
 
+        <!-- Desktop Sync's server, for as long as the switch in Settings is on. Sticky, so the
+             system brings it back if it ends the process. -->
         <service
             android:name=".desktop.DesktopService"
             android:exported="false" />
