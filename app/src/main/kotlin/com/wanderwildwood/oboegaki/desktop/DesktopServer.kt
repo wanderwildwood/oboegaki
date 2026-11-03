@@ -215,23 +215,20 @@ class DesktopServer(
         val uri = session.uri.trimEnd('/')
         val method = session.method
 
-        if (method != Method.GET && method != Method.POST) {
-            return json(405, JSONObject().put("error", "not allowed"))
+        // The rule is in Routes.kt, where it is tested route by route.
+        when (gate(method.name, session.uri, session.headers) { browsers.check(it) != null }) {
+            Gate.BAD_METHOD -> return json(405, JSONObject().put("error", "not allowed"))
+            Gate.PAGE -> return servePage(session)
+            Gate.PUBLIC_FILE -> return publicFile(uri)
+            Gate.NOTHING -> return newFixedLengthResponse(Response.Status.NO_CONTENT, MIME_PLAINTEXT, "")
+            // The one route that answers without a token: it is how a browser gets one.
+            Gate.PAIR -> return pair(session)
+            Gate.NO_TOKEN -> return json(401, JSONObject().put("error", "bad token"))
+            Gate.NOT_FROM_PAGE -> return json(403, JSONObject().put("error", "not from the page"))
+            Gate.API -> Unit
         }
-
-        if (method == Method.GET && (uri == "" || uri == "/index.html")) return servePage(session)
-        if (uri == "/favicon.ico") return newFixedLengthResponse(Response.Status.NO_CONTENT, MIME_PLAINTEXT, "")
-
-        // The one route that answers without a token: it is how a browser gets one.
-        if (uri == "/api/pair" && method == Method.POST) return pair(session)
-
-        if (browsers.check(bearerToken(session.headers["authorization"])) == null) {
-            return json(401, JSONObject().put("error", "bad token"))
-        }
-        // A cross-origin page cannot add this header without a preflight that is never answered.
-        if (method == Method.POST && session.headers["x-notes"] != "1") {
-            return json(403, JSONObject().put("error", "not from the page"))
-        }
+        // Only what the tested list names is answered, so a route cannot be added past the test.
+        if (Route(method.name, uri) !in API_ROUTES) return json(404, JSONObject().put("error", "not found"))
 
         return when {
             method == Method.GET && uri == "/api/state" -> state(session)
@@ -250,6 +247,7 @@ class DesktopServer(
             method == Method.POST && uri == "/api/tasks/update" -> updateTask(body(session))
             method == Method.POST && uri == "/api/tasks/tick" -> tickTask(body(session))
             method == Method.POST && uri == "/api/tasks/delete" -> deleteTask(body(session))
+            method == Method.POST && uri == "/api/unpair" -> unpair(session)
             else -> json(404, JSONObject().put("error", "not found"))
         }
     }
@@ -286,9 +284,20 @@ class DesktopServer(
             addHeader(
                 "Content-Security-Policy",
                 "default-src 'none'; script-src 'nonce-$nonce'; style-src 'nonce-$nonce'; img-src 'self' blob: data:; " +
-                    "connect-src 'self'$ws; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+                    "font-src 'self'; connect-src 'self'$ws; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
             )
         }
+    }
+
+    /** The page's typeface, out of the app's own resources (Lato, from MMD). */
+    private fun publicFile(uri: String): Response {
+        val id = when (PUBLIC_FILES[uri]) {
+            "lato_regular" -> com.mudita.mmd.R.font.lato_regular
+            "lato_bold" -> com.mudita.mmd.R.font.lato_bold
+            else -> return json(404, JSONObject().put("error", "not found"))
+        }
+        val bytes = context.resources.openRawResource(id).use { it.readBytes() }
+        return newFixedLengthResponse(Response.Status.OK, "font/ttf", ByteArrayInputStream(bytes), bytes.size.toLong())
     }
 
     private fun pair(session: IHTTPSession): Response {
@@ -304,6 +313,14 @@ class DesktopServer(
         val issued = browsers.issue(browserLabel(session.headers["user-agent"]))
         Log.i(TAG, "a pairing code was used")
         return json(200, JSONObject().put("token", issued))
+    }
+
+    /** "Forget this computer": the browser that asks removes itself, and only itself. */
+    private fun unpair(session: IHTTPSession): Response {
+        val id = browsers.check(bearerToken(session.headers["authorization"])) ?: throw Refusal(401, "bad token")
+        browsers.remove(id)
+        Log.i(TAG, "a browser forgot itself")
+        return json(200, JSONObject().put("forgotten", true))
     }
 
     // ------------------------------------------------------------------ reading

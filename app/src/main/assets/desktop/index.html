@@ -4,101 +4,131 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
-<title>Notes</title>
+<title>Memo — Desktop Sync</title>
 <link rel="icon" type="image/png" href="data:image/png;base64,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">
 <style nonce="__NONCE__">
-:root {
-  --bg: #f6f5f1; --panel: #ffffff; --ink: #1c1c1a; --soft: #5f5e59; --line: #d9d6cd;
-  --accent: #1c1c1a; --accent-ink: #ffffff; --hover: #ecebe5; --warn: #8a3b12; --shadow: 0 1px 2px rgba(0,0,0,.12);
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #161614; --panel: #22221f; --ink: #ecebe5; --soft: #a3a198; --line: #3a3935;
-    --accent: #ecebe5; --accent-ink: #161614; --hover: #2d2c28; --warn: #e0a070; --shadow: 0 1px 2px rgba(0,0,0,.5);
-  }
+/* Messaging's look: ink on paper, Lato, a bold name over a thick rule. Grey only for quiet
+   text and hairlines. The phone is black on white because e-ink can do nothing else; a
+   computer screen can, so there is a dark theme, chosen under the cog (Auto, Light, Dark). */
+@font-face { font-family: "Lato"; src: url("/fonts/lato-regular.ttf") format("truetype"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Lato"; src: url("/fonts/lato-bold.ttf") format("truetype"); font-weight: 700; font-display: swap; }
+:root, :root[data-theme="light"] {
+  --ink: #000; --paper: #fff; --muted: #666; --line: #e5e5e5; --hover: #fafafa; --active: #f0f0f0;
+  --warn: #a00; --shadow: rgba(0,0,0,.28); color-scheme: light;
 }
 :root[data-theme="dark"] {
-  --bg: #161614; --panel: #22221f; --ink: #ecebe5; --soft: #a3a198; --line: #3a3935;
-  --accent: #ecebe5; --accent-ink: #161614; --hover: #2d2c28; --warn: #e0a070; --shadow: 0 1px 2px rgba(0,0,0,.5);
+  --ink: #e6e6e6; --paper: #0d0d0d; --muted: #8c8c8c; --line: #2b2b2b; --hover: #171717; --active: #212121;
+  --warn: #e07070; --shadow: rgba(0,0,0,.6); color-scheme: dark;
 }
-* { box-sizing: border-box; }
+/* Before the script runs, follow the system, so a dark desktop gets no white flash. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --ink: #e6e6e6; --paper: #0d0d0d; --muted: #8c8c8c; --line: #2b2b2b; --hover: #171717; --active: #212121;
+    --warn: #e07070; --shadow: rgba(0,0,0,.6); color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 6px; border: 3px solid var(--paper); background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); background-clip: padding-box; }
 html, body { margin: 0; height: 100%; }
-body { background: var(--bg); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+body { background: var(--paper); color: var(--ink); font: 15px/1.45 Lato, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
 button, input, select, textarea { font: inherit; color: inherit; }
-button { cursor: pointer; background: none; border: 1px solid transparent; border-radius: 6px; padding: 5px 10px; }
-button:hover, button:focus-visible { background: var(--hover); }
-button.solid { background: var(--accent); color: var(--accent-ink); }
-button.solid:hover { opacity: .88; }
-button.quiet { color: var(--soft); padding: 3px 7px; font-size: 13px; }
+button { cursor: pointer; background: none; border: 1px solid transparent; border-radius: 4px; padding: 5px 10px; }
+button:hover, button:focus-visible { background: var(--active); }
+button.solid { background: var(--ink); color: var(--paper); border-color: var(--ink); font-weight: 700; }
+button.solid:hover { opacity: .8; background: var(--ink); }
+button.quiet { color: var(--muted); padding: 3px 7px; font-size: 13px; }
+button.quiet:hover { color: var(--ink); }
+button.pill { border: 2px solid var(--ink); border-radius: 999px; background: var(--paper); color: var(--ink); font-size: 13px; padding: 4px 12px; }
+button.pill:hover { background: var(--ink); color: var(--paper); }
+button.pill.on { background: var(--ink); color: var(--paper); }
 input[type=text], input[type=search], input[type=date], input[type=time], input[type=datetime-local], select, textarea {
-  background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; width: 100%;
+  background: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 7px 10px; width: 100%;
 }
+input:focus, select:focus, textarea:focus { border-color: var(--ink); outline: none; }
 textarea { resize: vertical; min-height: 220px; line-height: 1.5; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
 [hidden] { display: none !important; }
 
 .app { display: grid; grid-template-columns: 230px 1fr; grid-template-rows: auto 1fr; height: 100%; }
-.top { grid-column: 1 / 3; display: flex; gap: 14px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
-.top h1 { font-size: 19px; margin: 0; font-weight: 600; width: 198px; }
-.top .search { flex: 1; max-width: 640px; }
-.top .spacer { flex: 1; }
-.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--soft); margin-right: 6px; }
-.dot.live { background: var(--ink); border-color: var(--ink); }
+header.top { grid-column: 1 / 3; display: flex; gap: 12px; align-items: center; padding: 14px 20px; border-bottom: 3px solid var(--ink); position: relative; }
+header.top h1 { font-size: 20px; margin: 0; font-weight: 700; letter-spacing: -0.01em; width: 190px; }
+header.top .search { flex: 1; max-width: 640px; }
+#status { margin-left: auto; font-size: 13px; color: var(--muted); white-space: nowrap; }
+#status.live::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--ink); margin-right: 6px; vertical-align: middle; }
+#settingsBtn { display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0; background: var(--paper); color: var(--ink); border: 2px solid var(--ink); border-radius: 999px; }
+#settingsBtn:hover { background: var(--ink); color: var(--paper); }
+#settingsPanel { position: absolute; top: 52px; right: 12px; z-index: 40; width: 290px; max-height: 78vh; overflow-y: auto; padding: 6px 0; background: var(--paper); color: var(--ink); border: 1px solid var(--ink); border-radius: 5px; box-shadow: 0 3px 12px rgba(0,0,0,.2); }
+#settingsPanel h3 { margin: 10px 14px 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+#settingsPanel .row { display: flex; align-items: center; gap: 10px; padding: 9px 14px; font-size: 13px; cursor: pointer; }
+#settingsPanel .row:hover { background: var(--line); }
+#settingsPanel .row .label { flex: 1 1 auto; }
+#settingsPanel .row .val { font-weight: 700; }
+#settingsPanel .row.danger { color: var(--warn); }
+#settingsPanel p { margin: 4px 14px 8px; font-size: 12px; color: var(--muted); line-height: 1.45; }
+#settingsPanel hr { margin: 6px 0; border: 0; border-top: 1px solid var(--line); }
+
 .side { padding: 12px 8px; overflow-y: auto; border-right: 1px solid var(--line); }
-.side button { display: block; width: 100%; text-align: left; border-radius: 0 20px 20px 0; padding: 9px 14px; }
-.side button.on { background: var(--hover); font-weight: 600; }
-.side h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--soft); margin: 18px 14px 4px; font-weight: 600; }
-.side .count { float: right; color: var(--soft); font-weight: 400; }
+.side button { display: block; width: 100%; text-align: left; border-radius: 4px; padding: 8px 12px; }
+.side button.on { background: var(--active); font-weight: 700; }
+.side h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 18px 12px 4px; font-weight: 700; }
+.side .count { float: right; color: var(--muted); font-weight: 400; }
 main { overflow-y: auto; padding: 18px 24px 60px; }
 .composer { max-width: 620px; margin: 0 auto 26px; display: flex; gap: 8px; align-items: stretch; }
-.composer .ghost { flex: 1; text-align: left; color: var(--soft); background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); border-radius: 8px; padding: 11px 14px; }
-.composer button.act { background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); border-radius: 8px; padding: 0 14px; }
-h3.sec { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--soft); margin: 18px 4px 10px; font-weight: 600; }
+.composer .ghost { flex: 1; text-align: left; color: var(--muted); background: var(--paper); border: 1px solid var(--ink); border-radius: 4px; padding: 11px 14px; }
+.composer .ghost:hover { background: var(--hover); }
+.composer button.act { border: 1px solid var(--ink); border-radius: 4px; padding: 0 14px; }
+h3.sec { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 18px 4px 10px; font-weight: 700; }
 .grid { column-width: 250px; column-gap: 14px; }
-.card { break-inside: avoid; display: inline-block; width: 100%; margin: 0 0 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px 8px; cursor: default; box-shadow: var(--shadow); }
-.card:hover { border-color: var(--soft); }
-.card h4 { margin: 0 0 6px; font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
+.card { break-inside: avoid; display: inline-block; width: 100%; margin: 0 0 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px 8px; cursor: default; }
+.card:hover, .card:focus-within { border-color: var(--ink); }
+.card h4 { margin: 0 0 6px; font-size: 16px; font-weight: 700; overflow-wrap: anywhere; }
 .card .line { margin: 2px 0; overflow-wrap: anywhere; }
-.card .line.head { font-weight: 600; }
-.card .more { color: var(--soft); font-size: 13px; margin: 4px 0; }
+.card .line.head { font-weight: 700; }
+.card .more { color: var(--muted); font-size: 13px; margin: 4px 0; }
 .card label.item { display: flex; gap: 8px; align-items: flex-start; margin: 3px 0; overflow-wrap: anywhere; cursor: pointer; }
-.card label.item input { margin-top: 4px; flex: none; }
-.card label.item.done span { text-decoration: line-through; color: var(--soft); }
+.card label.item input { margin-top: 4px; flex: none; accent-color: var(--ink); }
+.card label.item.done span { text-decoration: line-through; color: var(--muted); }
 .card .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 2px; }
-.chip { font-size: 12px; border: 1px solid var(--line); border-radius: 12px; padding: 1px 9px; color: var(--soft); }
-.card .acts { display: flex; gap: 2px; margin: 6px -6px 0; opacity: 0; transition: opacity .12s; }
+.chip { font-size: 12px; border: 1px solid var(--line); border-radius: 12px; padding: 1px 9px; color: var(--muted); }
+.card .acts { display: flex; flex-wrap: wrap; gap: 2px; margin: 6px -6px 0; opacity: 0; }
 .card .acts.shown { opacity: 1; }
 .card:hover .acts, .card:focus-within .acts { opacity: 1; }
-.card img { max-width: 100%; border-radius: 6px; margin: 6px 0; display: block; }
+.card img { max-width: 100%; border-radius: 4px; margin: 6px 0; display: block; }
 .card .add { margin: 4px 0 2px; }
 .card .add input { border: 0; border-bottom: 1px dashed var(--line); border-radius: 0; background: none; padding: 4px 2px; font-size: 14px; }
-.empty { text-align: center; color: var(--soft); margin: 60px 0; }
+.empty { text-align: center; color: var(--muted); margin: 60px 0; }
 
-.tasklist { max-width: 760px; margin: 0 auto 30px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 16px 14px; box-shadow: var(--shadow); }
-.tasklist h3 { margin: 10px 0 8px; font-size: 17px; }
+.tasklist { max-width: 760px; margin: 0 auto 30px; border: 1px solid var(--line); border-radius: 6px; padding: 8px 16px 14px; }
+.tasklist h3 { margin: 10px 0 8px; font-size: 17px; font-weight: 700; }
 .task { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; border-top: 1px solid var(--line); }
 .task:first-of-type { border-top: 0; }
-.task input { margin-top: 5px; flex: none; }
+.task input { margin-top: 5px; flex: none; accent-color: var(--ink); }
 .task .what { flex: 1; cursor: pointer; overflow-wrap: anywhere; }
-.task .what small { display: block; color: var(--soft); }
-.task.done .what b { text-decoration: line-through; color: var(--soft); font-weight: 400; }
+.task .what small { display: block; color: var(--muted); }
+.task.done .what b { text-decoration: line-through; color: var(--muted); font-weight: 400; }
 .addtask { display: flex; gap: 8px; margin: 8px 0 4px; }
 .addtask input[type=date] { width: 150px; } .addtask input[type=time] { width: 120px; }
 
-.scrim { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: flex-start; justify-content: center; padding: 6vh 16px; overflow-y: auto; z-index: 5; }
-.modal { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; width: 100%; max-width: 640px; padding: 16px 18px 12px; box-shadow: 0 8px 30px rgba(0,0,0,.35); }
+.scrim { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: flex; align-items: flex-start; justify-content: center; padding: 6vh 16px; overflow-y: auto; z-index: 50; }
+.modal { background: var(--paper); border: 1px solid var(--ink); border-radius: 6px; width: 100%; max-width: 640px; padding: 16px 18px 12px; box-shadow: 0 3px 12px var(--shadow); }
 .modal .row { display: flex; gap: 10px; align-items: center; margin: 10px 0; flex-wrap: wrap; }
-.modal .row > label { color: var(--soft); font-size: 13px; min-width: 70px; }
+.modal .row > label { color: var(--muted); font-size: 13px; min-width: 70px; }
 .modal .row > input, .modal .row > select { flex: 1; min-width: 120px; width: auto; }
 .modal .bar { display: flex; gap: 6px; margin-top: 12px; align-items: center; flex-wrap: wrap; }
 .modal .bar .grow { flex: 1; }
-.modal .title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+.modal .title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+.modal input.title { font-weight: 700; margin-bottom: 8px; }
+.modal img.pic { max-width: 100%; border-radius: 4px; margin: 6px 0; display: block; }
 .note { color: var(--warn); font-size: 13px; margin: 6px 0; }
-.hint { color: var(--soft); font-size: 12.5px; margin: 4px 0; }
-.toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--accent); color: var(--accent-ink); padding: 9px 16px; border-radius: 8px; z-index: 9; max-width: 80vw; }
-.pair { max-width: 420px; margin: 14vh auto; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 22px; }
-.pair h1 { margin-top: 0; font-size: 21px; }
-.pair input { font-size: 22px; letter-spacing: .25em; text-align: center; margin: 10px 0; }
+.hint { color: var(--muted); font-size: 12.5px; margin: 4px 0; }
+.toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--paper); padding: 9px 16px; border-radius: 4px; z-index: 90; max-width: 80vw; }
+.pair { max-width: 380px; margin: 16vh auto; padding: 0 20px; text-align: center; }
+.pair h1 { margin: 0 0 4px; font-size: 20px; font-weight: 700; padding-bottom: 10px; border-bottom: 3px solid var(--ink); }
+.pair input { font-size: 22px; letter-spacing: .25em; text-align: center; margin: 14px 0 10px; }
+.pair button.solid { width: 100%; padding: 9px; }
 </style>
 </head>
 <body>
@@ -169,7 +199,7 @@ h3.sec { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; colo
       if (r.status === 304) return null;
       if (r.status === 401) { signOut(); return null; }
       if (!r.ok) throw new Error("the phone answered " + r.status);
-      S.etag = r.headers.get("ETag");
+      S.etag = r.headers.get("ETag"); if (S.unreachable) { S.unreachable = false; showStatus(); }
       return r.json();
     }).then(function (j) {
       if (!j) return;
@@ -177,7 +207,7 @@ h3.sec { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; colo
       S.defaultTaskList = j.defaultTaskList;
       draw();
       if (modal && modal.noteChanged) modal.noteChanged();
-    }).catch(function (e) { if (S.loaded) toast("Cannot reach the phone. " + e.message); });
+    }).catch(function (e) { S.unreachable = true; showStatus(); if (S.loaded) toast("Cannot reach the phone. " + e.message); });
   }
   var loadTimer = null;
   function loadSoon() { clearTimeout(loadTimer); loadTimer = setTimeout(function () { load(); }, 150); }
@@ -192,12 +222,18 @@ h3.sec { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; colo
     try {
       sock = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws?token=" + encodeURIComponent(S.token));
     } catch (e) { return; }
-    sock.onopen = function () { S.live = true; liveDot(); load(true); };
+    sock.onopen = function () { S.live = true; S.unreachable = false; showStatus(); load(true); };
     sock.onmessage = function (m) { try { if (JSON.parse(m.data).type === "changed") loadSoon(); } catch (e) {} };
-    sock.onclose = function () { S.live = false; liveDot(); retry = setTimeout(connect, 3000); };
+    sock.onclose = function () { S.live = false; S.everClosed = true; showStatus(); retry = setTimeout(connect, 3000); };
     sock.onerror = function () { };
   }
-  function liveDot() { var d = document.getElementById("dot"); if (d) { d.className = "dot" + (S.live ? " live" : ""); d.title = S.live ? "Live" : "Checking every 10 seconds"; } }
+  // The connection in words, as Messaging says it: "connecting…", "live", or what went wrong.
+  function showStatus() {
+    var d = document.getElementById("status"); if (!d) return;
+    d.className = S.live ? "live" : "";
+    d.textContent = S.live ? "live" : S.unreachable ? "the phone did not answer" : S.everClosed ? "reconnecting…" : "connecting…";
+    d.title = S.live ? "Changes on the phone show here at once." : "Looking again every 10 seconds until the phone answers.";
+  }
 
   // ---------------------------------------------------------------- note text helpers
   var TASK = /^(\s*)[-*+] \[( |x|X)\] ?(.*)$/;
@@ -238,7 +274,7 @@ h3.sec { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; colo
     root.textContent = "";
     if (!S.token) { root.appendChild(pairScreen()); return; }
     root.appendChild(appShell());
-    liveDot();
+    showStatus();
   }
 
   function pairScreen() {
@@ -255,18 +291,18 @@ h3.sec { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; colo
     }
     code.addEventListener("keydown", function (e) { if (e.key === "Enter") go(); });
     return h("div", { class: "pair" },
-      h("h1", { text: "Notes" }),
+      h("h1", { text: "Memo" }),
       h("p", { text: "On the phone, open Settings, Desktop Sync, then Show link. Type the six-digit code here." }),
       code, h("button", { class: "solid", text: "Open my notes", onclick: go }), msg,
       h("p", { class: "hint", text: "The code works once, and the phone shows a fresh one when it runs out. This computer is then listed in Settings, Desktop Sync, where it can be removed." }));
   }
 
   function appShell() {
-    var q = h("input", { type: "search", class: "search", placeholder: "Search notes", value: S.query, "aria-label": "Search" });
+    var q = h("input", { type: "search", class: "search", placeholder: "Search notes", title: "Ctrl+F or /", value: S.query, "aria-label": "Search" });
     q.addEventListener("input", function () { S.query = q.value; if (S.view === "tasks") S.view = "notes"; drawMain(); });
-    var theme = h("button", { text: themeLabel(), title: "Light or dark", onclick: function () { toggleTheme(); this.textContent = themeLabel(); } });
-    var top = h("div", { class: "top" }, h("h1", { text: "Notes" }), q, h("span", { class: "spacer" }),
-      h("span", null, h("span", { id: "dot", class: "dot" })), theme);
+    var cog = h("button", { id: "settingsBtn", title: "Settings", "aria-label": "Settings", "aria-expanded": "false", onclick: function (e) { e.stopPropagation(); toggleSettings(); } }, cogIcon());
+    var top = h("header", { class: "top" }, h("h1", { text: "Memo" }), q,
+      h("span", { id: "status", role: "status", text: "connecting…" }), cog, h("div", { id: "settingsPanel", hidden: true }));
     var side = h("nav", { class: "side", id: "side" });
     var main = h("main", { id: "main" });
     var app = h("div", { class: "app" }, top, side, main);
@@ -274,13 +310,62 @@ h3.sec { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; colo
     return app;
   }
 
-  function themeLabel() { var t = document.documentElement.getAttribute("data-theme"); return t === "dark" ? "Light" : t === "light" ? "Dark" : (matchMedia("(prefers-color-scheme: dark)").matches ? "Light" : "Dark"); }
-  function toggleTheme() {
-    var t = document.documentElement.getAttribute("data-theme");
-    var dark = t ? t === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
-    var next = dark ? "light" : "dark";
-    document.documentElement.setAttribute("data-theme", next); store("notes.theme", next);
+  // ---------------------------------------------------------------- theme: Auto, Light or Dark, kept per browser
+  var THEMES = ["auto", "light", "dark"], darkQuery = matchMedia("(prefers-color-scheme: dark)");
+  var themePref = THEMES.indexOf(recall("notes.theme")) >= 0 ? recall("notes.theme") : "auto";
+  function themeLabel() { return themePref === "auto" ? "Auto" : themePref === "dark" ? "Dark" : "Light"; }
+  // "Auto" is resolved here rather than in a media query, so a choice always beats the system's.
+  function applyTheme() { document.documentElement.setAttribute("data-theme", themePref === "auto" ? (darkQuery.matches ? "dark" : "light") : themePref); }
+  function cycleTheme() { themePref = THEMES[(THEMES.indexOf(themePref) + 1) % THEMES.length]; store("notes.theme", themePref === "auto" ? null : themePref); applyTheme(); }
+  try { darkQuery.addEventListener("change", function () { if (themePref === "auto") applyTheme(); }); } catch (e) {}
+
+  // ---------------------------------------------------------------- the cog
+  function cogIcon() {
+    var NS = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(NS, "svg"); svg.setAttribute("viewBox", "0 0 24 24"); svg.setAttribute("width", "18"); svg.setAttribute("height", "18"); svg.setAttribute("aria-hidden", "true");
+    var path = document.createElementNS(NS, "path"); path.setAttribute("fill", "currentColor");
+    path.setAttribute("d", "M19.14,12.94c0.04,-0.31 0.06,-0.63 0.06,-0.94c0,-0.31 -0.02,-0.63 -0.06,-0.94l2.03,-1.58c0.18,-0.14 0.23,-0.41 0.12,-0.61l-1.92,-3.32c-0.12,-0.22 -0.37,-0.29 -0.59,-0.22l-2.39,0.96c-0.5,-0.38 -1.03,-0.7 -1.62,-0.94L14.4,2.81c-0.04,-0.24 -0.24,-0.41 -0.48,-0.41h-3.84c-0.24,0 -0.43,0.17 -0.47,0.41L9.25,5.35C8.66,5.59 8.12,5.92 7.63,6.29L5.24,5.33c-0.22,-0.08 -0.47,0 -0.59,0.22L2.74,8.87C2.62,9.08 2.66,9.34 2.86,9.48l2.03,1.58C4.84,11.37 4.8,11.69 4.8,12s0.02,0.63 0.06,0.94l-2.03,1.58c-0.18,0.14 -0.23,0.41 -0.12,0.61l1.92,3.32c0.12,0.22 0.37,0.29 0.59,0.22l2.39,-0.96c0.5,0.38 1.03,0.7 1.62,0.94l0.36,2.54c0.05,0.24 0.24,0.41 0.48,0.41h3.84c0.24,0 0.44,-0.17 0.47,-0.41l0.36,-2.54c0.59,-0.24 1.13,-0.56 1.62,-0.94l2.39,0.96c0.22,0.08 0.47,0 0.59,-0.22l1.92,-3.32c0.12,-0.22 0.07,-0.47 -0.12,-0.61L19.14,12.94zM12,15.6c-1.98,0 -3.6,-1.62 -3.6,-3.6s1.62,-3.6 3.6,-3.6s3.6,1.62 3.6,3.6S13.98,15.6 12,15.6z");
+    svg.appendChild(path); return svg;
   }
+  function panelRow(label, value, run, danger) {
+    var r = h("div", { class: "row" + (danger ? " danger" : ""), tabIndex: 0, role: "button", onclick: run },
+      h("span", { class: "label", text: label }), value === null ? null : h("span", { class: "val", text: value }));
+    r.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); run.call(r, e); } });
+    return r;
+  }
+  function settingsOpen() { var p = document.getElementById("settingsPanel"); return !!p && !p.hidden; }
+  function closeSettings() { var p = document.getElementById("settingsPanel"), b = document.getElementById("settingsBtn"); if (p) p.hidden = true; if (b) b.setAttribute("aria-expanded", "false"); }
+  function toggleSettings() { if (settingsOpen()) closeSettings(); else openSettings(); }
+  function openSettings() {
+    var p = document.getElementById("settingsPanel"); if (!p) return;
+    p.textContent = ""; p.hidden = false; document.getElementById("settingsBtn").setAttribute("aria-expanded", "true");
+    p.appendChild(h("h3", { text: "This browser" }));
+    p.appendChild(panelRow("Theme", themeLabel(), function () { cycleTheme(); this.querySelector(".val").textContent = themeLabel(); }));
+    p.appendChild(h("hr"));
+    p.appendChild(h("h3", { text: "Pairing" }));
+    p.appendChild(h("p", { text: "The phone lists each paired computer in Settings, Desktop Sync, where it can be removed." }));
+    var armed = false, armTimer = null;
+    p.appendChild(panelRow("Forget this computer", null, function () {
+      var row = this, label = row.querySelector(".label");
+      if (!armed) { armed = true; label.textContent = "Tap again to forget it"; clearTimeout(armTimer); armTimer = setTimeout(function () { armed = false; label.textContent = "Forget this computer"; }, 6000); return; }
+      clearTimeout(armTimer);
+      api("POST", "/api/unpair", {}).catch(function () {}).then(function () { closeSettings(); signOut(); });
+    }, true));
+  }
+  document.addEventListener("click", function (e) {
+    if (!settingsOpen()) return;
+    var p = document.getElementById("settingsPanel"), b = document.getElementById("settingsBtn");
+    if (!p.contains(e.target) && !b.contains(e.target)) closeSettings();
+  });
+  // Esc closes the panel; Ctrl/Cmd+F and "/" go to the search box (in an open note, the browser's own find).
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && settingsOpen()) { closeSettings(); return; }
+    var q = document.querySelector("header .search"); if (!q || modal) return;
+    var typing = /^(INPUT|TEXTAREA|SELECT)$/.test((e.target && e.target.tagName) || "");
+    if (((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === "f" || e.key === "F")) || (e.key === "/" && !typing && !e.ctrlKey && !e.metaKey)) {
+      e.preventDefault(); q.focus(); q.select();
+    }
+  });
 
   function navButton(label, view, count, folder) {
     var on = S.view === view && (folder === undefined || S.folder === folder);
@@ -307,7 +392,7 @@ h3.sec { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; colo
     var main = document.getElementById("main"); if (!main) return;
     main.textContent = "";
     if (!S.loaded) { main.appendChild(h("p", { class: "empty", text: "Opening your notes…" })); return; }
-    if (!S.ready) { main.appendChild(h("p", { class: "empty", text: "Notes has nowhere to keep notes yet. Choose a place on the phone first." })); return; }
+    if (!S.ready) { main.appendChild(h("p", { class: "empty", text: "Memo has nowhere to keep notes yet. Choose a place on the phone first." })); return; }
     if (S.view === "tasks") { main.appendChild(tasksView()); return; }
     if (S.view === "trash") { main.appendChild(trashView()); return; }
     var words = wordsOf(S.query);
@@ -583,8 +668,7 @@ h3.sec { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; colo
   }
 
   // ---------------------------------------------------------------- start
-  var savedTheme = recall("notes.theme");
-  if (savedTheme === "light" || savedTheme === "dark") document.documentElement.setAttribute("data-theme", savedTheme);
+  applyTheme();
 
   draw();
   if (S.token) { load(true); connect(); }

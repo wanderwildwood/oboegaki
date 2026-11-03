@@ -83,6 +83,9 @@ a line naming the file; they are not played or opened in the browser.
 All JSON, all except the first three need the token and `X-Notes: 1` on POST.
 
 - `GET /` the dashboard (one HTML file, no external requests). Carries no data, so no token.
+- `GET /fonts/lato-regular.ttf`, `/fonts/lato-bold.ttf` the page's typeface, Lato (SIL OFL 1.1),
+  out of the app's own resources (it comes inside MMD). No token: a stylesheet's `@font-face`
+  cannot send one, and a typeface says nothing about the notes. Nothing else answers without it.
 - `POST /api/pair` `{code}` -> `{token}` (a new session token for this browser).
 - `GET /ws?token=` WebSocket; the phone sends `{"type":"changed"}` when notes or tasks change;
   pings every 30 s only while a browser is connected; a peer silent for 95 s is dropped.
@@ -101,6 +104,21 @@ All JSON, all except the first three need the token and `X-Notes: 1` on POST.
 - `POST /api/tasks/add` `{list, summary, description?, due?, priority?}`
 - `POST /api/tasks/update` `{list, name, from:{...}, to:{...}}`, `/tick`, `/delete` `{list, name}`
 - `GET /api/file?id=<note>&name=<picture>` the picture bytes.
+- `POST /api/unpair` `{}` this browser forgets itself: its own token is removed on the phone,
+  and only its own (the cog's *Forget this computer*).
+
+Which routes need the token is decided in one place, `Routes.kt` (`gate` and `API_ROUTES`); the
+server answers no route that is not in that list, and `RoutesTest` walks the list and proves each
+one is refused without a token, with a token the phone never gave out, and (POST) without
+`X-Notes: 1`.
+
+## The page's look
+
+Messaging's: black on white (a dark theme under the cog, *Auto*, *Light* or *Dark*, kept per
+browser), Lato, the app's name in bold over a 3 px rule, the connection in words beside the cog
+("connecting…", "live", "reconnecting…", "the phone did not answer"). Ctrl/Cmd+F or `/` goes to
+the search box; in an open note Ctrl/Cmd+F is the browser's own find. Esc closes the cog's panel
+and an open note.
 
 ## Conflicts
 
