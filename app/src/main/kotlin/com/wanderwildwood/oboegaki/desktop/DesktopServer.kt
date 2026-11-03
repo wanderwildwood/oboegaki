@@ -199,6 +199,7 @@ class DesktopServer(
             override fun getRequestStatus() = 413
         }
         416 -> Response.Status.RANGE_NOT_SATISFIABLE
+        503 -> Response.Status.SERVICE_UNAVAILABLE
         else -> Response.Status.INTERNAL_ERROR
     }
 
@@ -236,6 +237,10 @@ class DesktopServer(
             method == Method.GET && uri == "/api/state" -> state(session)
             method == Method.GET && uri == "/api/file" -> file(session)
             method == Method.GET && uri == "/api/media" -> media(session)
+            method == Method.GET && uri == "/api/shares" -> shares(session.parameters["id"]?.firstOrNull())
+            method == Method.POST && uri == "/api/shares/add" -> addShare(body(session))
+            method == Method.POST && uri == "/api/shares/edit" -> editShare(body(session))
+            method == Method.POST && uri == "/api/shares/stop" -> stopShare(body(session))
             method == Method.POST && uri == "/api/notes/create" -> createNote(body(session))
             method == Method.POST && uri == "/api/notes/update" -> updateNote(body(session))
             method == Method.POST && uri == "/api/notes/tick" -> tickItem(body(session))
@@ -331,11 +336,14 @@ class DesktopServer(
     private fun state(session: IHTTPSession): Response {
         val ready = Notes.isSetUp()
         val pins = Notes.pins.value
+        val shared = Notes.shared.value
+        val withMe = Notes.sharedWithMe.value
         val all = Notes.list.value
         val rings = Reminders.load(context).filter { it.isTask }.map { it.path.removePrefix(TASK) }.toSet()
         val out = JSONObject()
             .put("ready", ready)
-            .put("notes", JSONArray(all.map { noteJson(it, it.path in pins) }))
+            .put("notes", JSONArray(all.map { noteJson(it, it.path in pins, it.path in shared, it.path in withMe) }))
+            .put("sharing", Notes.sharing() != null)
             .put("folders", JSONArray(folders(all)))
             .put("trash", JSONArray(Notes.trash.value.map(::trashJson)))
             .put("trashDays", TRASH_DAYS)
@@ -425,7 +433,8 @@ class DesktopServer(
     private fun noteReply(path: String, extra: JSONObject = JSONObject()): Response {
         val text = Notes.read(path) ?: throw Refusal(404, "that note is gone")
         val pinned = path in Notes.pins.value
-        return json(200, extra.put("note", noteJson(note(path, text, System.currentTimeMillis()), pinned)))
+        val note = noteJson(note(path, text, System.currentTimeMillis()), pinned, path in Notes.shared.value, path in Notes.sharedWithMe.value)
+        return json(200, extra.put("note", note))
     }
 
     private fun text(o: JSONObject, key: String, max: Int): String =
@@ -575,6 +584,82 @@ class DesktopServer(
         val n = Notes.emptyTrash()
         Notes.reloadNow()
         return json(200, JSONObject().put("emptied", n).put("trash", JSONArray(Notes.trash.value.map(::trashJson))))
+    }
+
+    // ------------------------------------------------------------------ sharing
+
+    /**
+     * A Nextcloud call, its failure in words for the page. What Nextcloud says goes to the page,
+     * never to the log.
+     */
+    private fun <T> nextcloud(block: () -> T): T = try {
+        block()
+    } catch (r: Refusal) {
+        throw r
+    } catch (e: com.wanderwildwood.oboegaki.sync.Refused) {
+        throw Refusal(503, "Nextcloud says this phone is signed out")
+    } catch (e: Exception) {
+        Log.w(TAG, "sharing failed: " + e.javaClass.simpleName)
+        throw Refusal(503, "Nextcloud: " + (e.message ?: "no answer"))
+    }
+
+    /**
+     * Who a note is shared with, and with whom it could be: the phone's Share screen, as data.
+     * The note is synced up first, as there, since the server can only share what it has.
+     */
+    private fun shares(noteId: String?): Response {
+        val id = requireNote(JSONObject().put("id", noteId ?: ""))
+        val sharing = Notes.sharing() ?: return json(200, noSharingJson())
+        return nextcloud {
+            kotlinx.coroutines.runBlocking { Notes.syncAndWait() }
+            val server = Notes.serverPath(id)
+            json(200, sharesJson(sharing.sharesOf(server), sharing.people(), sharing.withMe(), server))
+        }
+    }
+
+    private fun sharingOrRefuse() = Notes.sharing() ?: throw Refusal(409, "sharing needs the notes kept on Nextcloud")
+
+    /** After a change: sync, so the other phone sees it soon, and answer with the note's sharing as it is now. */
+    private fun sharesAfter(id: String): Response {
+        Notes.syncNow()
+        val sharing = sharingOrRefuse()
+        val server = Notes.serverPath(id)
+        return nextcloud { json(200, sharesJson(sharing.sharesOf(server), sharing.people(), sharing.withMe(), server)) }
+    }
+
+    private fun addShare(o: JSONObject): Response {
+        val id = requireNote(o)
+        val sharing = sharingOrRefuse()
+        nextcloud {
+            kotlinx.coroutines.runBlocking { Notes.syncAndWait() }
+            val person = requirePerson(o.optString("person", ""), sharing.people())
+            // As on the phone: a new share can edit, since a list two people shop from is why this exists.
+            sharing.share(Notes.serverPath(id), person.id, canEdit = if (o.has("canEdit")) o.optBoolean("canEdit") else true)
+        }
+        Log.i(TAG, "a note was shared from the browser")
+        return sharesAfter(id)
+    }
+
+    private fun editShare(o: JSONObject): Response {
+        val id = requireNote(o)
+        val sharing = sharingOrRefuse()
+        if (!o.has("canEdit")) throw Refusal(400, "can edit, or not?")
+        nextcloud {
+            val share = requireShare(o.optString("share", ""), sharing.sharesOf(Notes.serverPath(id)))
+            sharing.setCanEdit(share.id, o.optBoolean("canEdit"))
+        }
+        return sharesAfter(id)
+    }
+
+    private fun stopShare(o: JSONObject): Response {
+        val id = requireNote(o)
+        val sharing = sharingOrRefuse()
+        nextcloud {
+            val share = requireShare(o.optString("share", ""), sharing.sharesOf(Notes.serverPath(id)))
+            sharing.stop(share.id)
+        }
+        Log.i(TAG, "a share was stopped from the browser")
+        return sharesAfter(id)
     }
 
     // ------------------------------------------------------------------ tasks

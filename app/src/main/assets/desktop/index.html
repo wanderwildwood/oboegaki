@@ -98,6 +98,13 @@ button.chip:hover { background: var(--ink); color: var(--paper); }
 .voice { margin: 8px 0; }
 .voice audio { width: 100%; display: block; }
 .scan { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
+.sharebox { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 6px; }
+.sharebox h3 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 8px 0; }
+.share-row { display: flex; gap: 12px; align-items: center; padding: 6px 0; }
+.share-row .who { flex: 1; overflow-wrap: anywhere; }
+.share-row .canedit { font-size: 13px; display: flex; gap: 6px; align-items: center; cursor: pointer; }
+.share-row input { accent-color: var(--ink); }
+button.armed { color: var(--warn); font-weight: 700; }
 .card .acts { display: flex; flex-wrap: wrap; gap: 2px; margin: 6px -6px 0; opacity: 0; }
 .card .acts.shown { opacity: 1; }
 .card:hover .acts, .card:focus-within .acts { opacity: 1; }
@@ -209,7 +216,7 @@ button.chip:hover { background: var(--ink); color: var(--paper); }
     }).then(function (j) {
       if (!j) return;
       S.notes = j.notes; S.trash = j.trash || []; S.trashDays = j.trashDays || 7; S.folders = j.folders; S.taskLists = j.taskLists; S.newFolder = j.newFolder; S.ready = j.ready; S.loaded = true;
-      S.defaultTaskList = j.defaultTaskList;
+      S.defaultTaskList = j.defaultTaskList; S.sharing = !!j.sharing;
       draw();
       if (modal && modal.noteChanged) modal.noteChanged();
     }).catch(function (e) { S.unreachable = true; showStatus(); if (S.loaded) toast("Cannot reach the phone. " + e.message); });
@@ -488,6 +495,8 @@ button.chip:hover { background: var(--ink); color: var(--paper); }
     if (cut) c.appendChild(h("div", { class: "more", text: "…" }));
     var chips = h("div", { class: "chips" });
     if (n.reminder) chips.appendChild(h("span", { class: "chip", text: "Reminder " + n.reminder }));
+    if (n.sharedWithMe) chips.appendChild(h("span", { class: "chip", text: "Shared with you" }));
+    else if (n.shared) chips.appendChild(h("span", { class: "chip", text: "Shared" }));
     if (n.folder) chips.appendChild(h("span", { class: "chip", text: n.folder }));
     var playing = h("div", null);
     n.recordings.forEach(function (r) {
@@ -613,6 +622,11 @@ button.chip:hover { background: var(--ink); color: var(--paper); }
     var pinBtn = n && !n.archived ? h("button", { text: n.pinned ? "Unpin" : "Pin", onclick: function () { act(api("POST", "/api/notes/pin", { id: n.id, pinned: !n.pinned }), function (j) { replaceNote(j.note); n = j.note; this.textContent = n.pinned ? "Unpin" : "Pin"; redraw(); }.bind(this)); } }) : null;
     var archBtn = n ? h("button", { text: n.archived ? "Restore" : "Archive", onclick: function () { save(false).then(function () { return act(api("POST", "/api/notes/archive", { id: base.id, archived: !n.archived }), function (j) { replaceNote(j.note, j.was); closeModal(); redraw(); }); }); } }) : null;
     var delBtn = n ? h("button", { text: "Delete", onclick: function () { removeNote(n); } }) : null;
+    var shareBox = h("div", { class: "sharebox", hidden: true });
+    var shareBtn = n && S.sharing ? h("button", { text: "Share", "aria-expanded": "false", onclick: function () {
+      shareBox.hidden = !shareBox.hidden; this.setAttribute("aria-expanded", String(!shareBox.hidden));
+      if (!shareBox.hidden) loadShares(n, shareBox);
+    } }) : null;
 
     var pics = h("div", null);
     if (n) n.pictures.forEach(function (p) { var img = h("img", { alt: "", class: "pic" }); picture(n, p, img); pics.appendChild(img); });
@@ -625,8 +639,9 @@ button.chip:hover { background: var(--ink); color: var(--paper); }
       h("div", { class: "hint", text: "A line starting “- [ ] ” is a checklist item. Put “⏰ 2026-10-08 17:00” at the end of an item for a reminder on that item." }),
       h("div", { class: "row" }, h("label", { text: "Reminder" }), rem, h("button", { class: "quiet", text: "Clear", onclick: function () { rem.value = ""; } })),
       h("div", { class: "row" }, h("label", { text: "Folder" }), isNew ? folder : h("span", { text: n.folder || "Top level" })),
-      h("div", { class: "bar" }, toggleList, addItem, pinBtn, archBtn, delBtn, h("span", { class: "grow" }),
-        h("button", { text: "Close", onclick: close }), h("button", { class: "solid", text: "Save", onclick: function () { save(true); } })));
+      h("div", { class: "bar" }, toggleList, addItem, pinBtn, shareBtn, archBtn, delBtn, h("span", { class: "grow" }),
+        h("button", { text: "Close", onclick: close }), h("button", { class: "solid", text: "Save", onclick: function () { save(true); } })),
+      shareBox);
     var scrim = h("div", { class: "scrim" }, m);
     scrim.addEventListener("mousedown", function (e) { if (e.target === scrim) close(); });
     scrim.addEventListener("keydown", function (e) {
@@ -640,6 +655,50 @@ button.chip:hover { background: var(--ink); color: var(--paper); }
       var now = n && noteById(base.id);
       if (now && now.v !== base.v) { warn.hidden = false; warn.textContent = "This note changed on the phone while it was open. Saving will keep both versions."; }
     };
+  }
+
+  // ---------------------------------------------------------------- sharing (Nextcloud's own, through the phone)
+  // Who a note is shared with, can-edit, stop, and who else it could be shared with: the phone's
+  // Share screen. The phone syncs the note first, so this can take a few seconds.
+  function loadShares(n, box) {
+    box.replaceChildren(h("p", { class: "hint", text: "Asking Nextcloud…" }));
+    api("GET", "/api/shares?id=" + encodeURIComponent(n.id)).then(function (j) { drawShares(n, box, j); })
+      .catch(function (e) { if (e.message !== "signed out") box.replaceChildren(h("p", { class: "note", text: e.message })); });
+  }
+  function shareAct(n, box, path, body) {
+    box.querySelectorAll("button, input").forEach(function (b) { b.disabled = true; });
+    body.id = n.id;
+    return api("POST", path, body).then(function (j) { drawShares(n, box, j); loadSoon(); })
+      .catch(function (e) { if (e.message !== "signed out") { toast(e.message); loadShares(n, box); } });
+  }
+  function drawShares(n, box, j) {
+    box.textContent = "";
+    if (!j.available) { box.appendChild(h("p", { class: "hint", text: "Sharing needs the notes kept on Nextcloud." })); return; }
+    box.appendChild(h("h3", { text: "Sharing" }));
+    if (j.sharedWithMe) box.appendChild(h("p", { class: "hint", text: "Shared with you by " + (j.from || "someone") + "." }));
+    if (j.shares.length) {
+      box.appendChild(h("div", { class: "hint", text: "Shared with" }));
+      j.shares.forEach(function (sh) {
+        var edit = h("input", { type: "checkbox", checked: sh.canEdit, "aria-label": "Can edit" });
+        edit.addEventListener("change", function () { shareAct(n, box, "/api/shares/edit", { share: sh.id, canEdit: edit.checked }); });
+        var armed = false, timer = null;
+        var stop = h("button", { class: "quiet", text: "Stop sharing", onclick: function () {
+          if (!armed) { armed = true; stop.textContent = "Tap again to stop"; stop.classList.add("armed"); timer = setTimeout(function () { armed = false; stop.textContent = "Stop sharing"; stop.classList.remove("armed"); }, 6000); return; }
+          clearTimeout(timer); shareAct(n, box, "/api/shares/stop", { share: sh.id });
+        } });
+        box.appendChild(h("div", { class: "share-row" }, h("span", { class: "who", text: sh.name }), h("label", { class: "canedit" }, edit, " Can edit"), stop));
+      });
+    } else if (!j.sharedWithMe) {
+      box.appendChild(h("p", { class: "hint", text: "Not shared with anyone." }));
+    }
+    if (j.people.length) {
+      box.appendChild(h("div", { class: "hint", text: "Share with" }));
+      j.people.forEach(function (p) {
+        box.appendChild(h("div", { class: "share-row" }, h("span", { class: "who", text: p.name }),
+          h("button", { class: "pill", text: "Share", title: "They can read it and change it; untick Can edit to make it read-only.", onclick: function () { shareAct(n, box, "/api/shares/add", { person: p.id, canEdit: true }); } })));
+      });
+    }
+    box.appendChild(h("p", { class: "hint", text: "Their phone syncs the same note, so a list ticked in one place is ticked in the other." }));
   }
 
   // ---------------------------------------------------------------- tasks

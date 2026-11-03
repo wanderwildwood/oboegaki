@@ -87,6 +87,16 @@ lets a recording seek anywhere. The server answers a `Range` (206, 416 past the 
 Messaging's does for audio, so a long recording can be asked for in parts. Play-only and
 view-only: neither can be recorded, changed or added from the browser.
 
+**Sharing.** With the notes on Nextcloud, an open note has *Share*: who it is shared with, a *Can
+edit* box beside each, *Stop sharing* (tap, then tap again within six seconds), and the people it
+could be shared with. A new share can edit, as on the phone. A note someone shared with this
+account says by whom. It is the phone's Share screen as data: the server calls the app's own
+`Sharing` (sync/Shares.kt), syncs the note up first as the phone does, and names a person or a
+share only by what Nextcloud just listed for that note (`requirePerson`, `requireShare`), so the
+page cannot stop a share of some other file or share with someone not on the server. Cards say
+*Shared* or *Shared with you* (`shared`, `sharedWithMe` in the state, from `Notes.shared` and
+`Notes.sharedWithMe`). On WebDAV or on the phone alone there is no sharing and no *Share* button.
+
 ## Endpoints
 
 All JSON, all except the first three need the token and `X-Notes: 1` on POST.
@@ -117,6 +127,10 @@ All JSON, all except the first three need the token and `X-Notes: 1` on POST.
   (`pdf`) the note embeds, streamed, with `Accept-Ranges: bytes`; one `bytes=` range is answered
   with 206 and `Content-Range`, several or a malformed one with the whole file, one past the end
   with 416. The name is a plain file name beside the note (`isSafeMediaName`), nothing else.
+- `GET /api/shares?id=<note>` -> `{available, shares:[{id, with, name, canEdit}], people:[{id, name}],
+  sharedWithMe, from}` (`{available:false}` off Nextcloud). Syncs first, so it can take seconds.
+- `POST /api/shares/add` `{id, person, canEdit?}`, `/edit` `{id, share, canEdit}`, `/stop`
+  `{id, share}`, each answering as `GET /api/shares`. A Nextcloud failure is 503 with its words.
 - `POST /api/unpair` `{}` this browser forgets itself: its own token is removed on the phone,
   and only its own (the cog's *Forget this computer*).
 

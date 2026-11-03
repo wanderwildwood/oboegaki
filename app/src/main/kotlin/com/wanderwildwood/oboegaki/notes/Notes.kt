@@ -191,6 +191,10 @@ object Notes {
     /** The notes, by path, shared with someone or by someone. */
     val shared: StateFlow<Set<String>> = _shared
 
+    private val _sharedWithMe = MutableStateFlow<Set<String>>(emptySet())
+    /** Of those, the ones someone else shared with this account. */
+    val sharedWithMe: StateFlow<Set<String>> = _sharedWithMe
+
     /**
      * Bring the copy here and the server's folder together, if that is where the notes are
      * kept. One at a time: a second ask while one is running is the same ask.
@@ -241,7 +245,12 @@ object Notes {
             val result = sync.run(remote)
             preferences.lastSync = System.currentTimeMillis()
             _sync.value = SyncState.Idle
-            if (sharing != null) runCatching { _shared.value = sharedPaths(sharing) } else _shared.value = emptySet()
+            if (sharing != null) {
+                runCatching { sharedPaths(sharing) }.onSuccess { (all, withMe) -> _shared.value = all; _sharedWithMe.value = withMe }
+            } else {
+                _shared.value = emptySet()
+                _sharedWithMe.value = emptySet()
+            }
             if (result.received > 0 || result.kept.isNotEmpty()) {
                 _changed.value++
                 // Someone else may have ticked an item that has a reminder here, or taken it off.
@@ -276,11 +285,12 @@ object Notes {
         }
     }
 
-    private fun sharedPaths(sharing: Sharing): Set<String> =
-        (sharing.mine() + sharing.withMe().map { it.path })
-            .filter { it.startsWith(folderPrefix) }
-            .map { it.removePrefix(folderPrefix) }
-            .toSet()
+    /** Every shared note here, and those of them shared with this account, by path. */
+    private fun sharedPaths(sharing: Sharing): Pair<Set<String>, Set<String>> {
+        fun here(paths: Collection<String>) = paths.filter { it.startsWith(folderPrefix) }.map { it.removePrefix(folderPrefix) }.toSet()
+        val withMe = here(sharing.withMe().map { it.path })
+        return (here(sharing.mine()) + withMe) to withMe
+    }
 
     /** Sharing on the account the notes are kept in, or null when they are not on Nextcloud. */
     fun sharing(): Sharing? =
@@ -321,6 +331,7 @@ object Notes {
             else -> Unit
         }
         _shared.value = emptySet()
+        _sharedWithMe.value = emptySet()
     }
 
     /** The folder on the server the notes are in, for whichever server they are kept on. */

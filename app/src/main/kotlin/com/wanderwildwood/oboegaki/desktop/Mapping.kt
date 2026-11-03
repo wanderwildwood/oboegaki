@@ -37,7 +37,7 @@ fun bodyOf(text: String): String = text.removePrefix(frontMatterHead(text))
 /** [text] with its front matter kept from [whole] and its words replaced. */
 fun withBody(whole: String, body: String): String = frontMatterHead(whole) + body
 
-fun noteJson(note: Note, pinned: Boolean): JSONObject {
+fun noteJson(note: Note, pinned: Boolean, shared: Boolean = false, sharedWithMe: Boolean = false): JSONObject {
     val text = note.text
     val items = JSONArray()
     for (line in lines(text)) {
@@ -58,6 +58,8 @@ fun noteJson(note: Note, pinned: Boolean): JSONObject {
         .put("v", versionOf(text))
         .put("modified", note.modified)
         .put("pinned", pinned)
+        .put("shared", shared)
+        .put("sharedWithMe", sharedWithMe)
         .put("archived", isArchived(note.path))
         .put("folder", if (isArchived(note.path)) note.folder.removePrefix(ARCHIVE_FOLDER).trimStart('/') else note.folder)
         .put("reminder", noteReminder(text) ?: JSONObject.NULL)
