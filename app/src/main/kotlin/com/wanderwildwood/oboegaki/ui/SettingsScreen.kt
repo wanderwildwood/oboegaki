@@ -54,7 +54,13 @@ import com.wanderwildwood.oboegaki.notes.folders
 import com.wanderwildwood.oboegaki.glance.GlanceProvider
 import com.wanderwildwood.oboegaki.hearing.Speech
 import com.wanderwildwood.oboegaki.hearing.Voice
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import com.wanderwildwood.oboegaki.sync.CheckResult
 import com.wanderwildwood.oboegaki.sync.LoginFlow
+import com.wanderwildwood.oboegaki.sync.NextcloudCheck
+import com.wanderwildwood.oboegaki.sync.Problem
 import com.wanderwildwood.oboegaki.sync.PlainHttpRefused
 import com.wanderwildwood.oboegaki.sync.Refused
 import kotlinx.coroutines.Dispatchers
@@ -709,22 +715,102 @@ private fun SetupChoice(label: String, note: String, filled: Boolean, onClick: (
 }
 
 /**
- * Signing in to a Nextcloud through its own login page.
- *
- * The address is the only thing typed here. The browser does the rest, and this screen waits,
- * asking the server every two seconds whether the reader has finished. Twenty minutes is long
- * enough to find a password and short enough that a forgotten screen stops asking; leaving the
- * screen stops it sooner, since the asking belongs to the screen.
+ * Signing in to a Nextcloud. The first choice is the typed one: the server address, the user
+ * name and an app password made in Nextcloud's security settings. Test asks the server and says
+ * in plain words what is wrong; Sign in does the same and keeps the account when it is good.
+ * The browser route stays below, as the second choice: only the address is typed, the server's
+ * own login page opens, and this screen asks every two seconds whether the reader has finished
+ * (twenty minutes at most, and leaving the screen stops it).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SignInScreen(onSignedIn: () -> Unit, onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var address by remember { mutableStateOf(Notes.preferences.account?.server.orEmpty()) }
+    val known = Notes.preferences.account
+    var address by remember { mutableStateOf(known?.server.orEmpty()) }
+    var user by remember { mutableStateOf(known?.user.orEmpty()) }
+    var password by remember { mutableStateOf("") }
+    var shown by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf<Int?>(null) }
+    var busy by remember { mutableStateOf(false) }
     var waiting by remember { mutableStateOf(false) }
     var loginAddress by remember { mutableStateOf<String?>(null) }
+
+    fun typed(keep: Boolean) {
+        busy = true
+        loginAddress = null
+        status = R.string.signin_opening
+        scope.launch {
+            val result = withContext(Dispatchers.IO) {
+                NextcloudCheck.run(address, user, password, LoginFlow::plainHttpAllowed)
+            }
+            busy = false
+            when (result) {
+                is CheckResult.Good -> if (keep) {
+                    Notes.preferences.account = result.account
+                    Notes.preferences.keeping = Keeping.NEXTCLOUD
+                    Notes.syncNow()
+                    onSignedIn()
+                } else {
+                    status = R.string.signin_good
+                }
+                is CheckResult.Bad -> status = when (result.problem) {
+                    Problem.BAD_ADDRESS -> R.string.signin_bad_address
+                    Problem.PLAIN_HTTP -> R.string.signin_plain_http
+                    Problem.NOT_FOUND -> R.string.signin_not_found
+                    Problem.UNREACHABLE -> R.string.signin_unreachable
+                    Problem.CERTIFICATE -> R.string.signin_certificate
+                    Problem.NOT_NEXTCLOUD -> R.string.signin_not_nextcloud
+                    Problem.WRONG_PASSWORD -> R.string.signin_wrong_password
+                    Problem.OTHER -> R.string.signin_other
+                }
+            }
+        }
+    }
+
+    fun browser() {
+        waiting = true
+        status = R.string.signin_opening
+        scope.launch {
+            val started = runCatching { withContext(Dispatchers.IO) { LoginFlow.start(address) } }
+            val flow = started.getOrNull()
+            if (flow == null) {
+                status = when (started.exceptionOrNull()) {
+                    is PlainHttpRefused -> R.string.signin_plain_http
+                    is Refused -> R.string.signin_not_nextcloud
+                    else -> R.string.signin_unreachable
+                }
+                waiting = false
+                return@launch
+            }
+            if (hasBrowser(context, flow.loginUrl)) {
+                openLink(context, flow.loginUrl, context.getString(R.string.about_no_browser_address, flow.loginUrl))
+                status = R.string.signin_waiting
+            } else {
+                // Nextcloud's sign-in finishes on the server, so any device with a browser can do it.
+                loginAddress = flow.loginUrl
+                status = R.string.signin_no_browser
+            }
+            val deadline = System.currentTimeMillis() + 20 * 60_000
+            while (System.currentTimeMillis() < deadline) {
+                delay(2000)
+                val account = runCatching { withContext(Dispatchers.IO) { LoginFlow.poll(flow) } }.getOrNull()
+                if (account != null) {
+                    Notes.preferences.account = account
+                    Notes.preferences.keeping = Keeping.NEXTCLOUD
+                    Notes.syncNow()
+                    onSignedIn()
+                    return@launch
+                }
+            }
+            status = R.string.signin_gave_up
+            waiting = false
+        }
+    }
+
+    val working = busy || waiting
+    val ready = address.isNotBlank() && user.isNotBlank() && password.isNotEmpty() && !working
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface,
@@ -735,73 +821,116 @@ fun SignInScreen(onSignedIn: () -> Unit, onBack: () -> Unit) {
             )
         },
     ) { contentPadding ->
-        Column(modifier = Modifier.fillMaxSize().padding(contentPadding).padding(20.dp)) {
-            TextFieldMMD(
-                value = address,
-                onValueChange = { address = it.replace("\n", "").trim() },
-                modifier = Modifier.fillMaxWidth(),
-                label = { TextMMD(text = stringResource(R.string.signin_address)) },
-                placeholder = { TextMMD(text = "cloud.example.org") },
-                singleLine = true,
-                enabled = !waiting,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Go),
-            )
-            Spacer(Modifier.height(20.dp))
-            ButtonMMD(
-                onClick = {
-                    waiting = true
-                    status = R.string.signin_opening
-                    scope.launch {
-                        val started = runCatching { withContext(Dispatchers.IO) { LoginFlow.start(address) } }
-                        val flow = started.getOrNull()
-                        if (flow == null) {
-                            status = when (started.exceptionOrNull()) {
-                                is PlainHttpRefused -> R.string.signin_plain_http
-                                is Refused -> R.string.signin_not_nextcloud
-                                else -> R.string.signin_unreachable
-                            }
-                            waiting = false
-                            return@launch
+        PagedColumn(
+            modifier = Modifier.fillMaxSize().padding(contentPadding),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 20.dp, end = 12.dp),
+        ) {
+            item {
+                Column {
+                    Spacer(Modifier.height(16.dp))
+                    TextFieldMMD(
+                        value = address,
+                        onValueChange = { address = it.replace("\n", "").trim() },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { TextMMD(text = stringResource(R.string.signin_address)) },
+                        placeholder = { TextMMD(text = "cloud.example.org") },
+                        singleLine = true,
+                        enabled = !working,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Next, autoCorrectEnabled = false),
+                    )
+                }
+            }
+            item {
+                Column {
+                    Spacer(Modifier.height(16.dp))
+                    TextFieldMMD(
+                        value = user,
+                        onValueChange = { user = it.replace("\n", "") },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { TextMMD(text = stringResource(R.string.signin_user)) },
+                        singleLine = true,
+                        enabled = !working,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next, autoCorrectEnabled = false),
+                    )
+                }
+            }
+            item {
+                Column {
+                    Spacer(Modifier.height(16.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        TextFieldMMD(
+                            value = password,
+                            onValueChange = { password = it.replace("\n", "") },
+                            modifier = Modifier.weight(1f),
+                            label = { TextMMD(text = stringResource(R.string.signin_password)) },
+                            singleLine = true,
+                            enabled = !working,
+                            visualTransformation = if (shown) VisualTransformation.None else PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Go, autoCorrectEnabled = false),
+                            keyboardActions = KeyboardActions(onGo = { if (ready) typed(keep = true) }),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        OutlinedButtonMMD(
+                            onClick = { shown = !shown },
+                            modifier = Modifier.widthIn(min = 72.dp).height(48.dp),
+                        ) {
+                            TextMMD(
+                                text = stringResource(if (shown) R.string.dav_hide else R.string.dav_show),
+                                style = MaterialTheme.typography.bodySmall,
+                            )
                         }
-                        if (hasBrowser(context, flow.loginUrl)) {
-                            openLink(context, flow.loginUrl, context.getString(R.string.about_no_browser_address, flow.loginUrl))
-                            status = R.string.signin_waiting
-                        } else {
-                            // Nextcloud's sign-in finishes on the server, so any device with a browser can do it.
-                            loginAddress = flow.loginUrl
-                            status = R.string.signin_no_browser
-                        }
-                        val deadline = System.currentTimeMillis() + 20 * 60_000
-                        while (System.currentTimeMillis() < deadline) {
-                            delay(2000)
-                            val account = runCatching { withContext(Dispatchers.IO) { LoginFlow.poll(flow) } }.getOrNull()
-                            if (account != null) {
-                                Notes.preferences.account = account
-                                Notes.preferences.keeping = Keeping.NEXTCLOUD
-                                Notes.syncNow()
-                                onSignedIn()
-                                return@launch
-                            }
-                        }
-                        status = R.string.signin_gave_up
-                        waiting = false
                     }
-                },
-                enabled = address.isNotBlank() && !waiting,
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-            ) {
-                TextMMD(text = stringResource(R.string.signin_go))
+                    Spacer(Modifier.height(4.dp))
+                    TextMMD(text = stringResource(R.string.signin_password_note), style = MaterialTheme.typography.labelSmall)
+                }
             }
             status?.let {
-                Spacer(Modifier.height(16.dp))
-                TextMMD(text = stringResource(it), style = MaterialTheme.typography.bodyMedium)
+                item {
+                    Column {
+                        Spacer(Modifier.height(16.dp))
+                        TextMMD(text = stringResource(it), style = MaterialTheme.typography.bodyMedium)
+                        loginAddress?.let { link ->
+                            Spacer(Modifier.height(12.dp))
+                            TextMMD(text = link, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
             }
-            loginAddress?.let {
-                Spacer(Modifier.height(12.dp))
-                TextMMD(text = it, style = MaterialTheme.typography.bodyMedium)
+            item {
+                Column {
+                    Spacer(Modifier.height(20.dp))
+                    ButtonMMD(
+                        onClick = { typed(keep = true) },
+                        enabled = ready,
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                    ) {
+                        TextMMD(text = stringResource(R.string.signin_go))
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButtonMMD(
+                        onClick = { typed(keep = false) },
+                        enabled = ready,
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                    ) {
+                        TextMMD(text = stringResource(R.string.signin_test))
+                    }
+                }
             }
-            Spacer(Modifier.height(24.dp))
-            TextMMD(text = stringResource(R.string.signin_note), style = MaterialTheme.typography.labelSmall)
+            item {
+                Column {
+                    Spacer(Modifier.height(24.dp))
+                    OutlinedButtonMMD(
+                        onClick = { browser() },
+                        enabled = address.isNotBlank() && !working,
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                    ) {
+                        TextMMD(text = stringResource(R.string.signin_browser))
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    TextMMD(text = stringResource(R.string.signin_note), style = MaterialTheme.typography.labelSmall)
+                    Spacer(Modifier.height(20.dp))
+                }
+            }
         }
     }
 }

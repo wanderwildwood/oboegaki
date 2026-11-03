@@ -4,6 +4,8 @@ import android.content.Context
 import android.net.Uri
 import com.wanderwildwood.oboegaki.sync.Account
 import com.wanderwildwood.oboegaki.sync.DavAccount
+import com.wanderwildwood.oboegaki.sync.Secrets
+import com.wanderwildwood.oboegaki.sync.readStoredSecret
 
 /** The order of the list. */
 enum class Order { CHANGED, OLDEST, TITLE }
@@ -19,11 +21,9 @@ enum class Keeping {
 /**
  * What the reader chose, kept in the app's private preferences.
  *
- * The Nextcloud app password is kept here as well. The app's storage is private to it and the
- * manifest turns backups off, so it leaves the phone only to go to the server it was made for;
- * and it is an app password, which the server can revoke on its own from its security page.
- * A WebDAV server's password is kept the same way, beside its address; the form suggests an
- * app password for it too, where the service offers one.
+ * The Nextcloud app password is kept here as well, but sealed with the phone's keystore, not as
+ * plain text. A WebDAV server's password is kept the same way, beside its address; the form
+ * suggests an app password for it too, where the service offers one.
  */
 class Preferences(context: Context) {
 
@@ -48,32 +48,56 @@ class Preferences(context: Context) {
         get() = store.getString(FOLDER, null)?.let(Uri::parse)
         set(value) = store.edit().putString(FOLDER, value?.toString()).apply()
 
+    /**
+     * The Nextcloud account. The password is kept sealed with the phone's keystore, never as
+     * plain text; one an older version wrote as plain text is read and sealed on first use.
+     * With no keystore to seal it the account lasts until the app is closed.
+     */
     var account: Account?
         get() {
-            val server = store.getString(SERVER, null) ?: return null
-            val user = store.getString(USER, null) ?: return null
-            val password = store.getString(PASSWORD, null) ?: return null
+            val server = store.getString(SERVER, null) ?: return unsealed
+            val user = store.getString(USER, null) ?: return unsealed
+            val password = secret(PASSWORD) ?: return unsealed
             return Account(server, user, password)
         }
-        set(value) = store.edit()
-            .putString(SERVER, value?.server)
-            .putString(USER, value?.user)
-            .putString(PASSWORD, value?.password)
-            .apply()
+        set(value) {
+            unsealed = value
+            val sealed = value?.let { Secrets.seal(it.password) }
+            store.edit()
+                .putString(SERVER, value?.server.takeIf { sealed != null })
+                .putString(USER, value?.user.takeIf { sealed != null })
+                .putString(PASSWORD, sealed)
+                .apply()
+        }
 
-    /** A WebDAV server, as it was typed in and checked. */
+    /** An account that could not be sealed, held for this run only. */
+    private var unsealed: Account? = null
+
+    /** A WebDAV server, as it was typed in and checked. The password is sealed as above. */
     var dav: DavAccount?
         get() {
-            val address = store.getString(DAV_ADDRESS, null) ?: return null
-            val user = store.getString(DAV_USER, null) ?: return null
-            val password = store.getString(DAV_PASSWORD, null) ?: return null
+            val address = store.getString(DAV_ADDRESS, null) ?: return unsealedDav
+            val user = store.getString(DAV_USER, null) ?: return unsealedDav
+            val password = secret(DAV_PASSWORD) ?: return unsealedDav
             return DavAccount(address, user, password)
         }
-        set(value) = store.edit()
-            .putString(DAV_ADDRESS, value?.address)
-            .putString(DAV_USER, value?.user)
-            .putString(DAV_PASSWORD, value?.password)
-            .apply()
+        set(value) {
+            unsealedDav = value
+            val sealed = value?.let { Secrets.seal(it.password) }
+            store.edit()
+                .putString(DAV_ADDRESS, value?.address.takeIf { sealed != null })
+                .putString(DAV_USER, value?.user.takeIf { sealed != null })
+                .putString(DAV_PASSWORD, sealed)
+                .apply()
+        }
+
+    private var unsealedDav: DavAccount? = null
+
+    private fun secret(key: String): String? {
+        val read = readStoredSecret(store.getString(key, null), { Secrets.seal(it) }, { Secrets.open(it) })
+        read.migrated?.let { store.edit().putString(key, it).apply() }
+        return read.value
+    }
 
     /** The folder on the WebDAV server the notes live in, under its address. */
     var davFolder: String

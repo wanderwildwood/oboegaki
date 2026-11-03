@@ -189,4 +189,5 @@ dependencies {
     testImplementation(libs.junit)
     // The real org.json, for the tests of what the page is sent: the Android one is a stub off the phone.
     testImplementation("org.json:json:20240303")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
 }

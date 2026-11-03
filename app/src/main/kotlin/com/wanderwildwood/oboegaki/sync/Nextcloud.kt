@@ -20,6 +20,8 @@ class Refused(message: String) : IOException(message)
 /** A plain http address to a host out on the internet: not used. */
 class PlainHttpRefused : IOException("plain http to a public host")
 
+internal const val AGENT = "Notes (oboegaki)"
+
 /** The notes folder on a Nextcloud: WebDAV, under the user's own files. */
 fun nextcloudRemote(account: Account, folder: String) = WebDavRemote(
     base = account.server.trimEnd('/') + "/remote.php/dav/files/" + encodePath(account.user) + "/",
@@ -45,7 +47,7 @@ object LoginFlow {
         val request = Request.Builder()
             .url("$base/index.php/login/v2")
             .post(FormBody.Builder().build())
-            .header("User-Agent", "Notes (oboegaki)")
+            .header("User-Agent", AGENT)
             .build()
         val json = try {
             http.newCall(request).execute().use { response ->

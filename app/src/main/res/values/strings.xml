@@ -117,7 +117,18 @@
     <string name="signin_unreachable">That server could not be reached. Check the address, and that this phone can get to it.</string>
     <string name="signin_not_nextcloud">That address answered, but not as a Nextcloud.</string>
     <string name="signin_gave_up">Stopped waiting. Sign in again when you are ready.</string>
-    <string name="signin_note">You sign in on your Nextcloud\'s own page, in the browser. It gives this phone a password of its own, which you can take back from the server\'s security settings at any time.</string>
+    <string name="signin_note">The browser opens your Nextcloud\'s own login page, and it gives this phone a password of its own. Only the server address is needed for this.</string>
+    <string name="signin_user">User name</string>
+    <string name="signin_password">App password</string>
+    <string name="signin_password_note">In Nextcloud, open Personal settings, then Security, and make a new app password for this phone. Use it here, not your own password: you can take it back at any time.</string>
+    <string name="signin_test">Test</string>
+    <string name="signin_browser">Sign in with the browser instead</string>
+    <string name="signin_good">That works. Nothing was kept; press Sign in to keep it.</string>
+    <string name="signin_bad_address">That is not an address. Type the server\'s name, such as cloud.example.org.</string>
+    <string name="signin_not_found">That server could not be found. Check how the name is spelled.</string>
+    <string name="signin_certificate">The server\'s certificate could not be trusted, so nothing was sent to it. Check the address.</string>
+    <string name="signin_wrong_password">The server refused that user name and password. Use an app password made in Nextcloud\'s security settings.</string>
+    <string name="signin_other">The server answered in a way this app does not understand. Try again in a moment.</string>
 
     <!-- ============================================================ -->
     <!-- A WebDAV server -->
