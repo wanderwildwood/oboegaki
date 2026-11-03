@@ -22,7 +22,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.mudita.mmd.components.divider.HorizontalDividerMMD
 import com.mudita.mmd.components.text.TextMMD
 import com.mudita.mmd.components.top_app_bar.TopAppBarMMD
 import com.wanderwildwood.oboegaki.R
@@ -82,7 +81,7 @@ fun TrashScreen(onBack: () -> Unit) {
                 style = MaterialTheme.typography.labelSmall,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
             )
-            HorizontalDividerMMD()
+            DottedRule(start = 20.dp)
             if (trash.isEmpty()) {
                 TextMMD(
                     text = stringResource(R.string.trash_none),

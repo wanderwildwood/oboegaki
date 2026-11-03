@@ -51,28 +51,6 @@ fun rememberArmed(): MutableState<Boolean> {
     return armed
 }
 
-/** The dotted rule between rows, inset to where the text starts and ends. The same rule as Contacts'. */
-@Composable
-internal fun DottedRule(modifier: Modifier = Modifier, start: androidx.compose.ui.unit.Dp = 16.dp, end: androidx.compose.ui.unit.Dp = 16.dp) {
-    val ink = MaterialTheme.colorScheme.onSurface
-    androidx.compose.foundation.Canvas(
-        modifier
-            .fillMaxWidth()
-            .padding(start = start, end = end)
-            .height(1.dp),
-    ) {
-        drawLine(
-            color = ink,
-            start = androidx.compose.ui.geometry.Offset(0f, size.height / 2),
-            end = androidx.compose.ui.geometry.Offset(size.width, size.height / 2),
-            strokeWidth = 1.dp.toPx().coerceAtMost(1.5f),
-            pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(
-                floatArrayOf(2.3.dp.toPx(), 1.5.dp.toPx()),
-            ),
-        )
-    }
-}
-
 /**
  * Whether the window is short: the phone turned on its side, where the Kompakt is about 360 dp
  * tall (600 dp upright). Screens give up fixed heights and floating buttons' room by this.
