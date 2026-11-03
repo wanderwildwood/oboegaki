@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
+import com.wanderwildwood.oboegaki.desktop.DesktopSync
 import com.wanderwildwood.oboegaki.ui.TextSize
 import androidx.compose.ui.platform.LocalCursorBlinkEnabled
 import androidx.compose.runtime.LaunchedEffect
@@ -171,6 +172,8 @@ class MainActivity : ComponentActivity() {
         Voice.catchUp(this)
         // A reminder the app could not ring, because it was stopped, rings now and says so.
         Reminders.syncSoon(this)
+        // Desktop Sync left on and stopped by the system comes back, unless the phone restarted.
+        DesktopSync.resumeIfWanted(this)
     }
 
     override fun onPause() {

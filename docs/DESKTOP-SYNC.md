@@ -7,10 +7,17 @@ added).
 
 ## When it runs
 
-Off by default. Never started by the app, by a boot, or by an update. The switch in
-Settings > Desktop Sync starts a foreground service (notification with **Stop**); switching it
-off, Stop, or a failed bind stops the server and the service. With it off there is no service,
-no socket, no timer and no receiver doing anything for it. A reboot leaves it off.
+Off by default. The switch in Settings > Desktop Sync starts a foreground service (notification
+with **Stop**); switching it off, Stop, or a failed bind stops the server and the service. With it
+off there is no service, no socket, no timer and no receiver doing anything for it.
+
+It survives an update, but not a reboot. When it starts it saves which boot of the phone it is
+(`Settings.Global.BOOT_COUNT`, readable without a permission, with the time since boot as a
+check; where the count is missing, the clock time the boot began). After an update a
+`MY_PACKAGE_REPLACED` receiver starts it again if it was on in this boot; if the system stopped
+the app (low memory, DuraSpeed), it starts again when Memo is next opened, in this boot. There is
+no boot receiver for it and the service is not sticky: after a reboot the saved boot no longer
+matches, it is marked off, and nothing starts it.
 
 ## Access control
 

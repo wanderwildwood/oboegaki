@@ -26,7 +26,9 @@ private const val TAG = "oboegaki-desktop"
 
 /**
  * The foreground service that hosts the server, for exactly as long as the switch is on. It is
- * not sticky: if the system takes it away it stays away until the reader switches it on again.
+ * not sticky: if the system takes it away it comes back only after an update in the same boot, or
+ * when the app is next opened in the same boot ([DesktopSync.resumeIfWanted]); after a reboot it
+ * stays away until the reader switches it on again.
  */
 class DesktopService : Service() {
 
@@ -80,6 +82,8 @@ class DesktopService : Service() {
         }
         server = next
         preferences.desktopWanted = true
+        // The boot it went on in: an update in this boot brings it back, a reboot does not.
+        preferences.desktopBootMark = BootMark.now(this).encode()
         DesktopSync.setRunning(true)
         Tasks.refresh()
 

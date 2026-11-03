@@ -181,10 +181,18 @@ class Preferences(context: Context) {
         get() = store.getBoolean(DESKTOP_VPN_ONLY, true)
         set(value) = store.edit().putBoolean(DESKTOP_VPN_ONLY, value).apply()
 
-    /** Desktop Sync is meant to be on: set when it starts, cleared only when the reader (or a failure to start) turns it off. */
+    /**
+     * Desktop Sync is meant to be on: set when it starts, cleared when the reader (or a failure to
+     * start) turns it off, and when the phone has restarted since it went on.
+     */
     var desktopWanted: Boolean
         get() = store.getBoolean(DESKTOP_WANTED, false)
         set(value) = store.edit().putBoolean(DESKTOP_WANTED, value).apply()
+
+    /** Which boot of the phone Desktop Sync went on in (a [com.wanderwildwood.oboegaki.desktop.BootMark]). */
+    var desktopBootMark: String
+        get() = store.getString(DESKTOP_BOOT_MARK, null) ?: ""
+        set(value) = store.edit().putString(DESKTOP_BOOT_MARK, value).apply()
 
     var lastSync: Long
         get() = store.getLong(LAST_SYNC, 0L)
@@ -217,5 +225,6 @@ class Preferences(context: Context) {
         const val DESKTOP_BROWSERS = "desktop_browsers"
         const val DESKTOP_VPN_ONLY = "desktop_vpn_only"
         const val DESKTOP_WANTED = "desktop_wanted"
+        const val DESKTOP_BOOT_MARK = "desktop_boot_mark"
     }
 }

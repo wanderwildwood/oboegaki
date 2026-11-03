@@ -10,8 +10,9 @@ import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Desktop Sync as the rest of the app sees it: whether it is running, how to start and stop it,
- * and the pairing code. Whether it is on is whether the service is alive, nothing saved: a
- * restart, an update or the system stopping the app leaves it off, and it never starts itself.
+ * and the pairing code. The switch shows whether the service is alive. An update, or the system
+ * stopping the app, brings it back if the reader left it on and the phone has not restarted since;
+ * a reboot turns it off, and nothing starts it after one (no boot receiver, not sticky).
  */
 object DesktopSync {
 
@@ -34,6 +35,23 @@ object DesktopSync {
     }
 
     fun start(context: Context) = send(context, DesktopService.START, foreground = true)
+
+    /**
+     * Starts the server again if the reader left it on and the phone has not restarted since it
+     * went on; forgets that it was on if the phone has. Called when the app is opened and after an
+     * update ([DesktopUpdateReceiver]), the two moments Android lets a foreground service start.
+     */
+    fun resumeIfWanted(context: Context) {
+        Notes.init(context)
+        val preferences = Notes.preferences
+        val saved = BootMark.decode(preferences.desktopBootMark)
+        when (DesktopBoot.decide(preferences.desktopWanted, _running.value, saved, BootMark.now(context))) {
+            DesktopBoot.Decision.NOTHING -> Unit
+            DesktopBoot.Decision.OFF -> preferences.desktopWanted = false
+            DesktopBoot.Decision.START -> runCatching { start(context) }
+                .onFailure { android.util.Log.i("oboegaki-desktop", "not started again: ${it.javaClass.simpleName}") }
+        }
+    }
 
     fun stop(context: Context) {
         // Nothing is running to stop if the service is not up; do not start one just to stop it.
