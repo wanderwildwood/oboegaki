@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -109,87 +110,46 @@ fun RemindDialog(
     }
 
     EInkDialog(onDismiss = onDismiss) {
-        TextMMD(text = heading, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(8.dp))
-        PickRow(stringResource(R.string.remind_day), Times.relativeDay(context, day)) { pickingDay = true }
-        PickRow(stringResource(R.string.remind_time), Times.time(context, day.atTime(time))) { pickingTime = true }
-        Spacer(Modifier.height(10.dp))
-        TextMMD(
-            text = stringResource(if (current != null && !here) R.string.remind_elsewhere else R.string.remind_this_phone),
-            style = MaterialTheme.typography.labelSmall,
+        RemindLayout(
+            heading = heading,
+            day = Times.relativeDay(context, day),
+            time = Times.time(context, day.atTime(time)),
+            note = stringResource(if (current != null && !here) R.string.remind_elsewhere else R.string.remind_this_phone),
+            exact = exact,
+            fullScreen = fullScreen,
+            past = past,
+            setLabel = stringResource(if (current != null && !here) R.string.remind_set_here else R.string.remind_set),
+            sideways = rememberShortWindow(),
+            onPickDay = { pickingDay = true },
+            onPickTime = { pickingTime = true },
+            onAllowExact = {
+                runCatching {
+                    context.startActivity(
+                        Intent(AndroidSettings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:" + context.packageName))
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                    )
+                }
+            },
+            onAllowFullScreen = {
+                runCatching {
+                    context.startActivity(
+                        Intent(AndroidSettings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, Uri.parse("package:" + context.packageName))
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                    )
+                }
+            },
+            onCancel = onDismiss,
+            onSet = {
+                val at = day.atTime(time)
+                if (!at.isAfter(LocalDateTime.now())) {
+                    past = true
+                } else {
+                    onSet(reminderAt(at))
+                }
+            },
+            onRemove = onRemove,
+            onCalendar = onCalendar,
         )
-        if (!exact) {
-            Spacer(Modifier.height(8.dp))
-            TextMMD(text = stringResource(R.string.remind_exact), style = MaterialTheme.typography.labelSmall)
-            Spacer(Modifier.height(6.dp))
-            OutlinedButtonMMD(
-                onClick = {
-                    runCatching {
-                        context.startActivity(
-                            Intent(AndroidSettings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:" + context.packageName))
-                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                        )
-                    }
-                },
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-            ) { TextMMD(text = stringResource(R.string.remind_allow), style = MaterialTheme.typography.bodySmall) }
-        }
-        if (!fullScreen) {
-            Spacer(Modifier.height(8.dp))
-            TextMMD(text = stringResource(R.string.remind_full_screen), style = MaterialTheme.typography.labelSmall)
-            Spacer(Modifier.height(6.dp))
-            OutlinedButtonMMD(
-                onClick = {
-                    runCatching {
-                        context.startActivity(
-                            Intent(AndroidSettings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, Uri.parse("package:" + context.packageName))
-                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                        )
-                    }
-                },
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-            ) { TextMMD(text = stringResource(R.string.remind_allow_full_screen), style = MaterialTheme.typography.bodySmall) }
-        }
-        if (past) {
-            Spacer(Modifier.height(8.dp))
-            TextMMD(text = stringResource(R.string.remind_past), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-        }
-        Spacer(Modifier.height(14.dp))
-        Row(Modifier.fillMaxWidth()) {
-            OutlinedButtonMMD(onClick = onDismiss, modifier = Modifier.weight(1f).height(48.dp)) {
-                TextMMD(text = stringResource(R.string.remind_cancel), style = MaterialTheme.typography.bodySmall)
-            }
-            Spacer(Modifier.width(12.dp))
-            ButtonMMD(
-                onClick = {
-                    val at = day.atTime(time)
-                    if (!at.isAfter(LocalDateTime.now())) {
-                        past = true
-                    } else {
-                        onSet(reminderAt(at))
-                    }
-                },
-                modifier = Modifier.weight(1f).height(48.dp),
-            ) {
-                TextMMD(
-                    text = stringResource(if (current != null && !here) R.string.remind_set_here else R.string.remind_set),
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-        }
-        if (onRemove != null) {
-            Spacer(Modifier.height(8.dp))
-            OutlinedButtonMMD(onClick = onRemove, modifier = Modifier.fillMaxWidth().height(48.dp)) {
-                TextMMD(text = stringResource(R.string.remind_remove), style = MaterialTheme.typography.bodySmall)
-            }
-        }
-        if (onCalendar != null) {
-            TextMMD(
-                text = stringResource(R.string.remind_calendar),
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.fillMaxWidth().clickable(onClick = onCalendar).heightIn(min = 48.dp).wrapContentHeight(Alignment.CenterVertically),
-            )
-        }
     }
 
     if (pickingDay) {
@@ -199,6 +159,119 @@ fun RemindDialog(
         TimeDialog(initial = time, onPick = { time = it; past = false }, onDismiss = { pickingTime = false })
     }
 }
+
+/**
+ * What the Remind dialog holds. Upright it is one column. Sideways the window is about 336 dp
+ * tall, and the column (day, time, the note, a warning, the buttons, Take the reminder off and
+ * the calendar link) runs past its foot, so there it is two: what is being set on the left, what
+ * to do about it on the right. RemindLayoutTest measures both shapes at the Kompakt's sizes.
+ */
+@Composable
+internal fun RemindLayout(
+    heading: String,
+    day: String,
+    time: String,
+    note: String,
+    exact: Boolean,
+    fullScreen: Boolean,
+    past: Boolean,
+    setLabel: String,
+    sideways: Boolean,
+    onPickDay: () -> Unit,
+    onPickTime: () -> Unit,
+    onAllowExact: () -> Unit,
+    onAllowFullScreen: () -> Unit,
+    onCancel: () -> Unit,
+    onSet: () -> Unit,
+    onRemove: (() -> Unit)?,
+    onCalendar: (() -> Unit)?,
+) {
+    val what: @Composable () -> Unit = {
+        TextMMD(text = heading, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(8.dp))
+        PickRow(stringResource(R.string.remind_day), day, onPickDay)
+        PickRow(stringResource(R.string.remind_time), time, onPickTime)
+        Spacer(Modifier.height(10.dp))
+        TextMMD(text = note, style = MaterialTheme.typography.labelSmall)
+    }
+    val gone: @Composable () -> Unit = {
+        if (past) {
+            Spacer(Modifier.height(8.dp))
+            TextMMD(text = stringResource(R.string.remind_past), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+        }
+    }
+    val warnings: @Composable () -> Unit = {
+        if (!exact) {
+            Spacer(Modifier.height(8.dp))
+            TextMMD(text = stringResource(R.string.remind_exact), style = MaterialTheme.typography.labelSmall)
+            Spacer(Modifier.height(6.dp))
+            OutlinedButtonMMD(onClick = onAllowExact, modifier = Modifier.fillMaxWidth().height(48.dp)) {
+                TextMMD(text = stringResource(R.string.remind_allow), style = MaterialTheme.typography.bodySmall)
+            }
+        }
+        if (!fullScreen) {
+            Spacer(Modifier.height(8.dp))
+            TextMMD(text = stringResource(R.string.remind_full_screen), style = MaterialTheme.typography.labelSmall)
+            Spacer(Modifier.height(6.dp))
+            OutlinedButtonMMD(onClick = onAllowFullScreen, modifier = Modifier.fillMaxWidth().height(48.dp)) {
+                TextMMD(text = stringResource(R.string.remind_allow_full_screen), style = MaterialTheme.typography.bodySmall)
+            }
+        }
+    }
+    val actions: @Composable () -> Unit = {
+        Row(Modifier.fillMaxWidth()) {
+            OutlinedButtonMMD(onClick = onCancel, modifier = Modifier.weight(1f).height(48.dp).testTag(REMIND_CANCEL)) {
+                TextMMD(text = stringResource(R.string.remind_cancel), style = MaterialTheme.typography.bodySmall)
+            }
+            Spacer(Modifier.width(12.dp))
+            ButtonMMD(onClick = onSet, modifier = Modifier.weight(1f).height(48.dp).testTag(REMIND_SET)) {
+                TextMMD(text = setLabel, style = MaterialTheme.typography.bodySmall)
+            }
+        }
+        if (onRemove != null) {
+            Spacer(Modifier.height(8.dp))
+            OutlinedButtonMMD(onClick = onRemove, modifier = Modifier.fillMaxWidth().height(48.dp).testTag(REMIND_REMOVE)) {
+                TextMMD(text = stringResource(R.string.remind_remove), style = MaterialTheme.typography.bodySmall)
+            }
+        }
+        if (onCalendar != null) {
+            TextMMD(
+                text = stringResource(R.string.remind_calendar),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.fillMaxWidth().clickable(onClick = onCalendar).heightIn(min = 48.dp)
+                    .wrapContentHeight(Alignment.CenterVertically).testTag(REMIND_CALENDAR),
+            )
+        }
+    }
+
+    if (sideways) {
+        Row(Modifier.fillMaxWidth()) {
+            Column(Modifier.weight(1f)) {
+                what()
+                gone()
+            }
+            Spacer(Modifier.width(16.dp))
+            Column(Modifier.weight(1f)) {
+                // The buttons at the top, level with the heading; a warning, when there is one, under them.
+                actions()
+                warnings()
+            }
+        }
+    } else {
+        Column(Modifier.fillMaxWidth()) {
+            what()
+            warnings()
+            gone()
+            Spacer(Modifier.height(14.dp))
+            actions()
+        }
+    }
+}
+
+internal const val REMIND_CANCEL = "remind_cancel"
+internal const val REMIND_SET = "remind_set"
+internal const val REMIND_REMOVE = "remind_remove"
+internal const val REMIND_CALENDAR = "remind_calendar"
 
 @Composable
 internal fun PickRow(label: String, value: String, onClick: () -> Unit) {
