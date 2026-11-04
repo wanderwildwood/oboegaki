@@ -542,4 +542,6 @@
     <string name="privacy_rights_title">Your rights</string>
     <string name="privacy_rights">Under the GDPR you can ask to see the data held about you, to have it corrected or deleted, to limit or object to its use, to take a copy with you, to withdraw consent, and to complain to a data protection authority. Since the app keeps what it stores on your phone, or on a server you chose, you can do most of this yourself: delete a note and empty the trash in the app, remove a paired browser in Settings, clear the app\'s data in Android\'s settings, or uninstall the app. What Hugging Face receives when you download a speech model is covered by its own privacy policy. A server of your own is yours: what it keeps is up to you.</string>
     <!-- /shared-about -->
+    <string name="list_enter_title">New line in a list starts a new item</string>
+    <string name="list_enter_note">Press Enter on an empty item to end the list.</string>
 </resources>
