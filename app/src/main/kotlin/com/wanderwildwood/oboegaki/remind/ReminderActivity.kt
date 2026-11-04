@@ -37,6 +37,7 @@ import androidx.compose.runtime.produceState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.wanderwildwood.oboegaki.ui.monochrome
+import com.wanderwildwood.oboegaki.ui.ArmedScope
 
 /**
  * The reminder as a whole screen, over the lock screen, when one rings with the screen off.
@@ -50,8 +51,10 @@ class ReminderActivity : ComponentActivity() {
         setTurnScreenOn(true)
         setContent {
             ThemeMMD(colorScheme = monochrome) {
-                Surface(color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxSize()) {
-                    Ringing(onDone = ::finish)
+                ArmedScope {
+                    Surface(color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxSize()) {
+                        Ringing(onDone = ::finish)
+                    }
                 }
             }
         }

@@ -67,6 +67,7 @@ import com.wanderwildwood.oboegaki.ui.SignInScreen
 import com.wanderwildwood.oboegaki.ui.ObsidianScreen
 import com.wanderwildwood.oboegaki.ui.WebDavScreen
 import com.wanderwildwood.oboegaki.ui.monochrome
+import com.wanderwildwood.oboegaki.ui.ArmedScope
 
 /** Something to be written down the moment the app opens: from "New note", or shared in. */
 data class Capture(
@@ -133,10 +134,12 @@ class MainActivity : ComponentActivity() {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, density.fontScale * TextSize.factor())) {
                 ThemeMMD(colorScheme = monochrome) {
-                    // A blinking cursor repaints its field twice a second for as long as it has
-                    // focus, a refresh nobody asked for on an E Ink screen. Dialogs are inside this.
-                    CompositionLocalProvider(LocalCursorBlinkEnabled provides false) {
-                        App(capture)
+                    ArmedScope {
+                        // A blinking cursor repaints its field twice a second for as long as it has
+                        // focus, a refresh nobody asked for on an E Ink screen. Dialogs are inside this.
+                        CompositionLocalProvider(LocalCursorBlinkEnabled provides false) {
+                            App(capture)
+                        }
                     }
                 }
             }

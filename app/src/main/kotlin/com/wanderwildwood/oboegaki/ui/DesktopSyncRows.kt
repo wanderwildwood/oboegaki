@@ -160,7 +160,7 @@ fun LazyListScope.desktopSyncRows() {
     }
 }
 
-/** One paired browser. Tap once and the row asks; tap again within six seconds and it is removed. */
+/** One paired browser. Tap once and the row asks; tap it again and it is removed. */
 @Composable
 private fun BrowserRow(b: PairedBrowsers.Browser) {
     val armed = rememberArmed()

@@ -9,15 +9,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.delay
 
 /** An icon in a top bar, with a target a thumb can find. */
 @Composable
@@ -36,20 +32,11 @@ fun BarButton(icon: ImageVector, description: String, onClick: () -> Unit) {
 }
 
 /**
- * Whether a destructive row is armed. It disarms itself after six seconds, so a stray tap does
- * not leave a live trigger for whoever picks the phone up next.
+ * Whether a destructive row is armed. It stays armed until the next other touch, Back or leaving
+ * the screen (shared Armed.kt), so a stray tap never leaves a live trigger behind.
  */
 @Composable
-fun rememberArmed(): MutableState<Boolean> {
-    val armed = remember { mutableStateOf(false) }
-    LaunchedEffect(armed.value) {
-        if (armed.value) {
-            delay(6000)
-            armed.value = false
-        }
-    }
-    return armed
-}
+fun rememberArmed(): MutableState<Boolean> = rememberArmedFlag()
 
 /**
  * Whether the window is short: the phone turned on its side, where the Kompakt is about 360 dp

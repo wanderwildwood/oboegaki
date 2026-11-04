@@ -33,8 +33,8 @@ import java.util.Date
 
 /**
  * The trash: the notes deleted in the last [TRASH_DAYS] days, newest first, each with the day it
- * was deleted. Restore is one tap; Delete forever and Empty trash are armed (tap again within
- * six seconds). The line under the bar says when the rest goes.
+ * was deleted. Restore is one tap; Delete forever and Empty trash are armed (tap again; any other
+ * touch, Back or leaving disarms them). The line under the bar says when the rest goes.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
