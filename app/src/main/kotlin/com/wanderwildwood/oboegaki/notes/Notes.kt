@@ -142,8 +142,39 @@ object Notes {
     /** The notes pinned to the top of the list, by path. */
     val pins: StateFlow<Set<String>> = _pins
 
+    /** Whether anything in this process has read the notes from storage yet. */
+    @Volatile
+    private var loaded = false
+
+    /** The folder's stamp ([Shelf.stamp]) when [listNow] last read it. */
+    @Volatile
+    private var seenStamp: String? = null
+
+    /**
+     * The notes as storage has them now, for what reads them outside the app's screens: the
+     * Desktop Sync server, which runs on its own after a reboot, an update or the system
+     * stopping the app, when nothing on the phone has opened Memo to read them. Read from
+     * storage when nothing in this process has read them yet, or when another app has changed
+     * the folder since; otherwise the list the last read left, which every edit and sync keeps.
+     */
+    fun listNow(): List<Note> {
+        val shelf = shelf()
+        val stamp = shelf?.let { runCatching { it.stamp() }.getOrNull() }
+        if (needsReading(loaded, seenStamp, stamp)) {
+            reload()
+            seenStamp = stamp
+        }
+        return _list.value
+    }
+
+    /** [listNow] without asking a folder for its stamp: read once in this process, then trusted. */
+    fun ensureLoaded() {
+        if (!loaded) reload()
+    }
+
     private fun reload() {
         val shelf = shelf()
+        loaded = true
         _list.value = runCatching { shelf?.list() }.getOrNull().orEmpty()
             .sortedByDescending { it.modified }
         _pins.value = runCatching { readPins(shelf) }.getOrDefault(emptySet())
@@ -912,3 +943,11 @@ object Notes {
         syncNow()
     }
 }
+
+/**
+ * Whether [Notes.listNow] reads storage again: never read in this process, or the folder's
+ * [stamp] has moved since [seen]. A null stamp means only the app writes there, and every
+ * write of its own reads the list again.
+ */
+internal fun needsReading(loaded: Boolean, seen: String?, stamp: String?): Boolean =
+    !loaded || (stamp != null && stamp != seen)
