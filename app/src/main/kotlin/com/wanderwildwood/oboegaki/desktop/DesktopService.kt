@@ -96,6 +96,10 @@ class DesktopService : Service() {
         server = next
         preferences.desktopWanted = true
         DesktopSync.setRunning(true)
+        // Started on its own (a reboot, an update, the system stopping the app), the service may
+        // be all that runs: nothing has read the notes or asked the server for new ones yet.
+        Notes.refresh()
+        Notes.syncNow()
         Tasks.refresh()
 
         // Tell the page to look again when notes, pins or tasks change, wherever they changed.

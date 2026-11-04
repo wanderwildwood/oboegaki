@@ -347,10 +347,12 @@ class DesktopServer(
 
     private fun state(session: IHTTPSession): Response {
         val ready = Notes.isSetUp()
+        // Read from storage, not only what the app's screens loaded: started on its own, the
+        // service may be the only thing running, and the list in memory is still empty.
+        val all = Notes.listNow()
         val pins = Notes.pins.value
         val shared = Notes.shared.value
         val withMe = Notes.sharedWithMe.value
-        val all = Notes.list.value
         val rings = Reminders.load(context).filter { it.isTask }.map { it.path.removePrefix(TASK) }.toSet()
         val out = JSONObject()
             .put("ready", ready)
@@ -428,11 +430,13 @@ class DesktopServer(
     private fun requireNote(o: JSONObject): String {
         val id = o.optString("id", "")
         if (id.isEmpty() || id.length > 400) throw Refusal(400, "which note?")
+        Notes.ensureLoaded()
         if (Notes.list.value.none { it.path == id }) throw Refusal(404, "that note is gone")
         return id
     }
 
     private fun noteText(id: String): String {
+        Notes.ensureLoaded()
         if (Notes.list.value.none { it.path == id }) throw Refusal(404, "that note is gone")
         return Notes.read(id) ?: throw Refusal(404, "that note is gone")
     }
