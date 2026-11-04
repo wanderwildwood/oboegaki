@@ -34,6 +34,11 @@ class Preferences(context: Context) {
         get() = store.getBoolean("turnWithPhone", true)
         set(value) = store.edit().putBoolean("turnWithPhone", value).apply()
 
+    /** Whether Enter after a checklist item starts the next item, and Enter on an empty one ends the list. */
+    var listEnter: Boolean
+        get() = store.getBoolean("listEnter", true)
+        set(value) = store.edit().putBoolean("listEnter", value).apply()
+
     /** How big the words are: 0 smaller, 1 standard, 2 larger. */
     var textSize: Int
         get() = store.getInt("textSize", 1).coerceIn(0, 2)

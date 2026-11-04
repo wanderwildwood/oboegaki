@@ -89,6 +89,38 @@ fun toggleTaskLine(text: String, cursor: Int): Pair<String, Int> {
     }
 }
 
+/**
+ * What Enter does in a checklist, as in Keep and Markor. [before] is the editor's text before
+ * one keystroke and [after] with [cursor] the text after it. When that keystroke put a single
+ * newline in the words of a task, the line it opened becomes the next unticked item, carrying
+ * any words that were after the cursor, and the cursor goes to it. Enter on an item with no
+ * words ends the list instead: the empty item goes and the cursor stays on that line, now plain
+ * text. Returns the new text and cursor, or null when the keystroke was anything else and the
+ * editor keeps it as it is. The items are ordinary `- [ ] ` lines, nothing else is written.
+ */
+fun continueList(before: String, after: String, cursor: Int): Pair<String, Int>? {
+    if (after.length != before.length + 1) return null
+    val at = cursor - 1
+    if (at < 0 || at > before.length || after[at] != '\n') return null
+    if (!after.regionMatches(0, before, 0, at) || !after.regionMatches(at + 1, before, at, before.length - at)) return null
+    val start = before.lastIndexOf('\n', at - 1) + 1
+    val end = before.indexOf('\n', at).let { if (it < 0) before.length else it }
+    val line = before.substring(start, end)
+    val match = TASK.matchEntire(line) ?: return null
+    val words = match.groups[3]?.range?.first ?: line.length
+    val split = at - start
+    // Enter inside the indent or the box itself is an ordinary new line.
+    if (split < words) return null
+    if (line.substring(words).isBlank()) {
+        return before.substring(0, start) + before.substring(end) to start
+    }
+    val indent = match.groupValues[1]
+    val bullet = line[indent.length]
+    val next = "$indent$bullet [ ] "
+    val text = before.substring(0, at) + "\n" + next + line.substring(split).trimStart() + before.substring(end)
+    return text to at + 1 + next.length
+}
+
 /** The files a note links the Obsidian way, `![[name.m4a]]`, by name, in order. */
 fun embeds(text: String): List<String> =
     Regex("""!\[\[([^\]|]+)(?:\|[^\]]*)?]]""").findAll(text).map { it.groupValues[1].trim() }.toList()

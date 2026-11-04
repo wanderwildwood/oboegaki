@@ -533,4 +533,6 @@
     <string name="text_size_large">Larger</string>
     <string name="turn_title">Turn sideways with the phone</string>
     <string name="turn_note">On its side, Memo uses the wide screen.</string>
+    <string name="list_enter_title">New line in a list starts a new item</string>
+    <string name="list_enter_note">Press Enter on an empty item to end the list.</string>
 </resources>

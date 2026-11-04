@@ -60,6 +60,7 @@ import com.wanderwildwood.oboegaki.notes.hasTasks
 import com.wanderwildwood.oboegaki.notes.lines
 import com.wanderwildwood.oboegaki.notes.toggle
 import com.wanderwildwood.oboegaki.notes.toggleTaskLine
+import com.wanderwildwood.oboegaki.notes.continueList
 import com.wanderwildwood.oboegaki.notes.recordingOn
 import com.wanderwildwood.oboegaki.notes.scanOn
 import com.wanderwildwood.oboegaki.notes.pictureOn
@@ -293,6 +294,7 @@ fun NoteScreen(
                     body = body.without(head),
                     onBody = { body = it.with(head) },
                     focus = fresh,
+                    continueLists = remember { Notes.preferences.listEnter },
                     reminder = remember(head) { noteReminder(body.text) },
                     onRemind = { reminding = -1 },
                 )
@@ -445,6 +447,7 @@ private fun Writing(
     body: TextFieldValue,
     onBody: (TextFieldValue) -> Unit,
     focus: Boolean,
+    continueLists: Boolean,
     reminder: String?,
     onRemind: () -> Unit,
 ) {
@@ -469,7 +472,11 @@ private fun Writing(
         Spacer(Modifier.height(8.dp))
         TextField(
             value = body,
-            onValueChange = onBody,
+            onValueChange = { next ->
+                // Enter in a checklist: the next item, or out of the list after an empty one.
+                val listed = if (continueLists && next.selection.collapsed) continueList(body.text, next.text, next.selection.end) else null
+                onBody(if (listed == null) next else TextFieldValue(listed.first, TextRange(listed.second)))
+            },
             modifier = (if (short) Modifier.fillMaxWidth().defaultMinSize(minHeight = 240.dp) else Modifier.fillMaxSize()).focusRequester(focusBody).textActions(body, onBody),
             textStyle = MaterialTheme.typography.bodyLarge,
             placeholder = { TextMMD(text = stringResource(R.string.note_body_hint), style = MaterialTheme.typography.bodyLarge) },
