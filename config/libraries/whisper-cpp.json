@@ -1,0 +1,15 @@
+{
+  "uniqueId": "whisper.cpp",
+  "name": "whisper.cpp and ggml",
+  "artifactVersion": "1.9.4",
+  "description": "Speech recognition on the phone, built into the app as native code (v1.9.4, trimmed to the CPU parts).",
+  "developers": [
+    {
+      "name": "The ggml authors"
+    }
+  ],
+  "website": "https://github.com/ggml-org/whisper.cpp",
+  "licenses": [
+    "whisper-cpp-mit"
+  ]
+}

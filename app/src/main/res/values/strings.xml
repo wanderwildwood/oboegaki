@@ -524,8 +524,7 @@
     <string name="licences_full_head">Full texts</string>
     <string name="licences_full_gpl">GNU General Public License v3 (full text)</string>
     <string name="licences_full_apache">Apache License 2.0 (full text)</string>
-    <string name="licences_full_mit">MIT license (full text)</string>
-    <string name="licences_full_bsd">BSD license (full text)</string>
+    <string name="licences_full_mpl">Mozilla Public License 2.0 (full text)</string>
     <string name="licences_full_ofl">SIL Open Font License 1.1 (full text)</string>
     <string name="text_size_title">Text size</string>
     <string name="text_size_small">Smaller</string>

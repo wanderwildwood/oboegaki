@@ -1,0 +1,14 @@
+{
+  "uniqueId": "whisper-model",
+  "name": "Whisper speech model",
+  "description": "The English base model is bundled; models for other languages are fetched from ggerganov/whisper.cpp on Hugging Face when chosen.",
+  "developers": [
+    {
+      "name": "OpenAI"
+    }
+  ],
+  "website": "https://huggingface.co/ggerganov/whisper.cpp",
+  "licenses": [
+    "whisper-model-mit"
+  ]
+}
