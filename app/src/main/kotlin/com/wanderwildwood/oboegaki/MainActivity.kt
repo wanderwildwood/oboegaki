@@ -41,6 +41,7 @@ import com.wanderwildwood.oboegaki.notes.SyncApps
 import com.wanderwildwood.oboegaki.notes.sharedText
 import com.wanderwildwood.oboegaki.ui.PicturesDialog
 import com.wanderwildwood.oboegaki.ui.PicturesFailedDialog
+import com.wanderwildwood.oboegaki.ui.houseTypography
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -133,7 +134,7 @@ class MainActivity : ComponentActivity() {
             // Smaller, Standard or Larger: the text scale, for everything inside, dialogs too.
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, density.fontScale * TextSize.factor())) {
-                ThemeMMD(colorScheme = monochrome) {
+                ThemeMMD(colorScheme = monochrome, typography = houseTypography) {
                     ArmedScope {
                         // A blinking cursor repaints its field twice a second for as long as it has
                         // focus, a refresh nobody asked for on an E Ink screen. Dialogs are inside this.

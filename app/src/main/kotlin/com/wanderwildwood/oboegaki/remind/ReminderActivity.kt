@@ -34,6 +34,7 @@ import com.wanderwildwood.oboegaki.notes.Notes
 import com.wanderwildwood.oboegaki.notes.preview
 import com.wanderwildwood.oboegaki.notes.reminderTime
 import androidx.compose.runtime.produceState
+import com.wanderwildwood.oboegaki.ui.houseTypography
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.wanderwildwood.oboegaki.ui.monochrome
@@ -50,7 +51,7 @@ class ReminderActivity : ComponentActivity() {
         setShowWhenLocked(true)
         setTurnScreenOn(true)
         setContent {
-            ThemeMMD(colorScheme = monochrome) {
+            ThemeMMD(colorScheme = monochrome, typography = houseTypography) {
                 ArmedScope {
                     Surface(color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxSize()) {
                         Ringing(onDone = ::finish)

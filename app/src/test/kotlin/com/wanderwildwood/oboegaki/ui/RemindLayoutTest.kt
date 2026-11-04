@@ -49,7 +49,7 @@ class RemindLayoutTest {
             val density = LocalDensity.current
             // The app's text size scales the text alone, as MainActivity does.
             CompositionLocalProvider(LocalDensity provides Density(density.density, density.fontScale * textScale)) {
-                ThemeMMD(colorScheme = monochrome) {
+                ThemeMMD(colorScheme = monochrome, typography = houseTypography) {
                     Box(Modifier.size(width, window)) {
                         Surface(
                             border = BorderStroke(2.dp, MaterialTheme.colorScheme.onSurface),
