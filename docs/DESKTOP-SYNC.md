@@ -39,7 +39,7 @@ Two independent gates, checked on every request (and on the WebSocket upgrade):
    cannot set headers), checked on every request against every entry, compared in constant time,
    never logged. At most 8 browsers; a ninth pairing replaces the one unused longest. A token not
    used for 30 days is gone. Settings > Desktop Sync lists the paired computers; tapping one arms
-   its row (six seconds), a second tap removes it, and *Remove all* does the same for everyone. A
+   its row (until anything else is touched, with no timer), a second tap removes it, and *Remove all* does the same for everyone. A
    removal closes that browser's open page at once. There is no shared token and no link with a
    token in it: the one permanent token earlier versions handed to every browser was dropped, so a
    browser that paired before pairs again once (the page says so when it finds itself unpaired).
@@ -101,7 +101,7 @@ view-only: neither can be recorded, changed or added from the browser.
 
 **Checklist items.** Beside each item, on a card and in an open note, a ⋯ opens what holding an
 item does on the phone: *Remind me* (a day-and-time picker; *Set*, or *Take the reminder off*),
-*Move to Tasks · <list>* and *Remove item* (tap, then tap again within six seconds). Each goes
+*Move to Tasks · <list>* and *Remove item* (tap, then tap again; it stays armed until anything else is clicked or Escape is pressed). Each goes
 through the phone's own code: the reminder is `withItemReminder` and rings on the phone
 (`Reminders.claim`, as the Remind dialog does), and a time gone by is refused as there; Move to
 Tasks is `itemAsTask`/`itemRingsHere` (remind/ItemToTask.kt, which the phone's menu now calls
@@ -138,7 +138,7 @@ there is more than one): `POST /api/tasks/move`, `Tasks.move`, then the fields a
 order the phone's task screen uses.
 
 **Sharing.** With the notes on Nextcloud, an open note has *Share*: who it is shared with, a *Can
-edit* box beside each, *Stop sharing* (tap, then tap again within six seconds), and the people it
+edit* box beside each, *Stop sharing* (tap, then tap again; armed until another click or Escape), and the people it
 could be shared with. A new share can edit, as on the phone. A note someone shared with this
 account says by whom. It is the phone's Share screen as data: the server calls the app's own
 `Sharing` (sync/Shares.kt), syncs the note up first as the phone does, and names a person or a

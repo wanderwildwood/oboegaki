@@ -32,7 +32,7 @@ Memo collects nothing about you and has no analytics, ads or tracking of any kin
 <!-- shared-about privacy section -->
 ## Who we are
 
-Memo is made by wander wildwood, an independent developer: one person, not a company. wander wildwood is the data controller for anything the app itself handles, and that is very little. Memo keeps what you put in it on your phone, apart from what it sends to Hugging Face as described above, and sends nothing to the developer, so the developer holds no data about you.
+Memo is made by wander wildwood, an independent developer: one person, not a company. wander wildwood is the data controller for anything the app itself handles, and that is very little. What you put in Memo stays on your phone, or in the place you chose for it: your own Nextcloud or a WebDAV server you named. The only other request Memo makes is the speech model download from Hugging Face described above, a request for the model file that carries nothing you wrote or recorded. Nothing is sent to the developer, so the developer holds no data about you.
 
 ## How to contact us
 
@@ -52,8 +52,8 @@ If you are in the EU, the EEA or the UK, the GDPR gives you the right to:
 
 Similar laws elsewhere, such as the CCPA in California, give you the right to know, delete and correct, and to opt out of the sale or sharing of your data. Nothing from Memo is sold or shared.
 
-Since Memo keeps what it stores only on your phone, you can exercise most of these rights yourself: delete a note and empty the trash in the app, remove a paired browser in Settings, clear the app's data in Android's settings, or uninstall the app, which deletes all of it. For anything you cannot do yourself, write to the address above.
+Since Memo keeps what it stores on your phone, or on a server you chose, you can exercise most of these rights yourself: delete a note and empty the trash in the app, remove a paired browser in Settings, clear the app's data in Android's settings, or uninstall the app, which deletes all of it. For anything you cannot do yourself, write to the address above.
 
-Memo connects to Hugging Face. They are separate from this app and from its developer, and what they receive is covered by their own privacy policies; ask them about what they hold.
+Memo connects to Hugging Face only to download a speech model, and only if you choose one. Hugging Face is separate from this app and from its developer, and what it receives is covered by its own privacy policy (https://huggingface.co/privacy); ask it about what it holds.
 If you point Memo at a server of your own, what that server keeps is yours to manage.
 <!-- /shared-about privacy section -->

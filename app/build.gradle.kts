@@ -203,7 +203,7 @@ dependencies {
 
 // The Licenses page lists what the build actually packs: this plugin walks each variant's runtime
 // dependencies and writes res/raw/aboutlibraries.json (one entry per artifact, with its POM's
-// licence). What Gradle cannot see (fonts, data sets, native code, desugaring) and licence texts
+// license). What Gradle cannot see (fonts, data sets, native code, desugaring) and license texts
 // of our own choosing are in config/libraries and config/licenses. Offline: the build fetches
 // nothing; the full texts come from res/raw and config/licenses. The app reads the file with
 // shared-licences' LicencesJson.kt (no AboutLibraries runtime library).

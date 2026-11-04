@@ -225,6 +225,19 @@ button.armed { color: var(--warn); font-weight: 700; }
     toastTimer = setTimeout(function () { t.remove(); }, 5200);
   }
 
+  // ---------------------------------------------------------------- tap again
+  // A button that removes or stops something arms on the first tap ("Tap again to ...") and acts on
+  // the second. It stays armed with no timer until anything else is clicked or Escape is pressed.
+  var armedEl = null, armedOff = null;
+  function disarm() { var off = armedOff; armedEl = null; armedOff = null; if (off) off(); }
+  document.addEventListener("click", function (e) { if (armedEl && !armedEl.contains(e.target)) disarm(); }, true);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && armedEl) disarm(); }, true);
+  // True on the second tap of el (the caller then acts); on the first, arms el and returns false.
+  function tapAgain(el, onArm, onDisarm) {
+    if (armedEl === el) { armedEl = null; armedOff = null; return true; }
+    disarm(); armedEl = el; armedOff = onDisarm; onArm(); return false;
+  }
+
   // ---------------------------------------------------------------- talking to the phone
   function api(method, path, body) {
     var opts = { method: method, cache: "no-store", headers: { "Authorization": "Bearer " + S.token } };
@@ -390,10 +403,10 @@ button.armed { color: var(--warn); font-weight: 700; }
     if (to) rows.push(h("div", { class: "row" }, h("button", { class: "pill", text: "Move to Tasks · " + to.name,
       title: "It leaves this note and becomes a task; its reminder becomes the due time.",
       onclick: function () { run("/api/notes/itemtotasks", {}, "Moved to " + to.name + "."); } })));
-    var armed = false, timer = null;
     var rm = h("button", { class: "quiet", text: "Remove item", onclick: function () {
-      if (!armed) { armed = true; rm.textContent = "Tap again to remove"; rm.classList.add("armed"); timer = setTimeout(function () { armed = false; rm.textContent = "Remove item"; rm.classList.remove("armed"); }, 6000); return; }
-      clearTimeout(timer); run("/api/notes/removeitem", {}, "Item removed.");
+      if (!tapAgain(rm, function () { rm.textContent = "Tap again to remove"; rm.classList.add("armed"); },
+          function () { rm.textContent = "Remove item"; rm.classList.remove("armed"); })) return;
+      run("/api/notes/removeitem", {}, "Item removed.");
     } });
     rows.push(h("div", { class: "row" }, rm));
     return h("div", { class: "itemmenu" }, rows);
@@ -668,11 +681,10 @@ button.armed { color: var(--warn); font-weight: 700; }
     p.appendChild(h("hr"));
     p.appendChild(h("h3", { text: "Pairing" }));
     p.appendChild(h("p", { text: "The phone lists each paired computer in Settings, Desktop Sync, where it can be removed." }));
-    var armed = false, armTimer = null;
     p.appendChild(panelRow("Forget this computer", null, function () {
       var row = this, label = row.querySelector(".label");
-      if (!armed) { armed = true; label.textContent = "Tap again to forget it"; clearTimeout(armTimer); armTimer = setTimeout(function () { armed = false; label.textContent = "Forget this computer"; }, 6000); return; }
-      clearTimeout(armTimer);
+      if (!tapAgain(row, function () { label.textContent = "Tap again to forget it"; },
+          function () { label.textContent = "Forget this computer"; })) return;
       api("POST", "/api/unpair", {}).catch(function () {}).then(function () { closeSettings(); signOut(); });
     }, true));
   }
@@ -1081,10 +1093,10 @@ button.armed { color: var(--warn); font-weight: 700; }
       j.shares.forEach(function (sh) {
         var edit = h("input", { type: "checkbox", checked: sh.canEdit, "aria-label": "Can edit" });
         edit.addEventListener("change", function () { shareAct(n, box, "/api/shares/edit", { share: sh.id, canEdit: edit.checked }); });
-        var armed = false, timer = null;
         var stop = h("button", { class: "quiet", text: "Stop sharing", onclick: function () {
-          if (!armed) { armed = true; stop.textContent = "Tap again to stop"; stop.classList.add("armed"); timer = setTimeout(function () { armed = false; stop.textContent = "Stop sharing"; stop.classList.remove("armed"); }, 6000); return; }
-          clearTimeout(timer); shareAct(n, box, "/api/shares/stop", { share: sh.id });
+          if (!tapAgain(stop, function () { stop.textContent = "Tap again to stop"; stop.classList.add("armed"); },
+              function () { stop.textContent = "Stop sharing"; stop.classList.remove("armed"); })) return;
+          shareAct(n, box, "/api/shares/stop", { share: sh.id });
         } });
         box.appendChild(h("div", { class: "share-row" }, h("span", { class: "who", text: sh.name }), h("label", { class: "canedit" }, edit, " Can edit"), stop));
       });
