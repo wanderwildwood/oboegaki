@@ -397,7 +397,7 @@
     <string name="about_feed_the_llamas">Feed the llamas</string>
     <string name="about_no_browser_address">No browser is installed. The address is %1$s.</string>
     <string name="about_close">Close</string>
-    <string name="about_blurb">Notes are plain files. They stay on this phone, or go only to the place you set up for them.</string>
+    <string name="about_blurb">Notes, lists, voice notes and scanned pages, kept as plain Markdown files on this phone or on your own Nextcloud. They go only to the place you set up for them.</string>
 
     <!-- Reminders: set from a note's ⋮ or a list item's long press, rung by this phone -->
     <string name="remind_channel">Reminders</string>
@@ -535,6 +535,10 @@
     <!-- shared-about: contact row + privacy section (edit in /opt/projects/shared-about) -->
     <string name="about_write_to">Write to %1$s</string>
     <string name="about_no_mail_app">No email app is installed. The address is %1$s.</string>
+    <string name="about_open_drawer">Open %1$s</string>
+    <string name="about_close_drawer">Close %1$s</string>
+    <string name="about_contact_head">Contact</string>
+    <string name="about_links_head">Links</string>
     <string name="privacy_who_title">Who we are</string>
     <string name="privacy_who">This app is made by wander wildwood, an independent developer: one person, not a company. That makes wander wildwood the data controller for anything the app itself handles, and that is very little: what you put in stays on this phone, or in the Nextcloud or WebDAV server you chose for it, unless you send it somewhere yourself. The only other request the app makes is the speech model download from Hugging Face described above, which carries nothing you wrote or recorded. Nothing comes to the developer.</string>
     <string name="privacy_contact_title">How to contact us</string>

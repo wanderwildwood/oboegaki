@@ -7,8 +7,8 @@ import com.wanderwildwood.oboegaki.BuildConfig
 import com.wanderwildwood.oboegaki.R
 
 /**
- * This app's About: only the words and the address. The dialog, its one Close button, the
- * Licences row, the links and the llama are the shared HouseAbout.kt, the same in every app.
+ * This app's About: only the words and the address. The dialog, its drawers, its one Close button,
+ * the Licenses drawer, the links and the llama are the shared HouseAbout.kt, the same in every app.
  */
 @Composable
 fun AboutDialog(onDismiss: () -> Unit) {
@@ -35,8 +35,10 @@ fun AboutDialog(onDismiss: () -> Unit) {
         noBrowser = { address -> context.getString(R.string.about_no_browser_address, address) },
         writeTo = { address -> context.getString(R.string.about_write_to, address) },
         noMailApp = { address -> context.getString(R.string.about_no_mail_app, address) },
+        openDrawer = { heading -> context.getString(R.string.about_open_drawer, heading) },
+        closeDrawer = { heading -> context.getString(R.string.about_close_drawer, heading) },
+        contact = stringResource(R.string.about_contact_head),
+        links = stringResource(R.string.about_links_head),
     )
-    HouseAboutDialog(data, labels, R.drawable.llama, onDismiss) { modifier, back ->
-        LicencesScreen(rememberLicencesData(), rememberLicencesLabels(), onBack = back, modifier = modifier)
-    }
+    HouseAboutDialog(data, labels, R.drawable.llama, onDismiss)
 }
