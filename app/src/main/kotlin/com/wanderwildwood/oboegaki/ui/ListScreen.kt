@@ -198,6 +198,9 @@ fun ListScreen(
                     // the rows end before them rather than run under.
                     contentPadding = if (rememberShortWindow() && !searching && !keyboardUp) PaddingValues(end = FAB_ROOM) else PaddingValues(0.dp),
                     onPullAtTop = if (onPull != null) pull::pull else null,
+                    // A list of tall rows: the note the foot cuts through shows there, and the next
+                    // page opens on it whole, rather than a blank band at the foot (5 Nov 2026).
+                    showCutRow = true,
                 ) {
                     // A dotted rule under every row but the last, as Contacts draws its list.
                     val lastRow = shown.lastOrNull()?.path?.let { "note:$it" }
