@@ -86,6 +86,8 @@
     <string name="cd_more">More</string>
     <!-- In that menu: opens a calendar app's new event with the note's title and words -->
     <string name="note_remind">Remind me…</string>
+    <!-- In that menu: hands the note's title and words to another app, by Android's share sheet -->
+    <string name="note_send">Send…</string>
     <string name="note_move">Move to folder…</string>
     <string name="note_move_heading">Move this note to</string>
     <string name="note_move_use">Move to this folder</string>

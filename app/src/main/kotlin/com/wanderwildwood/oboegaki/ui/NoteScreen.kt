@@ -1,6 +1,7 @@
 package com.wanderwildwood.oboegaki.ui
 
 import android.content.ActivityNotFoundException
+import android.content.ComponentName
 import android.content.Intent
 import android.provider.CalendarContract
 import androidx.activity.compose.BackHandler
@@ -51,6 +52,7 @@ import com.mudita.mmd.components.checkbox.CheckboxMMD
 import com.mudita.mmd.components.text.TextMMD
 import com.mudita.mmd.components.text_field.TextFieldMMD
 import com.mudita.mmd.components.top_app_bar.TopAppBarMMD
+import com.wanderwildwood.oboegaki.MainActivity
 import com.wanderwildwood.oboegaki.R
 import com.wanderwildwood.oboegaki.notes.Keeping
 import com.wanderwildwood.oboegaki.notes.Line
@@ -202,6 +204,31 @@ fun NoteScreen(
     val hasCalendar = remember {
         context.packageManager.resolveActivity(Intent(Intent.ACTION_INSERT, CalendarContract.Events.CONTENT_URI), 0) != null
     }
+    // Send is offered only when some app other than this one takes text.
+    val canSend = remember {
+        context.packageManager.queryIntentActivities(Intent(Intent.ACTION_SEND).setType("text/plain"), 0)
+            .any { it.activityInfo.packageName != context.packageName }
+    }
+
+    // The note as words, to a message, an email or wherever: its title, then what it says
+    // without the front matter, which is for apps that keep notes, not for a reader.
+    fun send() {
+        save()
+        val name = title.ifBlank { at.substringAfterLast('/').substringBeforeLast('.') }
+        val words = body.text.removePrefix(frontMatterHead(body.text)).trim()
+        val intent = Intent(Intent.ACTION_SEND)
+            .setType("text/plain")
+            .putExtra(Intent.EXTRA_SUBJECT, name)
+            .putExtra(Intent.EXTRA_TEXT, if (words.isEmpty()) name else name + "\n\n" + words)
+        // Memo takes shared text too; sending a note back into Memo would only copy it.
+        val chooser = Intent.createChooser(intent, null)
+            .putExtra(Intent.EXTRA_EXCLUDE_COMPONENTS, arrayOf(ComponentName(context, MainActivity::class.java)))
+        try {
+            context.startActivity(chooser)
+        } catch (_: ActivityNotFoundException) {
+            android.widget.Toast.makeText(context, context.getString(R.string.no_app_for_that), android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
 
     // A calendar app's new event, with the note's title and words already in it. Which app,
     // and when, are the reader's to choose there.
@@ -277,7 +304,7 @@ fun NoteScreen(
                             }
                         }
                         BarButton(Icons.Delete, stringResource(R.string.cd_delete)) { armed.value = true }
-                        // Remind me and Archive, behind three dots: with Share, seven icons do
+                        // Remind me, Send and Archive, behind three dots: with Share, seven icons do
                         // not fit across the bar.
                         BarButton(Icons.More, stringResource(R.string.cd_more)) { menuOpen = true }
                     }
@@ -320,6 +347,12 @@ fun NoteScreen(
             MenuRow(stringResource(R.string.note_remind)) {
                 menuOpen = false
                 reminding = -1
+            }
+            if (canSend && (body.text.isNotBlank() || title.isNotBlank())) {
+                MenuRow(stringResource(R.string.note_send)) {
+                    menuOpen = false
+                    send()
+                }
             }
             // Out of the way, not gone: archived, or brought back if it already is.
             if (!fresh || body.text.isNotBlank()) {

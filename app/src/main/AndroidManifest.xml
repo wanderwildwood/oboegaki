@@ -59,6 +59,11 @@
             <action android:name="android.intent.action.INSERT" />
             <data android:mimeType="vnd.android.cursor.dir/event" />
         </intent>
+        <!-- Send in a note's menu: shown only when some app besides Memo takes text. -->
+        <intent>
+            <action android:name="android.intent.action.SEND" />
+            <data android:mimeType="text/plain" />
+        </intent>
         <!-- The apps allowed to write notes in through the capture provider, whose signing
              certificates it checks. -->
         <package android:name="com.wanderwildwood.yumecho" />
