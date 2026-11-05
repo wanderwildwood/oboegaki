@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
+import android.provider.CalendarContract
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -55,6 +56,7 @@ import com.wanderwildwood.oboegaki.ui.ScanScreen
 import com.wanderwildwood.oboegaki.ui.OutsideScreen
 import com.wanderwildwood.oboegaki.hearing.RecordService
 import com.wanderwildwood.oboegaki.hearing.Voice
+import com.wanderwildwood.oboegaki.remind.NoteLink
 import com.wanderwildwood.oboegaki.remind.Reminders
 import com.wanderwildwood.oboegaki.remind.TASK
 import com.wanderwildwood.oboegaki.tasks.Tasks
@@ -195,6 +197,8 @@ class MainActivity : ComponentActivity() {
         intent ?: return null
         return when {
             intent.action == OPEN_NOTE -> intent.getStringExtra(EXTRA_PATH)?.let { Capture("", "", note = it) }
+            // A reminder's calendar event, opened in Memo from Datebook: its note, or the list if it is gone.
+            intent.action == CalendarContract.ACTION_HANDLE_CUSTOM_EVENT -> NoteLink.path(intent)?.let { Capture("", "", note = it) }
             intent.action == NEW_NOTE -> Capture("", "")
             intent.action == RECORD -> Capture("", "", record = true)
             intent.action == TASKS -> Capture("", "", tasks = true)

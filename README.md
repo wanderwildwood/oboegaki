@@ -70,7 +70,8 @@ a voice note heard and written down, a page photographed and handed to the scann
   only on the phone it was set on: on a list shared between two phones, each rings for its own,
   and one set somewhere else shows its time and can be made to ring here too. If the phone was
   off, or Memo was stopped, when one was due, it rings as soon as it can and says it is late.
-  A note's reminder can still go to a calendar app instead, from the same place.
+  A note's reminder can still go to a calendar app instead, from the same place; in Datebook the
+  event has an *Open in Memo* row that brings the note back.
 - **Tasks** that are real tasks: on a Nextcloud, the same ones its Tasks app, Thunderbird or any
   CalDAV app shows, on a page of their own (the tick-in-a-circle at the top of the list). See
   [Tasks](#tasks).

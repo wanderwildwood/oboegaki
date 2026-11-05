@@ -79,6 +79,7 @@ import com.wanderwildwood.oboegaki.notes.noteReminder
 import com.wanderwildwood.oboegaki.notes.withItemReminder
 import com.wanderwildwood.oboegaki.notes.withNoteReminder
 import com.wanderwildwood.oboegaki.notes.withoutReminder
+import com.wanderwildwood.oboegaki.remind.NoteLink
 import com.wanderwildwood.oboegaki.remind.Reminders
 import com.wanderwildwood.oboegaki.notes.removeLine
 import com.wanderwildwood.oboegaki.tasks.Tasks
@@ -215,6 +216,7 @@ fun NoteScreen(
             .putExtra(CalendarContract.Events.DESCRIPTION, reminderText(body.text))
             .putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, begin)
             .putExtra(CalendarContract.EXTRA_EVENT_END_TIME, begin + 3_600_000L)
+            .let { NoteLink.put(context, it, at) }
         try {
             context.startActivity(intent)
         } catch (_: ActivityNotFoundException) {

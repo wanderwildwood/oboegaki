@@ -139,6 +139,13 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
             </intent-filter>
+
+            <!-- A reminder's calendar event, asking to show its note: Android's own request for
+                 it, sent by Datebook's "Open in Memo". See remind/NoteLink.kt. -->
+            <intent-filter>
+                <action android:name="android.provider.calendar.action.HANDLE_CUSTOM_EVENT" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
         </activity>
 
 
