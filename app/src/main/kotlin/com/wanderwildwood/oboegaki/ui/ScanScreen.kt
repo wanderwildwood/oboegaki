@@ -10,6 +10,7 @@ import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import com.wanderwildwood.oboegaki.FilesGetContent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -124,7 +125,7 @@ fun ScanScreen(pictures: List<Uri> = emptyList(), onDone: (pdf: ByteArray) -> Un
     val camera = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK && shot.length() > 0) load(shotUri)
     }
-    val choose = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+    val choose = rememberLauncherForActivityResult(FilesGetContent()) { uri ->
         if (uri != null) load(uri)
     }
 

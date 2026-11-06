@@ -290,7 +290,7 @@ private fun App(capture: MutableState<Capture?>) {
         screen = Screen.Note(path, Notes.read(path).orEmpty(), fresh = false)
     }
 
-    val chooseFolder = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri: Uri? ->
+    val chooseFolder = rememberLauncherForActivityResult(FilesOpenTree()) { uri: Uri? ->
         if (uri != null) {
             context.contentResolver.takePersistableUriPermission(
                 uri,
