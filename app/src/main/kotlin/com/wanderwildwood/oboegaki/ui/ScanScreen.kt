@@ -10,7 +10,6 @@ import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import com.wanderwildwood.oboegaki.FilesGetContent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -57,6 +56,7 @@ import com.mudita.mmd.components.buttons.ButtonMMD
 import com.mudita.mmd.components.buttons.OutlinedButtonMMD
 import com.mudita.mmd.components.text.TextMMD
 import com.mudita.mmd.components.top_app_bar.TopAppBarMMD
+import com.wanderwildwood.oboegaki.FilesGetContent
 import com.wanderwildwood.oboegaki.R
 import com.wanderwildwood.oboegaki.notes.Notes
 import com.wanderwildwood.oboegaki.scan.Look
