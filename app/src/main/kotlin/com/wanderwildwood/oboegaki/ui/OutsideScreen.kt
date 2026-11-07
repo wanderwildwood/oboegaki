@@ -79,7 +79,7 @@ fun OutsideScreen(uri: Uri, canKeep: Boolean, onKeep: (name: String, text: Strin
                 failed -> TextMMD(text = stringResource(R.string.outside_unreadable), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 12.dp))
                 body == null -> Unit
                 else -> {
-                    PagedColumn(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                    PagedColumn(modifier = Modifier.weight(1f).fillMaxWidth(), showCutRow = true) {
                         item { Spacer(Modifier.height(8.dp)) }
                         body.split('\n').forEachIndexed { i, line ->
                             item(key = i) {

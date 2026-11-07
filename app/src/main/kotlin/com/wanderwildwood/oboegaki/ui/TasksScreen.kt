@@ -121,6 +121,7 @@ fun TasksScreen(
                 modifier = Modifier.fillMaxSize(),
                 state = listState,
                 onPullAtTop = if (Tasks.onNextcloud) pull::pull else null,
+                showCutRow = true,
             ) {
                 val nextcloud = Tasks.onNextcloud
                 for (section in shown) {

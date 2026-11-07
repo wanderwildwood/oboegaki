@@ -89,7 +89,7 @@ fun TrashScreen(onBack: () -> Unit) {
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
                 )
             } else {
-                PagedColumn(modifier = Modifier.fillMaxSize(), state = listState) {
+                PagedColumn(modifier = Modifier.fillMaxSize(), state = listState, showCutRow = true) {
                     for (item in trash) {
                         item(key = item.slot) {
                             TrashRow(item, ruled = item !== trash.last())

@@ -569,7 +569,7 @@ private fun Reading(
     var folded by remember { mutableStateOf(emptySet<Int>()) }
     val shown = remember(parsed, folded) { withoutFolded(parsed, folded) }
 
-    PagedColumn(modifier = Modifier.fillMaxSize()) {
+    PagedColumn(modifier = Modifier.fillMaxSize(), showCutRow = true) {
         item(key = "title") {
             TextMMD(
                 text = title,

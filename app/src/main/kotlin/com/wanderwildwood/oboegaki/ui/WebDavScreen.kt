@@ -116,7 +116,7 @@ fun WebDavScreen(onSaved: (DavAccount, String) -> Unit, onBack: () -> Unit) {
             )
         },
     ) { contentPadding ->
-        PagedColumn(modifier = Modifier.fillMaxSize().padding(contentPadding), contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 20.dp, end = 12.dp)) {
+        PagedColumn(modifier = Modifier.fillMaxSize().padding(contentPadding), contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 20.dp, end = 12.dp), showCutRow = true) {
             item {
                 Column {
                     Spacer(Modifier.height(16.dp))

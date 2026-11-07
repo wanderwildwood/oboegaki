@@ -102,7 +102,7 @@ fun ShareScreen(path: String, title: String, onBack: () -> Unit) {
             else -> null
         }
 
-        PagedColumn(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
+        PagedColumn(modifier = Modifier.fillMaxSize().padding(contentPadding), showCutRow = true) {
             item(key = "title") {
                 TextMMD(
                     text = title,

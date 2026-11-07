@@ -300,7 +300,7 @@ private fun ViewDialog(
     onDismiss: () -> Unit,
 ) {
     EInkDialog(onDismiss = onDismiss) {
-        PagedColumn(modifier = Modifier.fillMaxWidth().height(dialogListHeightDp(440, rememberWindowHeightDp()).dp)) {
+        PagedColumn(modifier = Modifier.fillMaxWidth().height(dialogListHeightDp(440, rememberWindowHeightDp()).dp), showCutRow = true) {
             item { DialogHeading(stringResource(R.string.view_show)) }
             item { Choice(stringResource(R.string.view_all), showing == Showing.ALL) { onChoose(Showing.ALL, order) } }
             item { Choice(stringResource(R.string.view_lists), showing == Showing.LISTS) { onChoose(Showing.LISTS, order) } }
