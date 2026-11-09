@@ -16,6 +16,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import com.wanderwildwood.oboegaki.desktop.DesktopSync
+import com.wanderwildwood.oboegaki.today.Entry
 import com.wanderwildwood.oboegaki.ui.TextSize
 import androidx.compose.ui.platform.LocalCursorBlinkEnabled
 import androidx.compose.runtime.LaunchedEffect
@@ -101,7 +102,7 @@ private sealed interface Screen {
     data object Tasks : Screen
     data object Trash : Screen
     /** One task; [name] null for a new one in [list]. */
-    data class Task(val list: String, val name: String?, val dueToday: Boolean = false) : Screen
+    data class Task(val list: String, val name: String?, val fromList: Boolean = false) : Screen
 }
 
 /** The actions of the New note and Record shortcuts (res/xml/shortcuts.xml). */
@@ -372,6 +373,12 @@ private fun App(capture: MutableState<Capture?>) {
                 onScan = { screen = Screen.Scan() },
                 onSettings = { screen = Screen.Settings },
                 onTasks = { screen = Screen.Tasks },
+                onOpenToday = { entry ->
+                    screen = when (entry) {
+                        is Entry.OfTask -> Screen.Task(entry.item.list, entry.item.name, fromList = true)
+                        is Entry.OfNote -> Screen.Note(entry.path, Notes.read(entry.path).orEmpty(), fresh = false)
+                    }
+                },
                 onTrash = { screen = Screen.Trash },
                 onPull = if (keeping.isServer) ({ Notes.syncAndWait(); Notes.sync.value }) else null,
             )
@@ -384,12 +391,11 @@ private fun App(capture: MutableState<Capture?>) {
                 TasksScreen(
                     onOpen = { screen = Screen.Task(it.list, it.name) },
                     onNew = { screen = Screen.Task(it, null) },
-                    onNewToday = { screen = Screen.Task(it, null, dueToday = true) },
                     onBack = { screen = Screen.List },
                 )
             }
             is Screen.Task -> key(now.list, now.name) {
-                TaskScreen(list = now.list, name = now.name, dueToday = now.dueToday, onClose = { screen = Screen.Tasks })
+                TaskScreen(list = now.list, name = now.name, onClose = { screen = if (now.fromList) Screen.List else Screen.Tasks })
             }
             // Keyed by path so a second capture while one is open starts a new screen.
             is Screen.Note -> key(now.path) {

@@ -2,6 +2,7 @@ package com.wanderwildwood.oboegaki.tasks
 
 import android.content.Context
 import com.wanderwildwood.oboegaki.R
+import com.wanderwildwood.oboegaki.glance.GlanceProvider
 import com.wanderwildwood.oboegaki.notes.Keeping
 import com.wanderwildwood.oboegaki.notes.Notes
 import com.wanderwildwood.oboegaki.notes.SyncState
@@ -128,7 +129,10 @@ object Tasks {
                 dueWords = { due -> due?.let { dueText(it) } ?: appContext.getString(R.string.task_due_none) },
             ).run()
             _sync.value = if (result.failed.isEmpty()) SyncState.Idle else SyncState.Failed(result.failed.joinToString(", "))
-            if (result.received > 0) Reminders.syncSoon(appContext)
+            if (result.received > 0) {
+                Reminders.syncSoon(appContext)
+                GlanceProvider.changed(appContext)
+            }
         } catch (_: Unreachable) {
             _sync.value = SyncState.Unreachable
         } catch (_: Refused) {
@@ -166,6 +170,7 @@ object Tasks {
 
     private fun changed() {
         reload()
+        GlanceProvider.changed(appContext)
         syncNow()
         Reminders.syncSoon(appContext)
     }

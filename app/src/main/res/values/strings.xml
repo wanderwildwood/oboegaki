@@ -324,11 +324,11 @@
     <!-- ============================================================ -->
     <!-- On the lock screen, through the Glance app -->
 
-    <string name="settings_lock_screen">Pinned notes on the lock screen</string>
+    <string name="settings_lock_screen">Today and pinned notes on the lock screen</string>
     <!-- Under that switch while Glance, which draws the lock screen, is not on the phone -->
     <string name="settings_lock_screen_needs">Needs Glance, which is not on this phone</string>
     <!-- Always under the lock-screen switch: what it does and what it needs -->
-    <string name="settings_lock_screen_what">Hands your pinned notes to Glance, a separate app that draws the lock screen. This switch does nothing without it.</string>
+    <string name="settings_lock_screen_what">Hands what is due today and your pinned notes to Glance, a separate app that draws the lock screen. This switch does nothing without it.</string>
     <string name="glance_missing">Glance is not installed, so nothing shows on the lock screen yet.</string>
     <string name="glance_disabled">Glance is installed but switched off in the phone\'s app settings.</string>
     <string name="glance_ready_off">Glance is installed and on. This switch is off, so nothing is handed over.</string>
@@ -357,6 +357,11 @@
     </plurals>
     <!-- A pinned list with everything ticked -->
     <string name="lock_all_done">%1$s · all done</string>
+    <!-- Under Today's first rows on the lock screen -->
+    <plurals name="lock_today_more">
+        <item quantity="one">and %1$d more</item>
+        <item quantity="other">and %1$d more</item>
+    </plurals>
 
     <!-- ============================================================ -->
     <!-- A file opened from another app -->
@@ -445,9 +450,15 @@
     <string name="tasks_read_only">read only</string>
     <string name="tasks_none">No tasks. A list item in a note stays in the note until you hold it and choose Move to Tasks.</string>
     <string name="tasks_all_done">Everything here is done.</string>
-    <string name="tasks_today">Today</string>
-    <string name="tasks_today_none">Nothing due today.</string>
-    <string name="tasks_today_add">Add for today</string>
+    <string name="today_heading">Today</string>
+    <string name="today_add">Add for today</string>
+    <string name="today_overdue">Overdue · %1$s</string>
+    <string name="today_move_title">Move to</string>
+    <string name="today_tomorrow">Tomorrow</string>
+    <string name="today_next_week">Next week</string>
+    <string name="today_pick">Pick a day…</string>
+    <string name="cd_today_note_reminder">Note reminder</string>
+    <string name="lock_today">Today</string>
     <string name="tasks_done_show">Done · %1$d</string>
     <string name="tasks_done_hide">Done · %1$d · hide</string>
     <string name="tasks_unreachable">Couldn\'t reach the Nextcloud. Changes wait here and go when it can be reached.</string>

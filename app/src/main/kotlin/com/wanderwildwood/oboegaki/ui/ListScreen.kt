@@ -54,6 +54,12 @@ import com.wanderwildwood.oboegaki.notes.arrange
 import com.wanderwildwood.oboegaki.notes.folders
 import com.wanderwildwood.oboegaki.notes.parentFolder
 import com.wanderwildwood.oboegaki.notes.subfolders
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.wanderwildwood.oboegaki.tasks.Tasks
+import com.wanderwildwood.oboegaki.today.Entry
+import com.wanderwildwood.oboegaki.today.TodayActions
+import com.wanderwildwood.oboegaki.today.gather
+import java.time.LocalDate
 
 /**
  * Every note, the last one touched at the top, whatever folder it is in.
@@ -81,6 +87,7 @@ fun ListScreen(
     onScan: () -> Unit,
     onSettings: () -> Unit,
     onTasks: () -> Unit,
+    onOpenToday: (Entry) -> Unit,
     onTrash: () -> Unit,
     // A sync to run when the list is pulled down from its top, returning the state it left;
     // null when the notes live only on this phone.
@@ -99,6 +106,17 @@ fun ListScreen(
     val keyboardUp = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     val hasCamera = remember { context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY) }
     val hasMicrophone = remember { context.packageManager.hasSystemFeature(PackageManager.FEATURE_MICROPHONE) }
+
+    // Today: what is due from the tasks and the notes, above all the notes (not in a folder, a
+    // narrowed view or a search). The tasks are read when the list opens and asked of the server.
+    val taskLists by Tasks.shown.collectAsStateWithLifecycle()
+    LaunchedEffect(Unit) {
+        Tasks.reload()
+        Tasks.syncNow()
+    }
+    val showToday = !searching && showing == Showing.ALL
+    val today = remember(notes, taskLists) { gather(notes, taskLists, LocalDate.now()) }
+    var holding by remember { mutableStateOf<Entry?>(null) }
 
     if (searching) {
         BackHandler {
@@ -184,7 +202,7 @@ fun ListScreen(
             val current = Showing.folderOf(showing)?.takeIf { !searching }
             val inside = current?.let { subfolders(allFolders, it) }.orEmpty()
 
-            if (shown.isEmpty() && current == null) {
+            if (shown.isEmpty() && current == null && !showToday) {
                 TextMMD(
                     text = stringResource(if (notes.isEmpty()) R.string.list_empty else R.string.list_none_here),
                     style = MaterialTheme.typography.bodyMedium,
@@ -206,6 +224,22 @@ fun ListScreen(
                     val lastRow = shown.lastOrNull()?.path?.let { "note:$it" }
                         ?: inside.lastOrNull()?.let { "folder:$it" }
                         ?: "up"
+                    if (showToday) {
+                        todayItems(
+                            today,
+                            onOpen = onOpenToday,
+                            onTick = { TodayActions.tick(context, it) },
+                            onHold = { holding = it },
+                            onAdd = { TodayActions.add(it) },
+                        )
+                        if (shown.isEmpty()) item(key = "empty") {
+                            TextMMD(
+                                text = stringResource(if (notes.isEmpty()) R.string.list_empty else R.string.list_none_here),
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                            )
+                        }
+                    }
                     if (current != null) {
                         val parent = parentFolder(current)
                         item(key = "up") {
@@ -241,6 +275,21 @@ fun ListScreen(
                 }
             }
         }
+    }
+
+    holding?.let { entry ->
+        MoveDialog(
+            entry,
+            onMove = { day, exact ->
+                TodayActions.move(context, entry, day, exact)
+                holding = null
+            },
+            onClear = {
+                TodayActions.clear(context, entry)
+                holding = null
+            },
+            onDismiss = { holding = null },
+        )
     }
 
     if (choosing) {

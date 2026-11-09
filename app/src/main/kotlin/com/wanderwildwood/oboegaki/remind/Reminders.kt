@@ -1,5 +1,6 @@
 package com.wanderwildwood.oboegaki.remind
 
+import com.wanderwildwood.oboegaki.glance.GlanceProvider
 import android.app.ActivityManager
 import android.app.AlarmManager
 import android.app.ApplicationExitInfo
@@ -86,7 +87,10 @@ object Reminders {
             if (new != old) store(context, new)
             new != old || reminders(before).map { Triple(it.key, it.at, it.done) } != reminders(after).map { Triple(it.key, it.at, it.done) }
         }
-        if (changed) syncSoon(context)
+        if (changed) {
+            syncSoon(context)
+            GlanceProvider.changed(context)
+        }
     }
 
     /**

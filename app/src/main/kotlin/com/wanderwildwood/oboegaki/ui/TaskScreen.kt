@@ -53,7 +53,6 @@ import com.wanderwildwood.oboegaki.tasks.Tasks
 import com.wanderwildwood.oboegaki.tasks.day
 import com.wanderwildwood.oboegaki.tasks.local
 import kotlinx.coroutines.delay
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
@@ -64,16 +63,15 @@ import java.time.temporal.ChronoUnit
  * rings here then, its priority, its list and its notes. Like a note it saves itself, a moment
  * after a change and on the way out by any door, so there is no Save to forget.
  *
- * [name] null is a new task in [list], made once it has a title; with [dueToday] it starts due
- * today, as one added from the Today section does.
+ * [name] null is a new task in [list], made once it has a title.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TaskScreen(list: String, name: String?, dueToday: Boolean = false, onClose: () -> Unit) {
+fun TaskScreen(list: String, name: String?, onClose: () -> Unit) {
     val context = LocalContext.current
     // The task as last saved; null until a new one has been.
     var item by remember { mutableStateOf(name?.let { Tasks.item(list, it) }) }
-    val start = item?.task?.fields ?: Fields("", due = if (dueToday) Due.Day(LocalDate.now()) else null)
+    val start = item?.task?.fields ?: Fields("")
     var loaded by remember { mutableStateOf(start) }
     var summary by remember { mutableStateOf(start.summary) }
     var description by remember { mutableStateOf(start.description) }
@@ -337,7 +335,7 @@ fun TaskScreen(list: String, name: String?, dueToday: Boolean = false, onClose: 
  * day only cannot, as there is no moment to ring at.
  */
 @Composable
-private fun DueDialog(current: Due?, onSet: (Due?) -> Unit, onDismiss: () -> Unit) {
+internal fun DueDialog(current: Due?, onSet: (Due?) -> Unit, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val initial = current?.local() ?: LocalDateTime.now().truncatedTo(ChronoUnit.HOURS).plusHours(1)
     var day by remember { mutableStateOf(current?.day() ?: initial.toLocalDate()) }
