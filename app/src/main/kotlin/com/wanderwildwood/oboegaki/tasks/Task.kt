@@ -46,8 +46,18 @@ data class Fields(
     val done: Boolean = false,
 )
 
-/** A task as read from its file. [repeats]: its RRULE, if it has one. */
-data class Task(val uid: String, val fields: Fields, val repeats: String? = null)
+/**
+ * A task as read from its file. [repeats]: its RRULE, if it has one. [completed]: when it was
+ * finished (its COMPLETED), which the done tasks are listed by, newest first.
+ */
+data class Task(val uid: String, val fields: Fields, val repeats: String? = null, val completed: Instant? = null)
+
+/** A COMPLETED as an instant; a floating time is read on the phone's clock. */
+fun completedAt(prop: Prop): Instant? = when (val at = parseDue(prop)) {
+    null -> null
+    is Due.Day -> at.date.atStartOfDay(ZoneId.systemDefault()).toInstant()
+    is Due.At -> at.time.atZone(at.zone ?: ZoneId.systemDefault()).toInstant()
+}
 
 private val DATE = DateTimeFormatter.ofPattern("yyyyMMdd")
 private val DATE_TIME = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss")
@@ -118,6 +128,7 @@ fun readTask(ical: ICal): Task {
             done = done,
         ),
         repeats = first("RRULE")?.value?.trim(),
+        completed = if (done) first("COMPLETED")?.let(::completedAt) else null,
     )
 }
 

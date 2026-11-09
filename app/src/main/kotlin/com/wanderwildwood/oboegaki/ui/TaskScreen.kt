@@ -53,6 +53,7 @@ import com.wanderwildwood.oboegaki.tasks.Tasks
 import com.wanderwildwood.oboegaki.tasks.day
 import com.wanderwildwood.oboegaki.tasks.local
 import kotlinx.coroutines.delay
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
@@ -63,15 +64,16 @@ import java.time.temporal.ChronoUnit
  * rings here then, its priority, its list and its notes. Like a note it saves itself, a moment
  * after a change and on the way out by any door, so there is no Save to forget.
  *
- * [name] null is a new task in [list], made once it has a title.
+ * [name] null is a new task in [list], made once it has a title; with [dueToday] it starts due
+ * today, as one added from the Today section does.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TaskScreen(list: String, name: String?, onClose: () -> Unit) {
+fun TaskScreen(list: String, name: String?, dueToday: Boolean = false, onClose: () -> Unit) {
     val context = LocalContext.current
     // The task as last saved; null until a new one has been.
     var item by remember { mutableStateOf(name?.let { Tasks.item(list, it) }) }
-    val start = item?.task?.fields ?: Fields("")
+    val start = item?.task?.fields ?: Fields("", due = if (dueToday) Due.Day(LocalDate.now()) else null)
     var loaded by remember { mutableStateOf(start) }
     var summary by remember { mutableStateOf(start.summary) }
     var description by remember { mutableStateOf(start.description) }

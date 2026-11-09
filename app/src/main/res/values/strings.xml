@@ -445,6 +445,9 @@
     <string name="tasks_read_only">read only</string>
     <string name="tasks_none">No tasks. A list item in a note stays in the note until you hold it and choose Move to Tasks.</string>
     <string name="tasks_all_done">Everything here is done.</string>
+    <string name="tasks_today">Today</string>
+    <string name="tasks_today_none">Nothing due today.</string>
+    <string name="tasks_today_add">Add for today</string>
     <string name="tasks_done_show">Done · %1$d</string>
     <string name="tasks_done_hide">Done · %1$d · hide</string>
     <string name="tasks_unreachable">Couldn\'t reach the Nextcloud. Changes wait here and go when it can be reached.</string>

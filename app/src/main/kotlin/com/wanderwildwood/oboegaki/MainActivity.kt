@@ -101,7 +101,7 @@ private sealed interface Screen {
     data object Tasks : Screen
     data object Trash : Screen
     /** One task; [name] null for a new one in [list]. */
-    data class Task(val list: String, val name: String?) : Screen
+    data class Task(val list: String, val name: String?, val dueToday: Boolean = false) : Screen
 }
 
 /** The actions of the New note and Record shortcuts (res/xml/shortcuts.xml). */
@@ -384,11 +384,12 @@ private fun App(capture: MutableState<Capture?>) {
                 TasksScreen(
                     onOpen = { screen = Screen.Task(it.list, it.name) },
                     onNew = { screen = Screen.Task(it, null) },
+                    onNewToday = { screen = Screen.Task(it, null, dueToday = true) },
                     onBack = { screen = Screen.List },
                 )
             }
             is Screen.Task -> key(now.list, now.name) {
-                TaskScreen(list = now.list, name = now.name, onClose = { screen = Screen.Tasks })
+                TaskScreen(list = now.list, name = now.name, dueToday = now.dueToday, onClose = { screen = Screen.Tasks })
             }
             // Keyed by path so a second capture while one is open starts a new screen.
             is Screen.Note -> key(now.path) {

@@ -60,8 +60,10 @@ import java.time.ZoneId
 
 /**
  * The tasks: one section for each of the reader's Nextcloud task lists, the ones shared with
- * them included, and the list kept on this phone when there is one. Open tasks first, the soonest
- * due at the top; the done ones folded under a line that opens them. A tick is one tap.
+ * them included, and the list kept on this phone when there is one. Above them, Today: the open
+ * tasks of every list that are due today or overdue, each shown there and not again in its own
+ * list. Open tasks first, the soonest due at the top; the done ones folded under a line that opens
+ * them, the latest finished at the top. A tick is one tap.
  *
  * While it is open it asks the server every minute, so a task added in Thunderbird shows up.
  */
@@ -70,6 +72,7 @@ import java.time.ZoneId
 fun TasksScreen(
     onOpen: (Item) -> Unit,
     onNew: (list: String) -> Unit,
+    onNewToday: (list: String) -> Unit,
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -124,12 +127,57 @@ fun TasksScreen(
                 showCutRow = true,
             ) {
                 val nextcloud = Tasks.onNextcloud
+                val today = LocalDate.now()
+                val dueNow = shown.flatMap { s ->
+                    s.items.filter { !it.task.fields.done && it.task.fields.due?.day()?.isAfter(today) == false }
+                        .map { s.list to it }
+                }.sortedWith(compareBy(openOrder) { it.second })
+                val inToday = dueNow.map { (list, item) -> "${list.id}/${item.name}" }.toSet()
+                val manyLists = shown.size > 1
+                item(key = "today") {
+                    TextMMD(
+                        text = stringResource(R.string.tasks_today),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 6.dp),
+                    )
+                }
+                if (dueNow.isEmpty()) {
+                    item(key = "today-none") {
+                        TextMMD(
+                            text = stringResource(R.string.tasks_today_none),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                        )
+                    }
+                }
+                for ((list, item) in dueNow) {
+                    item(key = "today:${list.id}/${item.name}") {
+                        TaskRow(
+                            item, list.readOnly, item.task.uid in ringing,
+                            listName = list.name.takeIf { manyLists },
+                            onOpen = { onOpen(item) },
+                        )
+                    }
+                }
+                item(key = "today-add") {
+                    TextMMD(
+                        text = stringResource(R.string.tasks_today_add),
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onNewToday(Tasks.defaultList().id) }
+                            .padding(horizontal = 20.dp, vertical = 16.dp),
+                    )
+                }
+                item(key = "today-rule") { DottedRule(start = 20.dp) }
                 for (section in shown) {
                     val list = section.list
                     item(key = "list:${list.id}") { ListHeading(list) }
-                    val open = section.items.filter { !it.task.fields.done }.sortedWith(openOrder)
-                    val done = section.items.filter { it.task.fields.done }.sortedBy { it.task.fields.summary.lowercase() }
-                    if (open.isEmpty()) {
+                    val allOpen = section.items.filter { !it.task.fields.done }
+                    val open = allOpen.filter { "${list.id}/${it.name}" !in inToday }.sortedWith(openOrder)
+                    val done = section.items.filter { it.task.fields.done }.sortedWith(doneOrder)
+                    if (allOpen.isEmpty()) {
                         item(key = "none:${list.id}") {
                             TextMMD(
                                 text = stringResource(if (done.isEmpty()) R.string.tasks_none else R.string.tasks_all_done),
@@ -202,6 +250,9 @@ private val openOrder = compareBy<Item>(
     { it.task.fields.summary.lowercase() },
 )
 
+/** Done tasks: the latest finished first; ones that never said when, after, by title. */
+private val doneOrder = compareByDescending<Item> { it.task.completed }.thenBy { it.task.fields.summary.lowercase() }
+
 @Composable
 private fun ListHeading(list: TaskList) {
     val context = LocalContext.current
@@ -223,7 +274,7 @@ private fun ListHeading(list: TaskList) {
 }
 
 @Composable
-private fun TaskRow(item: Item, readOnly: Boolean, rings: Boolean, onOpen: () -> Unit) {
+private fun TaskRow(item: Item, readOnly: Boolean, rings: Boolean, listName: String? = null, onOpen: () -> Unit) {
     val f = item.task.fields
     Row(
         modifier = Modifier
@@ -246,6 +297,7 @@ private fun TaskRow(item: Item, readOnly: Boolean, rings: Boolean, onOpen: () ->
             val overdue = due != null && !f.done && (due.local()?.isBefore(LocalDateTime.now()) ?: due.day().isBefore(LocalDate.now()))
             val parts = listOfNotNull(
                 due?.let { Tasks.dueText(it) },
+                listName,
                 priorityWord(f.priority).takeIf { f.priority != 0 }?.let { stringResource(it) },
                 stringResource(R.string.task_repeats_short).takeIf { item.task.repeats != null },
                 f.description.lineSequence().firstOrNull { it.isNotBlank() }?.trim(),
