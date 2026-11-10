@@ -17,10 +17,16 @@ import com.wanderwildwood.oboegaki.R
  */
 object Notifier {
 
-    const val CHANNEL = "reminders"
+    const val CHANNEL = "reminders_light"
+
+    // A channel's settings are frozen once it exists, the light among them, so the one made
+    // before the light was asked for moves to a new id (LightChannel).
+    private const val CHANNEL_NO_LIGHT = "reminders"
 
     fun channel(context: Context) {
-        context.getSystemService(NotificationManager::class.java).createNotificationChannel(
+        LightChannel.ensure(
+            context.getSystemService(NotificationManager::class.java),
+            CHANNEL_NO_LIGHT,
             NotificationChannel(CHANNEL, context.getString(R.string.remind_channel), NotificationManager.IMPORTANCE_HIGH).apply {
                 description = context.getString(R.string.remind_channel_about)
                 enableVibration(true)
