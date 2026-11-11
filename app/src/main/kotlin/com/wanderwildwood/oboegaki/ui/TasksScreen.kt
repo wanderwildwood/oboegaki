@@ -122,6 +122,8 @@ fun TasksScreen(
                 state = listState,
                 onPullAtTop = if (Tasks.onNextcloud) pull::pull else null,
                 showCutRow = true,
+                // The scrollbar ends above the + button, so its lower arrow is not under it.
+                barClearBelow = FAB_CLEAR,
             ) {
                 val nextcloud = Tasks.onNextcloud
                 for (section in shown) {

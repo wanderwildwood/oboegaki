@@ -122,6 +122,15 @@ fun ListScreen(
         }
     }
 
+    // The + opens out to the ways of taking a note (paper, voice, the pen) and folds back when
+    // one is chosen, on Back, on a touch anywhere else, and whenever the buttons give way.
+    // A device with neither camera nor microphone has one way only, so its + goes straight there.
+    var opened by remember { mutableStateOf(false) }
+    val opens = hasCamera || hasMicrophone
+    val buttonsShown = !searching && !keyboardUp
+    if (!buttonsShown && opened) opened = false
+    if (opened) BackHandler { opened = false }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
@@ -138,23 +147,38 @@ fun ListScreen(
             )
         },
         floatingActionButton = {
-            // Paper, voice, and the pen: one tap from the list to each way of taking a note.
-            // Not while searching: with the keyboard up they stood over the search field.
-            if (!searching && !keyboardUp) Column(horizontalAlignment = Alignment.End) {
-                if (hasCamera) {
-                    FloatingActionButtonMMD(onClick = onScan) {
-                        Icon(Icons.Scan, contentDescription = stringResource(R.string.cd_scan), modifier = Modifier.size(28.dp))
+            // One + in the corner (11 Nov 2026; there were three buttons, standing over the
+            // scrollbar). Not while searching: with the keyboard up it stood over the search field.
+            if (buttonsShown) Column(horizontalAlignment = Alignment.End) {
+                val newNote = { opened = false; onNew(Showing.folderOf(showing) ?: "") }
+                if (opened) {
+                    if (hasCamera) {
+                        FloatingActionButtonMMD(onClick = { opened = false; onScan() }) {
+                            Icon(Icons.Scan, contentDescription = stringResource(R.string.cd_scan), modifier = Modifier.size(28.dp))
+                        }
+                        Spacer(Modifier.height(14.dp))
+                    }
+                    if (hasMicrophone) {
+                        FloatingActionButtonMMD(onClick = { opened = false; onRecord() }) {
+                            Icon(Icons.Mic, contentDescription = stringResource(R.string.cd_record), modifier = Modifier.size(28.dp))
+                        }
+                        Spacer(Modifier.height(14.dp))
+                    }
+                    FloatingActionButtonMMD(onClick = newNote) {
+                        Icon(Icons.Edit, contentDescription = stringResource(R.string.cd_new_note), modifier = Modifier.size(28.dp))
                     }
                     Spacer(Modifier.height(14.dp))
-                }
-                if (hasMicrophone) {
-                    FloatingActionButtonMMD(onClick = onRecord) {
-                        Icon(Icons.Mic, contentDescription = stringResource(R.string.cd_record), modifier = Modifier.size(28.dp))
+                    FloatingActionButtonMMD(onClick = { opened = false }) {
+                        Icon(Icons.Close, contentDescription = stringResource(R.string.cd_add_close), modifier = Modifier.size(28.dp))
                     }
-                    Spacer(Modifier.height(14.dp))
-                }
-                FloatingActionButtonMMD(onClick = { onNew(Showing.folderOf(showing) ?: "") }) {
-                    Icon(Icons.Add, contentDescription = stringResource(R.string.cd_new_note), modifier = Modifier.size(28.dp))
+                } else {
+                    FloatingActionButtonMMD(onClick = { if (opens) opened = true else newNote() }) {
+                        Icon(
+                            Icons.Add,
+                            contentDescription = stringResource(if (opens) R.string.cd_add_open else R.string.cd_new_note),
+                            modifier = Modifier.size(28.dp),
+                        )
+                    }
                 }
             }
         },
@@ -216,6 +240,8 @@ fun ListScreen(
                     // A list of tall rows: the note the foot cuts through shows there, and the next
                     // page opens on it whole, rather than a blank band at the foot (5 Nov 2026).
                     showCutRow = true,
+                    // The scrollbar ends above the + button, so its lower arrow is not under it.
+                    barClearBelow = if (buttonsShown) FAB_CLEAR else 0.dp,
                 ) {
                     // A dotted rule under every row but the last, as Contacts draws its list.
                     val lastRow = shown.lastOrNull()?.path?.let { "note:$it" }
@@ -271,6 +297,15 @@ fun ListScreen(
                     }
                 }
             }
+        }
+        // While the + is open, a touch anywhere on the list folds it back and does nothing else.
+        if (opened) {
+            Box(
+                Modifier.fillMaxSize().padding(contentPadding).clickable(
+                    interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                    indication = null,
+                ) { opened = false },
+            )
         }
     }
 
@@ -478,5 +513,8 @@ private fun NoteRow(note: Note, isShared: Boolean, isPinned: Boolean, showFolder
 
 /** The width the floating buttons take at the right edge: 56 dp and their margin. */
 private val FAB_ROOM = 72.dp
+
+/** One floating button's height and its margin: how far above the foot the scrollbar ends. */
+internal val FAB_CLEAR = 72.dp
 
 /** Room under the list for the three buttons that float over its foot; the page dots stop above it. */
