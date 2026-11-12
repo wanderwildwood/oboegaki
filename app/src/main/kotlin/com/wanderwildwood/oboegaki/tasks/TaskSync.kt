@@ -1,5 +1,6 @@
 package com.wanderwildwood.oboegaki.tasks
 
+import com.wanderwildwood.oboegaki.sync.sameVersion
 import com.wanderwildwood.oboegaki.sync.Moved
 import java.io.IOException
 import java.net.URLDecoder
@@ -112,7 +113,7 @@ class TaskSync(
             when {
                 e.deleted -> when {
                     r == null -> store.forget(list.id, e.name)
-                    r.etag != e.etag -> take(list, e.name, r)
+                    !sameVersion(r.etag, e.etag) -> take(list, e.name, r)
                     list.readOnly -> take(list, e.name, r)
                     else -> try {
                         server.delete(e.href, e.etag)
@@ -123,7 +124,7 @@ class TaskSync(
                     }
                 }
                 r == null -> if (e.dirty && !list.readOnly) push(list, e, e.href, null) else store.forget(list.id, e.name)
-                r.etag != null && r.etag == e.etag -> if (e.dirty) push(list, e, e.href, e.etag)
+                r.etag != null && sameVersion(r.etag, e.etag) -> if (e.dirty) push(list, e, e.href, e.etag)
                 e.dirty && !list.readOnly -> {
                     val local = store.read(list.id, e.name) ?: continue
                     push(list, e, e.href, r.etag, mergeText(store.base(list.id, e.name), local, r.text), local)

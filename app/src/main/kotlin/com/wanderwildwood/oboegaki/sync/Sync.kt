@@ -108,7 +108,7 @@ class Sync(
                 // Seen before, on both ends still.
                 known != null && etag != null && local != null -> {
                     val changedHere = local != agreed
-                    val changedThere = etag != known
+                    val changedThere = !sameVersion(etag, known)
                     when {
                         !changedHere && !changedThere -> Unit
                         !changedHere -> {
@@ -155,7 +155,7 @@ class Sync(
                     // it, or move it for sharing or a rescan. Before a deletion here is undone
                     // for being out of date, the note is read and compared, because assuming
                     // brought deleted notes back.
-                    val unchanged = etag == known || remote.get(path).text == agreed
+                    val unchanged = sameVersion(etag, known) || remote.get(path).text == agreed
                     if (unchanged) {
                         try {
                             remote.delete(path, etag)
@@ -262,7 +262,7 @@ class Sync(
             when {
                 known != null && etag != null && local != null -> {
                     val changedHere = local != known.second
-                    val changedThere = etag != known.first
+                    val changedThere = !sameVersion(etag, known.first)
                     when {
                         !changedHere && !changedThere -> Unit
                         !changedHere -> fetch(path)
@@ -284,7 +284,7 @@ class Sync(
                 }
                 movePending(path) && (local == null || known == null) -> Unit
                 known != null && etag != null && local == null -> {
-                    val unchanged = etag == known.first || hash(remote.getBytes(path).bytes) == known.second
+                    val unchanged = sameVersion(etag, known.first) || hash(remote.getBytes(path).bytes) == known.second
                     if (unchanged) {
                         try {
                             remote.delete(path, etag)

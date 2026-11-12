@@ -6,6 +6,7 @@ import com.wanderwildwood.oboegaki.sync.Refused
 import com.wanderwildwood.oboegaki.sync.Unreachable
 import com.wanderwildwood.oboegaki.sync.Untrusted
 import com.wanderwildwood.oboegaki.sync.canonicalEtag
+import com.wanderwildwood.oboegaki.sync.listedForm
 import com.wanderwildwood.oboegaki.sync.encodePath
 import com.wanderwildwood.oboegaki.sync.http
 import okhttp3.Credentials
@@ -65,7 +66,7 @@ class CalDavServer(
         return call(request) { response ->
             if (response.code == 404 || response.code == 410) throw Moved("$href is gone")
             if (!response.isSuccessful) fail(response, href)
-            RemoteItem(href, response.header("ETag")?.let(::canonicalEtag), response.body!!.string())
+            RemoteItem(href, response.header("ETag")?.let(::listedForm), response.body!!.string())
         }
     }
 

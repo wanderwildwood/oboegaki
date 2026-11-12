@@ -124,7 +124,7 @@ class WebDavRemote(
         return call(request(url(path)).get().build()) { response ->
             if (response.code == 404) throw Moved("$path is gone")
             check(response, path)
-            Fetched(response.body!!.string(), version ?: response.header("ETag"), response.headers.getDate("Last-Modified")?.time)
+            Fetched(response.body!!.string(), version ?: response.header("ETag")?.let(::listedForm), response.headers.getDate("Last-Modified")?.time)
         }
     }
 
@@ -133,7 +133,7 @@ class WebDavRemote(
         return call(request(url(path)).get().build()) { response ->
             if (response.code == 404) throw Moved("$path is gone")
             check(response, path)
-            FetchedBytes(response.body!!.bytes(), version ?: response.header("ETag"), response.headers.getDate("Last-Modified")?.time)
+            FetchedBytes(response.body!!.bytes(), version ?: response.header("ETag")?.let(::listedForm), response.headers.getDate("Last-Modified")?.time)
         }
     }
 
@@ -161,7 +161,9 @@ class WebDavRemote(
         return call(builder.build()) { response ->
             if (response.code == 412) throw Moved("$path changed on the server")
             check(response, path)
-            (response.header("ETag") ?: response.header("OC-ETag"))?.let(::canonicalEtag)
+            // A trusted server lists plain etags, so the one its answer carries is put in that form;
+            // any other is kept as it came, to match what its own listing will say.
+            (response.header("ETag") ?: response.header("OC-ETag"))?.let { if (trusted) listedForm(it) else canonicalEtag(it) }
         }
     }
 

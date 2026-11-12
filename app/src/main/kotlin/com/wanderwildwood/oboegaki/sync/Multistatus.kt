@@ -43,6 +43,28 @@ fun canonicalEtag(etag: String): String {
 }
 
 /**
+ * An etag that came in a response's header beside the file itself, in the form a listing gives
+ * the same file's etag. A server or proxy that compresses a file on its way out marks the etag
+ * it sends with it: weak ("W/") or with "-gzip" inside the quotes. The listing gives it plain,
+ * and the two are compared at every sync, so left as it came a note just fetched looked changed
+ * on the server from then on and was fetched again each time (found on a real Nextcloud,
+ * 11 Nov 2026). Only for what a header carried: a listing's own etag is kept as listed.
+ */
+fun listedForm(etag: String): String {
+    var t = etag.trim().removePrefix("W/").trim('"')
+    for (mark in listOf("-gzip", "--gzip", "-br", "-deflate", ";gzip")) t = t.removeSuffix(mark)
+    return "\"$t\""
+}
+
+/**
+ * Whether two versions are the same version of a file: letter for letter, or the same etag in
+ * two forms (one as a listing gave it, the other as it came with the file, or as a sync before
+ * this kept it). A version made up here (not an etag) is only ever itself.
+ */
+fun sameVersion(a: String?, b: String?): Boolean =
+    a == b || (a != null && b != null && isEtag(a) && isEtag(b) && listedForm(a) == listedForm(b))
+
+/**
  * The answer to a PROPFIND: one `<d:response>` per file or folder, each naming itself by an
  * href and carrying the properties asked for.
  *
