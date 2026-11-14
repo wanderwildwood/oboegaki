@@ -32,6 +32,8 @@
     <!-- Lets the text-selection menu see other apps' text actions, such as Define from the
          Dictionary, beside Copy. Without it Android 11+ hides them from this app. -->
     <queries>
+        <!-- Home, whose dark mode switch this app follows when Home is installed. -->
+        <package android:name="com.wanderwildwood.iori" />
         <!-- Web links open in a real browser; asking for one needs this on Android 11+. -->
         <intent>
             <action android:name="android.intent.action.VIEW" />
@@ -96,6 +98,12 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:supportsRtl="false"
         android:theme="@style/Theme.App">
+
+        <!-- Starts dark mode before the first screen is drawn. Holds no data. -->
+        <provider
+            android:name="com.wanderwildwood.oboegaki.ui.DarkModeInit"
+            android:authorities="${applicationId}.darkmodeinit"
+            android:exported="false" />
 
         <activity
             android:name=".MainActivity"

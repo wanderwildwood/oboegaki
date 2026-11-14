@@ -566,4 +566,6 @@
     <!-- /shared-about -->
     <string name="list_enter_title">New line in a list starts a new item</string>
     <string name="list_enter_note">Press Enter on an empty item to end the list.</string>
+    <string name="settings_dark">Dark mode</string>
+    <string name="settings_dark_note">White on black, in this app. Home has one switch for every app.</string>
 </resources>
