@@ -247,7 +247,7 @@ fun ScanScreen(pictures: List<Uri> = emptyList(), onDone: (pdf: ByteArray) -> Un
                     Image(
                         bitmap = pages.last().asImageBitmap(),
                         contentDescription = null,
-                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        modifier = Modifier.weight(1f).fillMaxWidth().keepColors(),
                     )
                     Spacer(Modifier.height(12.dp))
                 } else {
@@ -373,7 +373,7 @@ private fun Corners(preview: Bitmap, quad: Quad, onQuad: (Quad) -> Unit, modifie
                     }
                 },
         ) {
-            Image(bitmap = image, contentDescription = null, modifier = Modifier.fillMaxSize())
+            Image(bitmap = image, contentDescription = null, modifier = Modifier.fillMaxSize().keepColors())
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val s = size.width / preview.width
                 val pts = current.points.map { Offset(it.x * s, it.y * s) }

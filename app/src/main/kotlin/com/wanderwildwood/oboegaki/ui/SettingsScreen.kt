@@ -335,6 +335,22 @@ fun SettingsScreen(
                     SwitchMMD(checked = listEnter, onCheckedChange = null)
                 }
             }
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { DarkMode.set(context, !DarkMode.on) }
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        TextMMD(text = stringResource(R.string.settings_dark), style = MaterialTheme.typography.bodyLarge)
+                        TextMMD(text = stringResource(R.string.settings_dark_note), style = MaterialTheme.typography.labelSmall)
+                    }
+                    Spacer(Modifier.width(16.dp))
+                    SwitchMMD(checked = DarkMode.on, onCheckedChange = null)
+                }
+            }
             desktopSyncRows()
             // Android 14 on takes the full screen away from an app installed from a file.
             if (hasReminders && !fullScreenOn) {

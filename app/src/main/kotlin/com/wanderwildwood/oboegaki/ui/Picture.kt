@@ -72,7 +72,8 @@ fun Picture(uri: Uri?, name: String = "") {
                     modifier = Modifier
                         .fillMaxWidth()
                         .border(1.dp, MaterialTheme.colorScheme.onSurface)
-                        .clickable { open = true },
+                        .clickable { open = true }
+                        .keepColors(),
                 )
                 Spacer(Modifier.height(2.dp))
             }
