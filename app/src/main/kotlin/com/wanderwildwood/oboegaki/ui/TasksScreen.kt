@@ -57,6 +57,11 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 
 /**
  * The tasks: one section for each of the reader's Nextcloud task lists, the ones shared with
@@ -301,17 +306,40 @@ private fun NewListDialog(onDismiss: () -> Unit) {
     var working by remember { mutableStateOf(false) }
     var failed by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val field = remember { FocusRequester() }
+    val make = {
+        if (name.isNotBlank() && !working) {
+            working = true
+            failed = false
+            scope.launch {
+                val made = runCatching { Tasks.makeList(name.trim()) }.getOrNull()
+                working = false
+                if (made != null) onDismiss() else failed = true
+            }
+        }
+    }
     EInkDialog(onDismiss = onDismiss) {
         TextMMD(text = stringResource(R.string.tasks_new_list), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+        // The field is what the dialog is for: it takes the focus as it opens and the keyboard
+        // comes up. Asked from inside the dialog, a frame after it is drawn: the field lives in
+        // the dialog's own window, which a request from the screen beneath does not reach.
+        val keyboardNow = LocalSoftwareKeyboardController.current
+        LaunchedEffect(Unit) {
+            withFrameNanos { }
+            runCatching { field.requestFocus() }
+            keyboardNow?.show()
+        }
         Spacer(Modifier.height(8.dp))
         TextFieldMMD(
             value = name,
             onValueChange = { name = it.replace("\n", "") },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().focusRequester(field),
             placeholder = { TextMMD(text = stringResource(R.string.tasks_new_list_hint)) },
             singleLine = true,
             enabled = !working,
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done),
+            // Done on the keyboard is Make.
+            keyboardActions = KeyboardActions(onDone = { make() }),
         )
         if (failed) {
             Spacer(Modifier.height(8.dp))
@@ -324,15 +352,7 @@ private fun NewListDialog(onDismiss: () -> Unit) {
             }
             Spacer(Modifier.width(12.dp))
             ButtonMMD(
-                onClick = {
-                    working = true
-                    failed = false
-                    scope.launch {
-                        val made = runCatching { Tasks.makeList(name.trim()) }.getOrNull()
-                        working = false
-                        if (made != null) onDismiss() else failed = true
-                    }
-                },
+                onClick = { make() },
                 enabled = name.isNotBlank() && !working,
                 modifier = Modifier.weight(1f).height(48.dp),
             ) { TextMMD(text = stringResource(R.string.tasks_new_list_make), style = MaterialTheme.typography.bodySmall) }

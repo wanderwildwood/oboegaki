@@ -75,6 +75,13 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.semantics.selected
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 
 /**
  * Where the notes are kept, how to reach them from Obsidian, and the lock screen.
@@ -726,22 +733,32 @@ internal fun FolderChoice(label: String, chosen: Boolean, onClick: () -> Unit) {
 
 @Composable
 private fun RemoteFolderDialog(current: String, title: String, note: String, onDone: (String?) -> Unit) {
-    var typed by remember { mutableStateOf(current) }
+    var typed by remember { mutableStateOf(TextFieldValue(current, TextRange(current.length))) }
+    val field = remember { FocusRequester() }
     EInkDialog(onDismiss = { onDone(null) }) {
         TextMMD(text = title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
         Spacer(Modifier.height(12.dp))
+        // The field is what the dialog is for: it takes the focus as it opens and the keyboard
+        // comes up. Asked from inside the dialog, a frame after it is drawn: the field lives in
+        // the dialog's own window, which a request from the screen beneath does not reach.
+        val keyboardNow = LocalSoftwareKeyboardController.current
+        LaunchedEffect(Unit) {
+            withFrameNanos { }
+            runCatching { field.requestFocus() }
+            keyboardNow?.show()
+        }
         TextFieldMMD(
             value = typed,
-            onValueChange = { typed = it.replace("\n", "") },
-            modifier = Modifier.fillMaxWidth(),
+            onValueChange = { typed = it.copy(text = it.text.replace("\n", "")) },
+            modifier = Modifier.fillMaxWidth().focusRequester(field),
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { onDone(typed.trim('/', ' ')) }),
+            keyboardActions = KeyboardActions(onDone = { onDone(typed.text.trim('/', ' ')) }),
         )
         Spacer(Modifier.height(8.dp))
         TextMMD(text = note, style = MaterialTheme.typography.labelSmall)
         Spacer(Modifier.height(16.dp))
-        ButtonMMD(onClick = { onDone(typed.trim('/', ' ')) }, modifier = Modifier.fillMaxWidth().height(48.dp)) {
+        ButtonMMD(onClick = { onDone(typed.text.trim('/', ' ')) }, modifier = Modifier.fillMaxWidth().height(48.dp)) {
             TextMMD(text = stringResource(R.string.settings_remote_folder_use))
         }
     }
