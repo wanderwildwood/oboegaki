@@ -63,6 +63,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.platform.LocalFocusManager
 
 /**
  * One task, to read and change: its title, whether it is done, when it is due and whether it
@@ -93,6 +94,12 @@ fun TaskScreen(list: String, name: String?, onClose: () -> Unit) {
     val shown by Tasks.shown.collectAsStateWithLifecycle()
 
     var pickingDue by remember { mutableStateOf(false) }
+
+    // A picker opened from the form takes the cursor out of the field first, so the field and
+
+    // its keyboard do not come back when the picker closes.
+
+    val focusManager = LocalFocusManager.current
     var pickingPriority by remember { mutableStateOf(false) }
     var pickingList by remember { mutableStateOf(false) }
 
@@ -233,7 +240,7 @@ fun TaskScreen(list: String, name: String?, onClose: () -> Unit) {
                 SettingRow(
                     stringResource(R.string.task_field_due),
                     due?.let { Tasks.dueText(it) } ?: stringResource(R.string.task_due_none),
-                ) { if (!readOnly) pickingDue = true }
+                ) { if (!readOnly) { focusManager.clearFocus(); pickingDue = true } }
             }
             if (due?.local() != null && !readOnly) item(key = "ring") {
                 Row(
@@ -251,12 +258,12 @@ fun TaskScreen(list: String, name: String?, onClose: () -> Unit) {
             }
             item(key = "priority") {
                 SettingRow(stringResource(R.string.task_field_priority), stringResource(priorityWord(priority))) {
-                    if (!readOnly) pickingPriority = true
+                    if (!readOnly) { focusManager.clearFocus(); pickingPriority = true }
                 }
             }
             item(key = "list") {
                 SettingRow(stringResource(R.string.task_field_list), Tasks.listName(inList).orEmpty()) {
-                    if (!readOnly && Tasks.writableLists().size > 1) pickingList = true
+                    if (!readOnly && Tasks.writableLists().size > 1) { focusManager.clearFocus(); pickingList = true }
                 }
             }
             item?.task?.repeats?.let {
