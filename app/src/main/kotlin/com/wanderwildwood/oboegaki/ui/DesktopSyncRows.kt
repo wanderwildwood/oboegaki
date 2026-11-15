@@ -39,6 +39,9 @@ import com.wanderwildwood.oboegaki.R
 import com.wanderwildwood.oboegaki.desktop.DesktopSync
 import com.wanderwildwood.oboegaki.desktop.Network
 import com.wanderwildwood.oboegaki.notes.Notes
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 
 /**
  * Desktop Sync's rows in Settings. Off until the switch is turned; once on it stays on, through
@@ -75,7 +78,7 @@ fun LazyListScope.desktopSyncRows() {
                 )
             }
             Spacer(Modifier.width(16.dp))
-            SwitchMMD(checked = running, onCheckedChange = null)
+            SwitchMMD(checked = running, onCheckedChange = null, modifier = Modifier.semantics { toggleableState = ToggleableState(running) })
         }
         // A failed start is shown once: taking it clears it, so it is gone the next time.
         val failure = remember(running) { if (running) null else Notes.preferences.takeDesktopFailure() }
@@ -126,7 +129,7 @@ fun LazyListScope.desktopSyncRows() {
                 }
             }
             Spacer(Modifier.width(16.dp))
-            SwitchMMD(checked = only, onCheckedChange = null)
+            SwitchMMD(checked = only, onCheckedChange = null, modifier = Modifier.semantics { toggleableState = ToggleableState(only) })
         }
     }
     item {

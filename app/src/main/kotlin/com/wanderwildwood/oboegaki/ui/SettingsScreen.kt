@@ -74,6 +74,7 @@ import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.semantics.selected
 
 /**
  * Where the notes are kept, how to reach them from Obsidian, and the lock screen.
@@ -192,7 +193,7 @@ fun SettingsScreen(
                         )
                     }
                     Spacer(Modifier.width(16.dp))
-                    SwitchMMD(checked = on, onCheckedChange = null)
+                    SwitchMMD(checked = on, onCheckedChange = null, modifier = Modifier.semantics { toggleableState = ToggleableState(on) })
                 }
             }
             item {
@@ -425,6 +426,7 @@ fun SettingsScreen(
                     fontWeight = if (i == TextSize.level.intValue) FontWeight.Bold else null,
                     modifier = Modifier
                         .fillMaxWidth()
+                        .semantics { role = Role.RadioButton; selected = i == TextSize.level.intValue }
                         .clickable { TextSize.choose(preferences, i); choosingSize = false }
                         .heightIn(min = 48.dp)
                         .padding(vertical = 12.dp),
@@ -443,6 +445,7 @@ fun SettingsScreen(
                     fontWeight = if (l.id == tasksIn) FontWeight.Bold else null,
                     modifier = Modifier
                         .fillMaxWidth()
+                        .semantics { role = Role.RadioButton; selected = l.id == tasksIn }
                         .clickable {
                             preferences.tasksList = l.id
                             tasksIn = l.id
@@ -717,7 +720,7 @@ internal fun FolderChoice(label: String, chosen: Boolean, onClick: () -> Unit) {
         fontWeight = if (chosen) FontWeight.Bold else null,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).heightIn(min = 48.dp).wrapContentHeight(Alignment.CenterVertically),
+        modifier = Modifier.fillMaxWidth().semantics { role = Role.RadioButton; selected = chosen }.clickable(onClick = onClick).heightIn(min = 48.dp).wrapContentHeight(Alignment.CenterVertically),
     )
 }
 

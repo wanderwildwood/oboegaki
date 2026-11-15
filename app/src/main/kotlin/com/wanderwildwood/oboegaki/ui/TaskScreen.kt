@@ -62,6 +62,7 @@ import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.semantics.selected
 
 /**
  * One task, to read and change: its title, whether it is done, when it is due and whether it
@@ -305,6 +306,7 @@ fun TaskScreen(list: String, name: String?, onClose: () -> Unit) {
                     fontWeight = if (chosen) FontWeight.Bold else null,
                     modifier = Modifier
                         .fillMaxWidth()
+                        .semantics { role = Role.RadioButton; selected = chosen }
                         .clickable {
                             if (!chosen) priority = value
                             pickingPriority = false
@@ -325,6 +327,7 @@ fun TaskScreen(list: String, name: String?, onClose: () -> Unit) {
                     fontWeight = if (l.id == inList) FontWeight.Bold else null,
                     modifier = Modifier
                         .fillMaxWidth()
+                        .semantics { role = Role.RadioButton; selected = l.id == inList }
                         .clickable {
                             inList = l.id
                             pickingList = false

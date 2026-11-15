@@ -57,6 +57,10 @@ import com.wanderwildwood.oboegaki.today.Entry
 import com.wanderwildwood.oboegaki.today.TodayActions
 import com.wanderwildwood.oboegaki.today.gather
 import java.time.LocalDate
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 
 /**
  * Every note, the last one touched at the top, whatever folder it is in.
@@ -427,7 +431,7 @@ private fun Choice(label: String, chosen: Boolean, onClick: () -> Unit) {
         fontWeight = if (chosen) FontWeight.Bold else null,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).heightIn(min = 48.dp).wrapContentHeight(Alignment.CenterVertically),
+        modifier = Modifier.fillMaxWidth().semantics { role = Role.RadioButton; selected = chosen }.clickable(onClick = onClick).heightIn(min = 48.dp).wrapContentHeight(Alignment.CenterVertically),
     )
 }
 
