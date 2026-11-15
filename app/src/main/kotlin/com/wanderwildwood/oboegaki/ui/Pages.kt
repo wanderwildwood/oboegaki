@@ -64,6 +64,9 @@ fun Pages(uri: Uri?, name: String) {
         }
     }
 
+    // No app to open the PDF in: said under the line, until the next press on it.
+    var noApp by remember(uri) { mutableStateOf(false) }
+
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
         val shown = pages
         when {
@@ -84,19 +87,19 @@ fun Pages(uri: Uri?, name: String) {
                 style = MaterialTheme.typography.labelSmall,
                 modifier = Modifier
                     .clickable {
+                        noApp = false
                         runCatching {
                             context.startActivity(
                                 Intent(Intent.ACTION_VIEW)
                                     .setDataAndType(uri, "application/pdf")
                                     .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION),
                             )
-                        }.onFailure {
-                            android.widget.Toast.makeText(context, context.getString(R.string.no_app_for_that), android.widget.Toast.LENGTH_LONG).show()
-                        }
+                        }.onFailure { noApp = true }
                     }
                     .heightIn(min = 48.dp)
                     .wrapContentHeight(Alignment.CenterVertically),
             )
+            if (noApp) TextMMD(text = stringResource(R.string.no_app_for_that), style = MaterialTheme.typography.bodyMedium)
         }
     }
 }

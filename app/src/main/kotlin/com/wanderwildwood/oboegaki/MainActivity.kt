@@ -244,6 +244,7 @@ private fun App(capture: MutableState<Capture?>) {
     val context = LocalContext.current
     val notes by Notes.list.collectAsStateWithLifecycle()
     val sync by Notes.sync.collectAsStateWithLifecycle()
+    val folderGone by Notes.folderGone.collectAsStateWithLifecycle()
     val shared by Notes.shared.collectAsStateWithLifecycle()
     val pinned by Notes.pins.collectAsStateWithLifecycle()
     var screen by remember { mutableStateOf<Screen>(Screen.List) }
@@ -381,6 +382,8 @@ private fun App(capture: MutableState<Capture?>) {
                 },
                 onTrash = { screen = Screen.Trash },
                 onPull = if (keeping.isServer) ({ Notes.syncAndWait(); Notes.sync.value }) else null,
+                folderGone = keeping == Keeping.FOLDER && folderGone,
+                onChooseFolder = { chooseFolder.launch(null) },
             )
             Screen.Trash -> {
                 BackHandler { screen = Screen.List }

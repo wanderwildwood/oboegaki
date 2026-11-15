@@ -93,6 +93,9 @@ fun ListScreen(
     // A sync to run when the list is pulled down from its top, returning the state it left;
     // null when the notes live only on this phone.
     onPull: (suspend () -> SyncState)? = null,
+    // The chosen folder can no longer be read: say so, with the way to choose it again.
+    folderGone: Boolean = false,
+    onChooseFolder: () -> Unit = {},
 ) {
     val pull = rememberPull { onPull?.invoke() ?: SyncState.Idle }
     var searching by remember { mutableStateOf(false) }
@@ -187,13 +190,28 @@ fun ListScreen(
             }
         },
     ) { contentPadding ->
-        Column(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
+        Column(modifier = Modifier.fillMaxSize().padding(contentPadding).dismissedByPress(pull)) {
             (movingLine(moving) ?: pulledWords(pull.pulled) { syncLine(it) } ?: syncLine(sync))?.let { line ->
                 TextMMD(
                     text = line,
                     style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
                 )
+                DottedRule(start = 20.dp)
+            }
+
+            if (folderGone) {
+                TextMMD(
+                    text = stringResource(R.string.list_folder_gone),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                )
+                HouseButton(
+                    label = stringResource(R.string.list_folder_choose_again),
+                    onClick = onChooseFolder,
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                )
+                Spacer(Modifier.height(10.dp))
                 DottedRule(start = 20.dp)
             }
 

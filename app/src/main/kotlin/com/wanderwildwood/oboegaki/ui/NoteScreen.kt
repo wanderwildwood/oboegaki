@@ -196,6 +196,9 @@ fun NoteScreen(
     var menuOpen by remember { mutableStateOf(false) }
     var moving by remember { mutableStateOf(false) }
     var noCalendar by remember { mutableStateOf(false) }
+    // What a share, a reminder or a move has to say, up until it is closed: a Toast's few
+    // seconds can pass unread on this panel.
+    var said by remember { mutableStateOf<String?>(null) }
     // The note's own reminder being set (-1), or an item's, by its line.
     var reminding by remember { mutableStateOf<Int?>(null) }
     // The item held down, by its line: what to do with it.
@@ -226,7 +229,7 @@ fun NoteScreen(
         try {
             context.startActivity(chooser)
         } catch (_: ActivityNotFoundException) {
-            android.widget.Toast.makeText(context, context.getString(R.string.no_app_for_that), android.widget.Toast.LENGTH_SHORT).show()
+            said = context.getString(R.string.no_app_for_that)
         }
     }
 
@@ -252,7 +255,7 @@ fun NoteScreen(
             // The calendar would not take it: keep the words instead, ready to paste.
             val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
             clipboard.setPrimaryClip(android.content.ClipData.newPlainText(name, name + "\n\n" + reminderText(body.text)))
-            android.widget.Toast.makeText(context, context.getString(R.string.calendar_would_not_take_it), android.widget.Toast.LENGTH_LONG).show()
+            said = context.getString(R.string.calendar_would_not_take_it)
         }
     }
 
@@ -393,7 +396,7 @@ fun NoteScreen(
                 if (moved != null) {
                     at = moved
                     val where = folder.ifEmpty { context.getString(R.string.settings_new_top) }
-                    android.widget.Toast.makeText(context, context.getString(R.string.note_moved, where), android.widget.Toast.LENGTH_SHORT).show()
+                    said = context.getString(R.string.note_moved, where)
                 }
             }
         }
@@ -460,6 +463,16 @@ fun NoteScreen(
             Spacer(Modifier.height(16.dp))
             OutlinedButtonMMD(
                 onClick = { noCalendar = false },
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+            ) { TextMMD(text = stringResource(R.string.about_close), style = MaterialTheme.typography.bodySmall) }
+        }
+    }
+    said?.let { words ->
+        EInkDialog(onDismiss = { said = null }) {
+            TextMMD(text = words, style = MaterialTheme.typography.bodyLarge)
+            Spacer(Modifier.height(16.dp))
+            OutlinedButtonMMD(
+                onClick = { said = null },
                 modifier = Modifier.fillMaxWidth().height(48.dp),
             ) { TextMMD(text = stringResource(R.string.about_close), style = MaterialTheme.typography.bodySmall) }
         }

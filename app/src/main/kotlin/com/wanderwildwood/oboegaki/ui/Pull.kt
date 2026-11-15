@@ -9,21 +9,25 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.ui.res.stringResource
 import com.wanderwildwood.oboegaki.R
-import com.wanderwildwood.oboegaki.notes.PULLED_LINE_MS
 import com.wanderwildwood.oboegaki.notes.Pulled
 import com.wanderwildwood.oboegaki.notes.SyncState
 import com.wanderwildwood.oboegaki.notes.pulledAfter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
  * A list's answer to a swipe down at its top: run [run], a sync that returns once it is done
  * with the state it left, and say so in [pulled] meanwhile. A second pull while one is still
- * running or still being reported is the same pull.
+ * running is the same pull. What it found stays said until the next press on the screen
+ * ([dismissedByPress]) or leaving it: on this panel a line on a timer could go unread.
  */
 class PullState internal constructor(
     private val scope: CoroutineScope,
@@ -39,9 +43,20 @@ class PullState internal constructor(
             Log.i("oboegaki", "pulled at the top of a list: syncing")
             pulled = Pulled.Syncing
             pulled = pulledAfter(run.value())
-            delay(PULLED_LINE_MS)
-            pulled = null
         }
+    }
+
+    /** Takes down what the last pull found, once it has finished; "Syncing…" stays while it runs. */
+    fun dismiss() {
+        if (job?.isActive != true) pulled = null
+    }
+}
+
+/** Any press inside takes down what the last pull said, on its way to doing what it does. */
+fun Modifier.dismissedByPress(pull: PullState): Modifier = pointerInput(pull) {
+    awaitEachGesture {
+        awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+        pull.dismiss()
     }
 }
 

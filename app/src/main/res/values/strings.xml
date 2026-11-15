@@ -22,6 +22,8 @@
     <!-- The list -->
 
     <string name="list_empty">No notes yet.</string>
+    <string name="list_folder_gone">The notes folder cannot be opened. It may have been moved or deleted, be on a card that is out, or Memo may no longer be allowed into it. Nothing has been deleted here.</string>
+    <string name="list_folder_choose_again">Choose the folder again</string>
     <string name="list_none_here">Nothing here.</string>
     <string name="cd_search">Search</string>
     <string name="list_search_hint">Search notes</string>
@@ -258,6 +260,7 @@
     <!-- %1$s is a length, e.g. "1:05" -->
     <string name="player_recording">Recording · %1$s</string>
     <string name="player_missing">The recording is not here yet.</string>
+    <string name="player_cannot_play">This recording cannot be played.</string>
     <string name="player_hearing">Turning it into words…</string>
 
     <!-- ============================================================ -->

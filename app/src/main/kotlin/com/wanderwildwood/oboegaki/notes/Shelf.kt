@@ -213,6 +213,21 @@ class FolderShelf(private val resolver: ContentResolver, private val tree: Uri) 
         }.getOrNull()
     }
 
+    /**
+     * Whether the chosen folder can still be read: it is there, and Memo still has the phone's
+     * leave to open it. A folder deleted, renamed elsewhere, on a card taken out, or whose leave
+     * was taken back reads as an empty folder otherwise, which would look like every note gone.
+     */
+    fun reachable(): Boolean =
+        // Without the leave the provider throws; with the folder gone it throws or finds no row.
+        runCatching {
+            resolver.query(
+                DocumentsContract.buildDocumentUriUsingTree(tree, rootId),
+                arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID),
+                null, null, null,
+            )?.use { it.moveToFirst() } == true
+        }.getOrDefault(false)
+
     /** Whether the folder is on this phone, so a look every few seconds costs nothing. */
     val isLocal: Boolean get() = tree.authority == "com.android.externalstorage.documents"
 

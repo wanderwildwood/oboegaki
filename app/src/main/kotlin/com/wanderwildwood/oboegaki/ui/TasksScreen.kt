@@ -112,7 +112,7 @@ fun TasksScreen(
             }
         },
     ) { contentPadding ->
-        Column(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
+        Column(modifier = Modifier.fillMaxSize().padding(contentPadding).dismissedByPress(pull)) {
             (pulledWords(pull.pulled) { tasksSyncLine(it) } ?: tasksSyncLine(sync))?.let { line ->
                 TextMMD(
                     text = line,

@@ -42,6 +42,8 @@ fun Player(uri: Uri?, hearing: Boolean) {
     var player by remember { mutableStateOf<MediaPlayer?>(null) }
     var playing by remember { mutableStateOf(false) }
     var at by remember { mutableStateOf(0) }
+    // A recording that would not play says so where its time is, until the next press tries again.
+    var failed by remember(uri) { mutableStateOf(false) }
     val length = remember(uri) {
         uri?.let {
             runCatching {
@@ -66,8 +68,17 @@ fun Player(uri: Uri?, hearing: Boolean) {
         }
     }
 
+    fun fail() {
+        player?.release()
+        player = null
+        playing = false
+        at = 0
+        failed = true
+    }
+
     fun toggle() {
         if (uri == null) return
+        failed = false
         val p = player ?: runCatching {
             MediaPlayer().apply {
                 setDataSource(context, uri)
@@ -76,15 +87,24 @@ fun Player(uri: Uri?, hearing: Boolean) {
                     at = 0
                     it.seekTo(0)
                 }
+                setOnErrorListener { _, _, _ ->
+                    fail()
+                    true
+                }
                 prepare()
             }
-        }.getOrNull()?.also { player = it } ?: return
+        }.getOrNull()?.also { player = it }
+        if (p == null) {
+            fail()
+            return
+        }
         if (p.isPlaying) {
             p.pause()
             playing = false
-        } else {
-            p.start()
+        } else if (runCatching { p.start() }.isSuccess) {
             playing = true
+        } else {
+            fail()
         }
     }
 
@@ -108,6 +128,7 @@ fun Player(uri: Uri?, hearing: Boolean) {
         Spacer(Modifier.width(14.dp))
         val label = when {
             uri == null -> stringResource(R.string.player_missing)
+            failed -> stringResource(R.string.player_cannot_play)
             playing || at > 0 -> "${clock(at)} / ${clock(length)}"
             else -> stringResource(R.string.player_recording, clock(length))
         }

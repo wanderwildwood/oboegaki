@@ -82,6 +82,14 @@ object Notes {
     private val _sync = MutableStateFlow<SyncState>(SyncState.Idle)
     val sync: StateFlow<SyncState> = _sync
 
+    private val _folderGone = MutableStateFlow(false)
+
+    /**
+     * True when the notes are kept in a folder that can no longer be read. Nothing is forgotten
+     * meanwhile: the folder stays chosen until another one is, so a card put back brings it all back.
+     */
+    val folderGone: StateFlow<Boolean> = _folderGone
+
     /** Moves on every time a sync changes what is on the phone, so an open note can look again. */
     private val _changed = MutableStateFlow(0)
     val changed: StateFlow<Int> = _changed
@@ -175,6 +183,7 @@ object Notes {
     private fun reload() {
         val shelf = shelf()
         loaded = true
+        _folderGone.value = shelf is FolderShelf && !shelf.reachable()
         _list.value = runCatching { shelf?.list() }.getOrNull().orEmpty()
             .sortedByDescending { it.modified }
         _pins.value = runCatching { readPins(shelf) }.getOrDefault(emptySet())
