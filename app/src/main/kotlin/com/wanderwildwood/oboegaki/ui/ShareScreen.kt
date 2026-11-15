@@ -35,6 +35,11 @@ import com.wanderwildwood.oboegaki.sync.Share
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.state.ToggleableState
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.toggleableState
 
 /**
  * Who a note is shared with, and with whom it could be.
@@ -129,6 +134,7 @@ fun ShareScreen(path: String, title: String, onBack: () -> Unit) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .semantics { role = Role.Switch; toggleableState = ToggleableState(share.canEdit) }
                                 .clickable(enabled = !busy) { act { sharing!!.setCanEdit(share.id, !share.canEdit) } }
                                 .padding(horizontal = 20.dp, vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically,

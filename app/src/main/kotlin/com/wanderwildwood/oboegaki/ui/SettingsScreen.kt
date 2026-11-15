@@ -69,6 +69,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.DateFormat
 import java.util.Date
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.state.ToggleableState
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.toggleableState
 
 /**
  * Where the notes are kept, how to reach them from Obsidian, and the lock screen.
@@ -270,6 +275,7 @@ fun SettingsScreen(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .semantics { role = Role.Switch; toggleableState = ToggleableState(on) }
                                     .clickable {
                                         on = !on
                                         preferences.wakeSyncthing = on
@@ -300,6 +306,7 @@ fun SettingsScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .semantics { role = Role.Switch; toggleableState = ToggleableState(turning) }
                         .clickable {
                             turning = !turning
                             preferences.turnWithPhone = turning
@@ -320,6 +327,7 @@ fun SettingsScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .semantics { role = Role.Switch; toggleableState = ToggleableState(listEnter) }
                         .clickable {
                             listEnter = !listEnter
                             preferences.listEnter = listEnter
@@ -339,6 +347,7 @@ fun SettingsScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .semantics { role = Role.Switch; toggleableState = ToggleableState(DarkMode.on) }
                         .clickable { DarkMode.set(context, !DarkMode.on) }
                         .padding(horizontal = 20.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -589,6 +598,7 @@ private fun KeptDialog(onDone: (to: Keeping, bring: Boolean) -> Unit, onDismiss:
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .semantics { role = Role.Switch; toggleableState = ToggleableState(bring) }
                         .clickable { bring = !bring }
                         .heightIn(min = 48.dp)
                         .padding(vertical = 8.dp),

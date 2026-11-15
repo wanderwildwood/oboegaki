@@ -31,6 +31,11 @@ import com.mudita.mmd.components.switcher.SwitchMMD
 import com.mudita.mmd.components.text.TextMMD
 import com.wanderwildwood.oboegaki.R
 import com.wanderwildwood.oboegaki.hearing.Voice
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.state.ToggleableState
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.toggleableState
 
 /**
  * While recording: how long, a pause, whether it is to be written down, and the way to stop. Nothing moves but the seconds, once a
@@ -63,6 +68,7 @@ fun RecordScreen(seconds: Int?, paused: Boolean, onStop: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
+                .semantics { role = Role.Switch; toggleableState = ToggleableState(writeDown) }
                 .clickable {
                     writeDown = !writeDown
                     Voice.writeDown = writeDown

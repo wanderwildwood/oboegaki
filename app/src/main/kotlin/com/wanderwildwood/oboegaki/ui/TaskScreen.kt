@@ -57,6 +57,11 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.state.ToggleableState
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.toggleableState
 
 /**
  * One task, to read and change: its title, whether it is done, when it is due and whether it
@@ -233,6 +238,7 @@ fun TaskScreen(list: String, name: String?, onClose: () -> Unit) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .semantics { role = Role.Switch; toggleableState = ToggleableState(ring) }
                         .clickable { ring = !ring }
                         .padding(horizontal = 20.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
