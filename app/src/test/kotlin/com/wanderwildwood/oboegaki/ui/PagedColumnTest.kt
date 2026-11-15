@@ -57,6 +57,14 @@ class PagedColumnTest {
     }
 
     @Test
+    fun aTallFirstRowBelowTopPaddingIsStillReadAPageAtATime() {
+        // Padding above the list puts the first row's top at 36, not 0.
+        assertEquals(Turn.By(700), forward(page(700, 2, Triple(0, 36, 1636))))
+        // A short row above a tall one: the tall one is cut, not first, so the page turns to it.
+        assertEquals(Turn.To(1), forward(page(700, 3, Triple(0, 36, 200), Triple(1, 200, 1900))))
+    }
+
+    @Test
     fun aTurnBackLandsOnARow() {
         assertEquals(3, backSnap(page(700, 9, Triple(2, -60, 120), Triple(3, 120, 300))))
         assertNull(backSnap(page(700, 9, Triple(0, 0, 120), Triple(1, 120, 300))))
