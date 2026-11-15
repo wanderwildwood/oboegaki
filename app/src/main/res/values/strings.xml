@@ -402,7 +402,7 @@
     <string name="about_privacy_desktop">Desktop Sync is off until you switch it on. While it is on, this phone serves your notes and tasks to a browser on your VPN or home network that has the link or code, directly and not through any server. The page uses plain http, not https: over Tailscale or another VPN the tunnel encrypts it, on an ordinary home network others on it could read it. It never starts by itself, and nothing you wrote is logged.</string>
     <string name="about_privacy_close">There are no ads, no analytics and no tracking. The app makes no backups and has no export: your notes are already files in the place you chose, so to keep a copy, copy them from there.</string>
     <string name="about_terms_heading">Terms</string>
-    <string name="about_terms">This app is free software under the GNU General Public License v3. It comes with no warranty: use it at your own risk. A donation through \"Feed the llamas\" is voluntary and unlocks nothing: the app is the same with or without one.</string>
+    <string name="about_terms">This app is free software under the GNU General Public License, version 3 only. It comes with no warranty: use it at your own risk. A donation through \"Feed the llamas\" is voluntary and unlocks nothing: the app is the same with or without one.</string>
     <string name="about_feed_the_llamas">Feed the llamas</string>
     <string name="about_no_browser_address">No browser is installed. The address is %1$s.</string>
     <string name="about_close">Close</string>
