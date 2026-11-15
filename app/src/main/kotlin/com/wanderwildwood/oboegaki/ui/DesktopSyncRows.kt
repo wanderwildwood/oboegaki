@@ -217,7 +217,7 @@ private fun ShowLinkDialog(onDismiss: () -> Unit) {
             } else {
                 TextMMD(
                     text = now.code.take(3) + " " + now.code.drop(3),
-                    style = MaterialTheme.typography.headlineMedium,
+                    style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(vertical = 8.dp),
                 )

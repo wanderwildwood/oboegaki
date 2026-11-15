@@ -90,7 +90,7 @@ private fun RingingOne(r: Record) {
     val context = LocalContext.current
     val note = remember(r.path) { Reminders.where(context, r) }
     Column(Modifier.padding(vertical = 12.dp)) {
-        TextMMD(text = Reminders.title(r), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        TextMMD(text = Reminders.title(r), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         if (r.key.isNotEmpty() && note.isNotEmpty()) TextMMD(text = note, style = MaterialTheme.typography.titleMedium)
         reminderTime(r.at)?.let {
             TextMMD(text = Times.whenShort(context, it), style = MaterialTheme.typography.bodyMedium)
