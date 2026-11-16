@@ -11,7 +11,10 @@ import java.io.IOException
  * an app password made for this phone alone, which can be revoked from the server's security
  * settings without touching the real one.
  */
-data class Account(val server: String, val user: String, val password: String)
+data class Account(val server: String, val user: String, val password: String) {
+    /** Never the password, wherever an account is printed. */
+    override fun toString() = "Account(server=$server, user=$user, password=*****)"
+}
 
 /** Something the reader can act on: the server said no, or could not be reached. */
 class Unreachable(message: String) : IOException(message)
@@ -59,10 +62,18 @@ object LoginFlow {
             throw Unreachable(e.message ?: "no answer")
         }
         val poll = json.getJSONObject("poll")
-        return Started(json.getString("login"), poll.getString("endpoint"), poll.getString("token"))
+        val started = Started(json.getString("login"), poll.getString("endpoint"), poll.getString("token"))
+        // The token is sent to the poll address and the app password comes back from it, so it
+        // is held to the same rule as the address that was typed.
+        if (!plainHttpAllowed(started.pollUrl)) throw PlainHttpRefused()
+        return started
     }
 
-    /** The account, once the reader has finished in the browser, or null while they have not. */
+    /**
+     * The account, once the reader has finished in the browser, or null while they have not.
+     * Throws [PlainHttpRefused] when the server hands back a plain http address out on the
+     * internet for itself: every later sync would carry the app password there in the clear.
+     */
     fun poll(started: Started): Account? {
         val request = Request.Builder()
             .url(started.pollUrl)
@@ -82,7 +93,7 @@ object LoginFlow {
         } catch (e: IOException) {
             if (e is Refused) throw e
             null
-        }
+        }?.also { if (!plainHttpAllowed(it.server)) throw PlainHttpRefused() }
     }
 
     /**

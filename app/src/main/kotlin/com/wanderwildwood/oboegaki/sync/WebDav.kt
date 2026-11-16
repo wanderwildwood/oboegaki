@@ -31,7 +31,10 @@ internal val http = OkHttpClient.Builder()
  * A WebDAV server as the reader typed it in: the full address of the folder or account root,
  * as the service gives it ("https://app.koofr.net/dav/Koofr"), a username and a password.
  */
-data class DavAccount(val address: String, val user: String, val password: String)
+data class DavAccount(val address: String, val user: String, val password: String) {
+    /** Never the password, wherever an account is printed. */
+    override fun toString() = "DavAccount(address=$address, user=$user, password=*****)"
+}
 
 /**
  * A folder of notes on a WebDAV server, the far end of a [Sync].

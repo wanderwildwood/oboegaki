@@ -887,7 +887,13 @@ fun SignInScreen(onSignedIn: () -> Unit, onBack: () -> Unit) {
             val deadline = System.currentTimeMillis() + 20 * 60_000
             while (System.currentTimeMillis() < deadline) {
                 delay(2000)
-                val account = runCatching { withContext(Dispatchers.IO) { LoginFlow.poll(flow) } }.getOrNull()
+                val polled = runCatching { withContext(Dispatchers.IO) { LoginFlow.poll(flow) } }
+                if (polled.exceptionOrNull() is PlainHttpRefused) {
+                    status = R.string.signin_plain_http
+                    waiting = false
+                    return@launch
+                }
+                val account = polled.getOrNull()
                 if (account != null) {
                     Notes.preferences.account = account
                     Notes.preferences.keeping = Keeping.NEXTCLOUD

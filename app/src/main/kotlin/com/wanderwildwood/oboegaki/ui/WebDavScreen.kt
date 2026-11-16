@@ -37,6 +37,7 @@ import com.wanderwildwood.oboegaki.R
 import com.wanderwildwood.oboegaki.notes.Keeping
 import com.wanderwildwood.oboegaki.notes.Notes
 import com.wanderwildwood.oboegaki.sync.DavAccount
+import com.wanderwildwood.oboegaki.sync.LoginFlow
 import com.wanderwildwood.oboegaki.sync.NotWebDav
 import com.wanderwildwood.oboegaki.sync.Refused
 import com.wanderwildwood.oboegaki.sync.Unreachable
@@ -75,11 +76,18 @@ fun WebDavScreen(onSaved: (DavAccount, String) -> Unit, onBack: () -> Unit) {
     val notWebDav = stringResource(R.string.dav_not_webdav)
     val certificate = stringResource(R.string.dav_certificate)
     val failed = stringResource(R.string.dav_failed)
+    val plainHttpPublic = stringResource(R.string.signin_plain_http)
 
     fun check(httpAccepted: Boolean) {
         val normal = WebDavRemote.normalise(address)
         if (normal == null) {
             problem = badAddress
+            return
+        }
+        // Plain http only to a server at home or on a VPN, as for a Nextcloud: to a host out on
+        // the internet the password would cross it in the clear, so it is never sent there.
+        if (normal.startsWith("http://") && !LoginFlow.plainHttpAllowed(normal)) {
+            problem = plainHttpPublic
             return
         }
         if (normal.startsWith("http://") && !httpAccepted) {

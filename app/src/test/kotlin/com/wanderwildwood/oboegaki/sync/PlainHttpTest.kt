@@ -23,3 +23,43 @@ class PlainHttpTest {
             assertFalse(a, LoginFlow.plainHttpAllowed(a))
     }
 }
+
+class LoginFlowPollTest {
+
+    private fun answer(server: String): okhttp3.mockwebserver.MockWebServer =
+        okhttp3.mockwebserver.MockWebServer().apply {
+            enqueue(
+                okhttp3.mockwebserver.MockResponse().setBody(
+                    """{"server":"$server","loginName":"ada","appPassword":"app-password-for-tests"}""",
+                ),
+            )
+            start()
+        }
+
+    @Test
+    fun anHttpsServerIsKept() {
+        val web = answer("https://cloud.example.org")
+        try {
+            val account = LoginFlow.poll(LoginFlow.Started("unused", web.url("/poll").toString(), "t"))
+            org.junit.Assert.assertEquals("https://cloud.example.org", account?.server)
+        } finally {
+            web.shutdown()
+        }
+    }
+
+    @Test(expected = PlainHttpRefused::class)
+    fun aPlainHttpServerOnTheInternetIsRefused() {
+        val web = answer("http://cloud.example.org")
+        try {
+            LoginFlow.poll(LoginFlow.Started("unused", web.url("/poll").toString(), "t"))
+        } finally {
+            web.shutdown()
+        }
+    }
+
+    @Test
+    fun thePasswordIsNotPrinted() {
+        assertFalse(Account("https://cloud.example.org", "ada", "app-password-for-tests").toString().contains("app-password"))
+        assertFalse(DavAccount("https://dav.example.org/", "ada", "app-password-for-tests").toString().contains("app-password"))
+    }
+}
