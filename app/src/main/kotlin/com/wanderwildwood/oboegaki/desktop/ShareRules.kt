@@ -54,6 +54,7 @@ fun noSharingJson(): JSONObject = JSONObject().put("available", false)
 fun sharingFailure(e: Throwable): Refusal = when (e) {
     is Refusal -> e
     is Refused -> Refusal(503, "Nextcloud says this phone is signed out")
+    is com.wanderwildwood.oboegaki.sync.PlainHttpRefused -> Refusal(503, "The Nextcloud's address is plain http out on the internet; change it to https in Memo's settings")
     is NextcloudSaid -> Refusal(503, "Nextcloud: " + (e.message?.replace(Regex("[\\u0000-\\u001f]"), " ")?.take(200) ?: "it refused"))
     else -> Refusal(503, "Nextcloud did not answer")
 }

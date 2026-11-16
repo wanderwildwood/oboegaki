@@ -8,6 +8,7 @@ import androidx.core.content.FileProvider
 import com.wanderwildwood.oboegaki.sync.DavAccount
 import com.wanderwildwood.oboegaki.sync.WebDavRemote
 import com.wanderwildwood.oboegaki.sync.nextcloudRemote
+import com.wanderwildwood.oboegaki.sync.PlainHttpRefused
 import com.wanderwildwood.oboegaki.sync.Refused
 import com.wanderwildwood.oboegaki.glance.GlanceProvider
 import com.wanderwildwood.oboegaki.remind.Reminders
@@ -46,6 +47,8 @@ sealed interface SyncState {
     /** The server refused the app password: it was revoked, or the account changed. */
     data object SignedOut : SyncState
     data class Failed(val why: String) : SyncState
+    /** The server's address is plain http out on the internet: nothing is sent until it is https. */
+    data object PlainHttp : SyncState
 }
 
 /**
@@ -297,6 +300,8 @@ object Notes {
                 // Someone else may have ticked an item that has a reminder here, or taken it off.
                 Reminders.sync(appContext)
             }
+        } catch (_: PlainHttpRefused) {
+            _sync.value = SyncState.PlainHttp
         } catch (_: Unreachable) {
             _sync.value = SyncState.Unreachable
         } catch (_: Refused) {

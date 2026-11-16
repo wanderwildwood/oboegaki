@@ -1,6 +1,7 @@
 package com.wanderwildwood.oboegaki.tasks
 
 import com.wanderwildwood.oboegaki.sync.Account
+import com.wanderwildwood.oboegaki.sync.refusePlainHttp
 import com.wanderwildwood.oboegaki.sync.Moved
 import com.wanderwildwood.oboegaki.sync.Refused
 import com.wanderwildwood.oboegaki.sync.Unreachable
@@ -41,7 +42,7 @@ class CalDavServer(
 
     private fun url(href: String) = if (href.startsWith("http://") || href.startsWith("https://")) href else origin + href
 
-    private fun request(url: String) = Request.Builder().url(url)
+    private fun request(url: String) = Request.Builder().also { refusePlainHttp(url) }.url(url)
         .header("Authorization", Credentials.basic(user, password))
         .header("User-Agent", "Notes (oboegaki)")
 

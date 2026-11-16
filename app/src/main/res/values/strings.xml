@@ -73,6 +73,7 @@
     <string name="view_by_title_choice">By title</string>
     <string name="sync_unreachable">The server could not be reached. These are this phone\'s copies, and they go up when it can be.</string>
     <string name="sync_signed_out">The server refused this phone. Sign in again in settings.</string>
+    <string name="sync_plain_http">Not synced: the server\'s address starts with http:// and is out on the internet, so your password would travel unprotected. Change it to an https:// address in settings. Nothing here was lost.</string>
     <!-- %1$s is whatever the server or the network said -->
     <string name="sync_failed">The last sync stopped partway: %1$s</string>
 

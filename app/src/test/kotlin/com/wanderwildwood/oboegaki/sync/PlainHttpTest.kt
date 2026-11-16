@@ -63,3 +63,37 @@ class LoginFlowPollTest {
         assertFalse(DavAccount("https://dav.example.org/", "ada", "app-password-for-tests").toString().contains("app-password"))
     }
 }
+
+/** A server saved on plain http by an older version: kept, but nothing is sent to it. */
+class SavedPlainHttpServerTest {
+
+    @Test(expected = PlainHttpRefused::class)
+    fun aWebDavServerOnTheInternetIsNotAsked() {
+        WebDavRemote("http://dav.example.org/", "ada", "app-password-for-tests", "Notes").list()
+    }
+
+    @Test(expected = PlainHttpRefused::class)
+    fun aNextcloudOnTheInternetIsNotAsked() {
+        nextcloudRemote(Account("http://cloud.example.org", "ada", "app-password-for-tests"), "Notes").list()
+    }
+
+    @Test(expected = PlainHttpRefused::class)
+    fun itsTaskListsAreNotAskedEither() {
+        com.wanderwildwood.oboegaki.tasks.CalDavServer(Account("http://cloud.example.org", "ada", "app-password-for-tests")).lists()
+    }
+
+    @Test
+    fun aServerAtHomeIsStillAsked() {
+        val web = okhttp3.mockwebserver.MockWebServer().apply {
+            enqueue(okhttp3.mockwebserver.MockResponse().setResponseCode(207).setBody("""<?xml version="1.0"?><d:multistatus xmlns:d="DAV:"/>"""))
+            start()
+        }
+        try {
+            runCatching { WebDavRemote(web.url("/dav/").toString(), "ada", "app-password-for-tests", "").list() }
+            org.junit.Assert.assertEquals(1, web.requestCount)
+            org.junit.Assert.assertTrue(web.takeRequest().getHeader("Authorization").orEmpty().startsWith("Basic "))
+        } finally {
+            web.shutdown()
+        }
+    }
+}

@@ -510,6 +510,7 @@ private fun syncValue(sync: SyncState, last: Long): String = when (sync) {
     SyncState.Running -> stringResource(R.string.settings_syncing)
     SyncState.Unreachable -> stringResource(R.string.sync_unreachable)
     SyncState.SignedOut -> stringResource(R.string.sync_signed_out)
+    SyncState.PlainHttp -> stringResource(R.string.sync_plain_http)
     is SyncState.Failed -> stringResource(R.string.sync_failed, sync.why)
     SyncState.Idle -> if (last == 0L) {
         stringResource(R.string.settings_never_synced)

@@ -9,6 +9,7 @@ import com.wanderwildwood.oboegaki.notes.SyncState
 import com.wanderwildwood.oboegaki.remind.Reminders
 import com.wanderwildwood.oboegaki.remind.Times
 import com.wanderwildwood.oboegaki.sync.Account
+import com.wanderwildwood.oboegaki.sync.PlainHttpRefused
 import com.wanderwildwood.oboegaki.sync.Refused
 import com.wanderwildwood.oboegaki.sync.Unreachable
 import kotlinx.coroutines.CoroutineScope
@@ -133,6 +134,8 @@ object Tasks {
                 Reminders.syncSoon(appContext)
                 GlanceProvider.changed(appContext)
             }
+        } catch (_: PlainHttpRefused) {
+            _sync.value = SyncState.PlainHttp
         } catch (_: Unreachable) {
             _sync.value = SyncState.Unreachable
         } catch (_: Refused) {

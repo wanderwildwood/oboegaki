@@ -162,7 +162,8 @@ class WebDavTest {
     val temp = TemporaryFolder()
 
     private fun remote(server: Interceptor, password: String = "secret", folder: String = "Notes") = WebDavRemote(
-        base = "http://dav.test/dav/my%20files/",
+        // https: plain http is refused for a host out on the internet, and dav.test is not at home.
+        base = "https://dav.test/dav/my%20files/",
         user = "reader",
         password = password,
         folder = folder,

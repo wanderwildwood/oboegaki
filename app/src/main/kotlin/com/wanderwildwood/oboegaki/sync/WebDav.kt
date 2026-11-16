@@ -73,6 +73,7 @@ class WebDavRemote(
     private fun url(path: String) = root + encodePath(path)
 
     private fun request(url: String): Request.Builder {
+        refusePlainHttp(url)
         val credentials = if (trusted) Credentials.basic(user, password) else Credentials.basic(user, password, Charsets.UTF_8)
         return Request.Builder().url(url).header("Authorization", credentials).header("User-Agent", "Notes (oboegaki)")
     }

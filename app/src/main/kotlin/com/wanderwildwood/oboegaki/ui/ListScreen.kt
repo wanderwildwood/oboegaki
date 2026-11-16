@@ -465,6 +465,7 @@ private fun syncLine(sync: SyncState): String? = when (sync) {
     SyncState.Idle, SyncState.Running -> null
     SyncState.Unreachable -> stringResource(R.string.sync_unreachable)
     SyncState.SignedOut -> stringResource(R.string.sync_signed_out)
+    SyncState.PlainHttp -> stringResource(R.string.sync_plain_http)
     is SyncState.Failed -> stringResource(R.string.sync_failed, sync.why)
 }
 

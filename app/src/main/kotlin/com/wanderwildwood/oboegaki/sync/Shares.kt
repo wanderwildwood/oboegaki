@@ -111,6 +111,7 @@ class Sharing(private val account: Account) {
     private fun permissions(canEdit: Boolean) = if (canEdit) READ or UPDATE else READ
 
     private fun request(url: String) = Request.Builder()
+        .also { refusePlainHttp(url) }
         .url(url)
         .header("OCS-APIRequest", "true")
         .header("Authorization", okhttp3.Credentials.basic(account.user, account.password))

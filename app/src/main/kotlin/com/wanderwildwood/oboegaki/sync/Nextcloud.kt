@@ -25,6 +25,15 @@ class PlainHttpRefused : IOException("plain http to a public host")
 
 internal const val AGENT = "Notes (oboegaki)"
 
+/**
+ * Throws [PlainHttpRefused] for a plain http [url] out on the internet, before anything carrying
+ * the password is built for it: a server saved that way by an older version is kept, with its
+ * password, but nothing is sent to it until its address is changed to https.
+ */
+internal fun refusePlainHttp(url: String) {
+    if (!LoginFlow.plainHttpAllowed(url)) throw PlainHttpRefused()
+}
+
 /** The notes folder on a Nextcloud: WebDAV, under the user's own files. */
 fun nextcloudRemote(account: Account, folder: String) = WebDavRemote(
     base = account.server.trimEnd('/') + "/remote.php/dav/files/" + encodePath(account.user) + "/",
