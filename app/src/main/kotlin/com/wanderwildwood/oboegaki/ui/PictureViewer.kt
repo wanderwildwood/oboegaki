@@ -85,6 +85,7 @@ fun PictureViewer(uri: Uri, name: String, onOpenElsewhere: () -> Unit, onClose: 
         onDismissRequest = onClose,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = true),
     ) {
+        DarkWindow()
         val view = LocalView.current
         SideEffect {
             (view.parent as? DialogWindowProvider)?.window?.let { window ->

@@ -328,6 +328,7 @@ internal fun DateDialog(initial: LocalDate, onPick: (LocalDate) -> Unit, onDismi
             dateMillis?.let { Times.day(context, Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()) }
     }
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        DarkWindow()
         val view = LocalView.current
         SideEffect {
             (view.parent as? DialogWindowProvider)?.window?.let { window ->

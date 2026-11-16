@@ -1,5 +1,6 @@
 package com.wanderwildwood.oboegaki
 
+import com.wanderwildwood.oboegaki.ui.DarkSelection
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -137,7 +138,7 @@ class MainActivity : ComponentActivity() {
             // Smaller, Standard or Larger: the text scale, for everything inside, dialogs too.
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, density.fontScale * TextSize.factor())) {
-                ThemeMMD(colorScheme = monochrome, typography = houseTypography) {
+                ThemeMMD(colorScheme = monochrome, typography = houseTypography) { DarkSelection {
                     ArmedScope {
                         // A blinking cursor repaints its field twice a second for as long as it has
                         // focus, a refresh nobody asked for on an E Ink screen. Dialogs are inside this.
@@ -145,7 +146,7 @@ class MainActivity : ComponentActivity() {
                             App(capture)
                         }
                     }
-                }
+                } }
             }
         }
     }
