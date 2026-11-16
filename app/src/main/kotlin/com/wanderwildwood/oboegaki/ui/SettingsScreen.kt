@@ -362,7 +362,6 @@ fun SettingsScreen(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         TextMMD(text = stringResource(R.string.settings_dark), style = MaterialTheme.typography.bodyLarge)
-                        TextMMD(text = stringResource(R.string.settings_dark_note), style = MaterialTheme.typography.labelSmall)
                     }
                     Spacer(Modifier.width(16.dp))
                     SwitchMMD(checked = DarkMode.on, onCheckedChange = null)
