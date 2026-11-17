@@ -30,9 +30,16 @@ object NoteLink {
         if (intent?.action != CalendarContract.ACTION_HANDLE_CUSTOM_EVENT) return null
         val uri = intent.getStringExtra(CalendarContract.EXTRA_CUSTOM_APP_URI) ?: return null
         if (!uri.startsWith(PREFIX)) return null
-        val path = Uri.decode(uri.removePrefix(PREFIX))
-        if (path.isEmpty() || path.startsWith("/") || path.startsWith(TASK)) return null
-        if (path.split('/').any { it == ".." }) return null
+        return safe(Uri.decode(uri.removePrefix(PREFIX)))
+    }
+
+    /**
+     * [path] when it is a note's place inside the notes, else null: nothing absolute, nothing
+     * climbing out, and a task's record only when [task] allows it (a reminder of a task).
+     */
+    fun safe(path: String?, task: Boolean = false): String? {
+        if (path.isNullOrEmpty() || path.startsWith("/") || (!task && path.startsWith(TASK))) return null
+        if (path.split('/').any { it == ".." || it.isEmpty() }) return null
         return path
     }
 }

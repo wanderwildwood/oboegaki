@@ -198,13 +198,16 @@ class MainActivity : ComponentActivity() {
     private fun captureFrom(intent: Intent?): Capture? {
         intent ?: return null
         return when {
-            intent.action == OPEN_NOTE -> intent.getStringExtra(EXTRA_PATH)?.let { Capture("", "", note = it) }
+            // The same rule as a calendar's link: this screen is open to any app.
+            intent.action == OPEN_NOTE -> NoteLink.safe(intent.getStringExtra(EXTRA_PATH), task = true)?.let { Capture("", "", note = it) }
             // A reminder's calendar event, opened in Memo from Datebook: its note, or the list if it is gone.
             intent.action == CalendarContract.ACTION_HANDLE_CUSTOM_EVENT -> NoteLink.path(intent)?.let { Capture("", "", note = it) }
             intent.action == NEW_NOTE -> Capture("", "")
             intent.action == RECORD -> Capture("", "", record = true)
             intent.action == TASKS -> Capture("", "", tasks = true)
-            intent.action == Intent.ACTION_VIEW && intent.data != null -> Capture("", "", open = intent.data)
+            // A file another app hands over, never a path into this app's own storage or providers.
+            intent.action == Intent.ACTION_VIEW && intent.data?.scheme == "content" &&
+                intent.data?.authority?.startsWith(packageName) != true -> Capture("", "", open = intent.data)
             (intent.action == Intent.ACTION_SEND || intent.action == Intent.ACTION_SEND_MULTIPLE) &&
                 intent.type?.startsWith("image/") == true -> {
                 val pictures = picturesIn(intent)
@@ -309,36 +312,40 @@ private fun App(capture: MutableState<Capture?>) {
     }
 
     // A capture waits for somewhere to keep it, and then opens straight into a new note.
-    val pending = capture.value
-    if (pending?.note != null && pending.note.startsWith(TASK)) {
-        capture.value = null
-        val item = Tasks.store.find(pending.note.removePrefix(TASK))
-        screen = if (item != null) Screen.Task(item.list, item.name) else Screen.Tasks
-    } else if (pending?.tasks == true && keeping != Keeping.NOWHERE) {
-        capture.value = null
-        screen = Screen.Tasks
-    } else if (pending?.note != null) {
-        capture.value = null
-        val text = Notes.read(pending.note)
-        screen = if (text != null) Screen.Note(pending.note, text, fresh = false) else Screen.List
-    } else if (pending?.open != null) {
-        // A file to read needs nowhere to keep notes; keeping it does, and is offered only then.
-        capture.value = null
-        screen = Screen.Outside(pending.open)
-    } else if (pending != null && pending.pictures.isNotEmpty() && keeping != Keeping.NOWHERE) {
-        capture.value = null
-        pictures = pending.pictures
-    } else if (pending != null && pending.record && keeping != Keeping.NOWHERE) {
-        capture.value = null
-        recordAsking()
-    } else if (pending != null && keeping != Keeping.NOWHERE) {
-        capture.value = null
-        screen = Screen.Note(
-            path = Notes.newPath(Notes.newFolder, pending.title),
-            text = pending.text,
-            fresh = true,
-            title = pending.title,
-        )
+    // Dealt with after the screen is drawn, never during it: a permission asked for from a
+    // cold start (Record, from the icon) must not be launched mid-composition.
+    LaunchedEffect(capture.value, keeping) {
+        val pending = capture.value
+        if (pending?.note != null && pending.note.startsWith(TASK)) {
+            capture.value = null
+            val item = Tasks.store.find(pending.note.removePrefix(TASK))
+            screen = if (item != null) Screen.Task(item.list, item.name) else Screen.Tasks
+        } else if (pending?.tasks == true && keeping != Keeping.NOWHERE) {
+            capture.value = null
+            screen = Screen.Tasks
+        } else if (pending?.note != null) {
+            capture.value = null
+            val text = Notes.read(pending.note)
+            screen = if (text != null) Screen.Note(pending.note, text, fresh = false) else Screen.List
+        } else if (pending?.open != null) {
+            // A file to read needs nowhere to keep notes; keeping it does, and is offered only then.
+            capture.value = null
+            screen = Screen.Outside(pending.open)
+        } else if (pending != null && pending.pictures.isNotEmpty() && keeping != Keeping.NOWHERE) {
+            capture.value = null
+            pictures = pending.pictures
+        } else if (pending != null && pending.record && keeping != Keeping.NOWHERE) {
+            capture.value = null
+            recordAsking()
+        } else if (pending != null && keeping != Keeping.NOWHERE) {
+            capture.value = null
+            screen = Screen.Note(
+                path = Notes.newPath(Notes.newFolder, pending.title),
+                text = pending.text,
+                fresh = true,
+                title = pending.title,
+            )
+        }
     }
 
     if (keeping == Keeping.NOWHERE && screen != Screen.SignIn && screen != Screen.WebDav && screen !is Screen.Outside) {

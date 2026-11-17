@@ -53,7 +53,18 @@ fun OutsideScreen(uri: Uri, canKeep: Boolean, onKeep: (name: String, text: Strin
                     ?.use { if (it.moveToFirst()) it.getString(0) else null }
                     ?: uri.lastPathSegment?.substringAfterLast('/')
                     ?: ""
-                shown to context.contentResolver.openInputStream(uri)!!.use { it.readBytes().toString(Charsets.UTF_8) }
+                // A text file to read, not a disk image: past a few megabytes it is not opened.
+                shown to context.contentResolver.openInputStream(uri)!!.use { input ->
+                    val bytes = java.io.ByteArrayOutputStream()
+                    val buffer = ByteArray(64 * 1024)
+                    while (true) {
+                        val n = input.read(buffer)
+                        if (n < 0) break
+                        bytes.write(buffer, 0, n)
+                        if (bytes.size() > 4 * 1024 * 1024) throw java.io.IOException("too large")
+                    }
+                    bytes.toString(Charsets.UTF_8.name())
+                }
             }
         }
         read.onSuccess { (n, t) ->
