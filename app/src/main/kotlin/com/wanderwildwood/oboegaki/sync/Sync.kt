@@ -93,6 +93,11 @@ class Sync(
         applyMoves(remote, state)
         val everything = remote.list()
         val there = everything.filterKeys { syncsAsText(it) }
+        // Several notes synced before and none there now is a folder gone or emptied on the
+        // server (or made again, empty), not every note deleted: nothing here is touched for it.
+        if (state.size >= 3 && there.isEmpty()) {
+            throw java.io.IOException("the notes folder on the server is empty, so nothing here was deleted")
+        }
         val here = localPaths()
         var sent = 0
         var received = 0

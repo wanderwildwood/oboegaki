@@ -189,6 +189,17 @@ class SyncTest {
     }
 
     @Test
+    fun anEmptiedFolderOnTheServerDeletesNothingHere() {
+        val his = phone("his")
+        for (n in 1..3) his.write("note$n.md", "x$n")
+        his.sync.run(server)
+        server.files.clear()
+        assertTrue(runCatching { his.sync.run(server) }.isFailure)
+        assertEquals("x1", his.read("note1.md"))
+        assertEquals("x3", his.read("note3.md"))
+    }
+
+    @Test
     fun deletingOnOnePhoneDeletesEverywhere() {
         val his = phone("his")
         val hers = phone("hers")
