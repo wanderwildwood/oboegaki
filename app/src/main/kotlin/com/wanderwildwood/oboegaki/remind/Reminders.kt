@@ -161,7 +161,7 @@ object Reminders {
 
     fun syncSoon(context: Context) {
         val app = context.applicationContext
-        thread(name = "reminders") { runCatching { sync(app) }.onFailure { Log.w(TAG, "reminders: $it") } }
+        thread(name = "reminders") { runCatching { sync(app) }.onFailure { Log.w(TAG, "reminders: ${it.javaClass.simpleName}") } }
     }
 
     // ---------------------------------------------------------------- ringing
@@ -258,7 +258,12 @@ object Reminders {
                 rec.rang == 0L -> at
                 else -> null
             }
-            if (due != null && due <= now) {
+            // Notifications turned off for the app: nothing could be shown, so it has not rung.
+            // It stays due, and rings (late, and saying so) once they are on again.
+            val canShow = androidx.core.app.NotificationManagerCompat.from(context).areNotificationsEnabled()
+            if (due != null && due <= now && !canShow) {
+                // Nothing to schedule: the next look (opening the app, any change) tries again.
+            } else if (due != null && due <= now) {
                 val late = now - due > LATE_MS
                 Log.i(TAG, "reminder ${rec.id} due $due rings at $now")
                 val words = if (rec.key.isEmpty() && !rec.isTask) text(rec.path)?.let(::preview).orEmpty() else ""

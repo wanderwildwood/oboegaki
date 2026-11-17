@@ -12,7 +12,7 @@ private fun BroadcastReceiver.async(work: () -> Unit) {
     val pending = goAsync()
     thread(name = "reminders") {
         try {
-            runCatching(work).onFailure { Log.w("oboegaki", "reminders: $it") }
+            runCatching(work).onFailure { Log.w("oboegaki", "reminders: ${it.javaClass.simpleName}") }
         } finally {
             pending.finish()
         }
