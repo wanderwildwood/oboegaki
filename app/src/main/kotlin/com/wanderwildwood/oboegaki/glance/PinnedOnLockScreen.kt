@@ -49,7 +49,8 @@ class PinnedOnLockScreen : GlanceProvider() {
             )
         }
         val more = due.size - lines.size
-        return if (more > 0) lines + GlanceProvider.Line(text = context.resources.getQuantityString(R.plurals.lock_today_more, more, more)) else lines
+        // Marked with how many it stands for, so Glance's own "+N more" counts it as that many.
+        return if (more > 0) lines + GlanceProvider.Line(text = context.resources.getQuantityString(R.plurals.lock_today_more, more, more), more = more) else lines
     }
 
     private fun pinned(context: Context, shelf: com.wanderwildwood.oboegaki.notes.Shelf): List<GlanceProvider.Line> {
