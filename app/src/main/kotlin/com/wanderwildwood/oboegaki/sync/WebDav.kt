@@ -104,6 +104,7 @@ class WebDavRemote(
             for (entry in entries) {
                 if (!entry.path.startsWith(rootPath)) continue
                 val relative = entry.path.removePrefix(rootPath)
+                if (relative.isNotEmpty() && !isSafeRelative(relative)) continue
                 if (relative.trimEnd('/') == dir.trimEnd('/')) continue
                 val name = relative.trimEnd('/').substringAfterLast('/')
                 if (name.isEmpty() || name.startsWith(".") && relative != PINS) continue

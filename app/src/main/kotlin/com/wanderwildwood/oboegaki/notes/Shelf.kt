@@ -6,6 +6,7 @@ import android.provider.DocumentsContract
 import android.system.ErrnoException
 import android.system.Os
 import com.wanderwildwood.oboegaki.sync.PINS
+import com.wanderwildwood.oboegaki.sync.inside
 import com.wanderwildwood.oboegaki.sync.isNote
 import java.io.File
 import java.io.FileOutputStream
@@ -91,11 +92,11 @@ class FileShelf(
     }
 
     override fun read(path: String): String? = synchronized(notesLock) {
-        File(root, path).takeIf { it.isFile }?.readText()
+        inside(root, path)?.takeIf { it.isFile }?.readText()
     }
 
     override fun write(path: String, text: String) = synchronized(notesLock) {
-        val file = File(root, path)
+        val file = inside(root, path) ?: return@synchronized
         file.parentFile?.mkdirs()
         val temp = File(file.parentFile, ".${file.name}.part")
         temp.writeText(text)
@@ -106,14 +107,15 @@ class FileShelf(
     }
 
     override fun delete(path: String) {
-        synchronized(notesLock) { File(root, path).delete() }
+        synchronized(notesLock) { inside(root, path)?.delete() }
     }
 
     override fun rename(from: String, to: String) {
         synchronized(notesLock) {
-            val target = File(root, to)
+            val target = inside(root, to) ?: return
+            val source = inside(root, from) ?: return
             target.parentFile?.mkdirs()
-            File(root, from).renameTo(target)
+            source.renameTo(target)
         }
     }
 
@@ -122,7 +124,7 @@ class FileShelf(
     override fun move(from: String, to: String) = rename(from, to)
 
     override fun writeBytes(path: String, bytes: ByteArray, mime: String) = synchronized(notesLock) {
-        val file = File(root, path)
+        val file = inside(root, path) ?: return@synchronized
         file.parentFile?.mkdirs()
         val temp = File(file.parentFile, ".${file.name}.part")
         temp.writeBytes(bytes)
@@ -144,7 +146,7 @@ class FileShelf(
     }
 
     override fun readBytes(path: String): ByteArray? = synchronized(notesLock) {
-        File(root, path).takeIf { it.isFile }?.readBytes()
+        inside(root, path)?.takeIf { it.isFile }?.readBytes()
     }
 
     override fun entries(dir: String): List<Entry>? = synchronized(notesLock) {

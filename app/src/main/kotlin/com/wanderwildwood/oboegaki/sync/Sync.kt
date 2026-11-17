@@ -318,7 +318,7 @@ class Sync(
     }
 
     private fun writeBytes(root: File, path: String, bytes: ByteArray) {
-        val file = File(root, path)
+        val file = outsideRefused(root, path)
         file.parentFile?.mkdirs()
         val temp = File(file.parentFile, ".${file.name}.part")
         temp.writeBytes(bytes)
@@ -455,12 +455,12 @@ class Sync(
     }
 
     private fun read(root: File, path: String): String? {
-        val file = File(root, path)
+        val file = inside(root, path) ?: return null
         return if (file.isFile) file.readText() else null
     }
 
     private fun write(root: File, path: String, text: String) {
-        val file = File(root, path)
+        val file = outsideRefused(root, path)
         file.parentFile?.mkdirs()
         // Written beside and then moved over, so a phone that dies mid-write leaves the old
         // note rather than half of the new one.
@@ -473,8 +473,12 @@ class Sync(
     }
 
     private fun remove(root: File, path: String) {
-        File(root, path).delete()
+        inside(root, path)?.delete()
     }
+
+    /** [root]/[path], refused when it would land outside [root]: nothing is written there. */
+    private fun outsideRefused(root: File, path: String): File =
+        inside(root, path) ?: throw java.io.IOException("A path outside the notes folder was refused")
 
     private fun readState(): Map<String, String> {
         if (!stateFile.isFile) return emptyMap()
