@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Notes: launcher icon in the Mudita Kompakt stock style (81 grid, ring r=19.25 x 2.5,
-     glyph stroke 2.5, black on transparent). Built by icons/mudita-style/final.py. -->
+<!-- Memo: a note pinned up with a tack (覚え書き, oboegaki). Shop icon style (81 grid, ring r=19.25 x 2.5, glyph stroke 2.5, black on transparent). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="81dp"
     android:height="81dp"
@@ -11,31 +10,27 @@
         android:fillColor="#FF000000"
         android:fillType="evenOdd"/>
     <path
-        android:pathData="M24,27.957C24,25.748 25.791,23.957 28,23.957H54C56.209,23.957 58,25.748 58,27.957V44.261C58,45.319 57.581,46.334 56.834,47.084L47.173,56.78C46.422,57.534 45.402,57.957 44.339,57.957H28C25.791,57.957 24,56.166 24,53.957V27.957Z"
+        android:pathData="M24,30 H57 V58 H24 Z"
         android:fillColor="#00000000"
         android:strokeColor="#FF000000"
         android:strokeWidth="2.5"
         android:strokeLineCap="round"
-        android:strokeLineJoin="miter"/>
+        android:strokeLineJoin="round"/>
     <path
-        android:pathData="M57,45.957H49C47.343,45.957 46,47.3 46,48.957V56.913"
-        android:fillColor="#00000000"
-        android:strokeColor="#FF000000"
-        android:strokeWidth="2.5"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="miter"/>
+        android:pathData="M36.5,27.0A4.0,4.0 0,1 1,44.5,27.0A4.0,4.0 0,1 1,36.5,27.0Z"
+        android:fillColor="#FF000000"/>
     <path
-        android:pathData="M31,35.957H51"
+        android:pathData="M40.5,31 V36"
         android:fillColor="#00000000"
         android:strokeColor="#FF000000"
         android:strokeWidth="2.5"
         android:strokeLineCap="round"
-        android:strokeLineJoin="miter"/>
+        android:strokeLineJoin="round"/>
     <path
-        android:pathData="M31,42.957H42"
+        android:pathData="M30,44 H51 M30,50 H44"
         android:fillColor="#00000000"
         android:strokeColor="#FF000000"
         android:strokeWidth="2.5"
         android:strokeLineCap="round"
-        android:strokeLineJoin="miter"/>
+        android:strokeLineJoin="round"/>
 </vector>
