@@ -218,7 +218,8 @@ object Reminders {
                 // In the trash: silent, and kept for a restore while the note is still there,
                 // or while there is no telling.
                 Notifier.cancel(context, r.id)
-                if (text(r.path) != null || r.path in unread || everyNote.isNullOrEmpty()) out += r
+                if (text(r.path) != null || r.path in unread || everyNote.isNullOrEmpty() ||
+                    everyNote.orEmpty().any { it.path == r.path }) out += r
                 continue
             } else {
                 // Found in its note, or in the one note it was renamed or moved to, perhaps on

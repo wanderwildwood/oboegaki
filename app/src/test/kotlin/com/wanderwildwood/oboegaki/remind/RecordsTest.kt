@@ -59,6 +59,8 @@ class RecordsTest {
         assertEquals(Seen.Unknown, look(milk, listOf(milk), null, false) { null })
         // A folder not yet mounted, or a server's copy being fetched afresh, lists as empty.
         assertEquals(Seen.Unknown, look(milk, listOf(milk), null, false) { emptyList() })
+        // Its note is listed but its words could not be opened (a mount answering from its cache).
+        assertEquals(Seen.Unknown, look(milk, listOf(milk), null, false) { listOf(note("Groceries.md", "")) })
     }
 
     @Test

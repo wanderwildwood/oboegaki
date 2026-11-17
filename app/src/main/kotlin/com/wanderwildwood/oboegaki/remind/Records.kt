@@ -88,12 +88,15 @@ sealed interface Seen {
  * reading its note went wrong, rather than finding no such note. [everyNote] lists the notes,
  * or gives null when they could not be listed. A listing with nothing in it while there are
  * reminders to look for is taken as a folder that could not be read, not one emptied, so a
- * reminder is let go of only when the notes were really read and it is not in them.
+ * reminder is let go of only when the notes were really read and it is not in them. A note that
+ * is listed while [text] is null was there but could not be opened, and gives no telling either.
  */
 fun look(r: Record, records: List<Record>, text: String?, readFailed: Boolean, everyNote: () -> List<Note>?): Seen {
     text?.let { findReminder(it, r.key, r.at) }?.let { return Seen.Found(r, it) }
     if (readFailed) return Seen.Unknown
     val notes = everyNote()?.takeIf { it.isNotEmpty() } ?: return Seen.Unknown
+    // Listed but not read: the note is there and its words could not be opened just now.
+    if (text == null && notes.any { it.path == r.path }) return Seen.Unknown
     val elsewhere = notes.filter { findReminder(it.text, r.key, r.at) != null }
     if (elsewhere.size == 1 && records.none { it.path == elsewhere[0].path && it.key == r.key && it.at == r.at }) {
         val moved = findReminder(elsewhere[0].text, r.key, r.at)
