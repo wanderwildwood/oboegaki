@@ -277,8 +277,13 @@ private fun moved(prop: Prop, step: (LocalDateTime) -> LocalDateTime): Prop? {
         when {
             prop.param("VALUE")?.uppercase() == "DATE" || value.length == 8 ->
                 DATE.format(step(LocalDate.parse(value.take(8), DATE).atStartOfDay()).toLocalDate())
-            value.endsWith("Z") || value.endsWith("z") ->
-                DATE_TIME.format(step(LocalDateTime.parse(value.dropLast(1), DATE_TIME))) + "Z"
+            // A time in UTC steps on the phone's own clock, so a task due at nine is due at nine
+            // again after the clocks change, and is written back in UTC.
+            value.endsWith("Z") || value.endsWith("z") -> {
+                val zone = ZoneId.systemDefault()
+                val local = LocalDateTime.parse(value.dropLast(1), DATE_TIME).atOffset(ZoneOffset.UTC).atZoneSameInstant(zone).toLocalDateTime()
+                DATE_TIME.format(step(local).atZone(zone).withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime()) + "Z"
+            }
             else -> DATE_TIME.format(step(LocalDateTime.parse(value, DATE_TIME)))
         }
     }.getOrNull() ?: return null

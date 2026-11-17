@@ -183,7 +183,23 @@ class ICalTest {
         assertTrue(next.contains("X-KEEP:me\r\n"))
         assertFalse(readTask(next)!!.fields.done)
         assertTrue(nextOccurrence(repeating("FREQ=DAILY", due = "DUE;VALUE=DATE:20261031", start = null))!!.contains("DUE;VALUE=DATE:20261101"))
-        assertTrue(nextOccurrence(repeating("FREQ=MONTHLY", due = "DUE:20261009T150000Z", start = null))!!.contains("DUE:20261109T150000Z"))
+        inZone("UTC") {
+            assertTrue(nextOccurrence(repeating("FREQ=MONTHLY", due = "DUE:20261009T150000Z", start = null))!!.contains("DUE:20261109T150000Z"))
+        }
+    }
+
+    @Test
+    fun aTimeInUtcKeepsItsHourHereAcrossTheClockChange() {
+        // 11:00 in New York on 9 October (daylight time) is 11:00 there on 9 November too.
+        inZone("America/New_York") {
+            assertTrue(nextOccurrence(repeating("FREQ=MONTHLY", due = "DUE:20261009T150000Z", start = null))!!.contains("DUE:20261109T160000Z"))
+        }
+    }
+
+    private fun inZone(id: String, block: () -> Unit) {
+        val was = java.util.TimeZone.getDefault()
+        java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone(id))
+        try { block() } finally { java.util.TimeZone.setDefault(was) }
     }
 
     @Test
