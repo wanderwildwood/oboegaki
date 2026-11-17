@@ -76,7 +76,8 @@ fun Pages(uri: Uri?, name: String) {
                 Image(
                     bitmap = bitmap.asImageBitmap(),
                     contentDescription = null,
-                    modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.onSurface),
+                    // A scan is a picture of paper: it keeps its colors in dark mode, as photos do.
+                    modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.onSurface).keepColors(),
                 )
                 Spacer(Modifier.height(8.dp))
             }

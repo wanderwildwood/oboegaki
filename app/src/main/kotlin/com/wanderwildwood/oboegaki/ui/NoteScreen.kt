@@ -129,7 +129,12 @@ fun NoteScreen(
         val from = at
         val before = loaded
         val edited = body.text
-        val saved = Notes.save(at, loaded, body.text, title)
+        // A folder that cannot be written just now (a card taken out, a full phone) does not
+        // close the editor: what was typed stays, is said not saved, and is tried again.
+        val saved = runCatching { Notes.save(at, loaded, body.text, title) }.getOrElse {
+            android.widget.Toast.makeText(context, R.string.note_not_saved, android.widget.Toast.LENGTH_LONG).show()
+            return
+        }
         // What changed here, not what a merge brought in, says which reminders this phone set.
         Reminders.edited(context, from, saved.path, before, edited)
         at = saved.path

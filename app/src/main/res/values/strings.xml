@@ -467,6 +467,8 @@
     <string name="lock_today">Today</string>
     <string name="tasks_done_show">Done · %1$d</string>
     <string name="tasks_done_hide">Done · %1$d · hide</string>
+    <!-- Said when a note could not be written to its folder; the text stays in the editor -->
+    <string name="note_not_saved">This note could not be saved just now. What you typed is still here.</string>
     <string name="tasks_unreachable">Couldn\'t reach the Nextcloud. Changes wait here and go when it can be reached.</string>
     <string name="tasks_failed">Some lists didn\'t sync: %1$s</string>
     <string name="tasks_move_to_nextcloud">Move these to %1$s on the Nextcloud</string>
