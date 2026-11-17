@@ -27,7 +27,7 @@ Memo collects nothing about you and has no analytics, ads or tracking of any kin
   restart of the phone or an app update.
 - **Dream Log** (the sibling app 夢帳, signed with the same key) may write a note into Memo through a capture provider, without a confirmation screen; Memo checks the caller's signing certificate first, and no other app can.
 - **The microphone** is used only while you are recording.
-- **Terms:** free software under the GNU General Public License v3, with no warranty.
+- **Terms:** free software under the GNU General Public License v3 only, with no warranty.
 
 <!-- shared-about privacy section -->
 ## Who we are

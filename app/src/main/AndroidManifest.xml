@@ -117,8 +117,8 @@
             </intent-filter>
 
             <!-- New note and Record, offered on a long press of the icon by launchers that
-                 show shortcuts, rather than as entries of their own in the drawer: he wants
-                 the one app there. -->
+                 show shortcuts, rather than as entries of their own in the drawer: one
+                 launcher entry for the app. -->
             <meta-data
                 android:name="android.app.shortcuts"
                 android:resource="@xml/shortcuts" />

@@ -83,7 +83,7 @@ follow an edit on the phone follow an edit from the browser too.
 | pictures | `![[name.jpg]]` embeds; fetched through `GET /api/file` (pictures only, only beside a note); added with `POST /api/notes/picture` (see Pictures from the computer) |
 | tasks | `Tasks.shown`: lists, and per task summary, description, due (day or time), priority, done |
 
-What the app does not have is not invented: there are no colours and no labels. *Delete* moves
+What the app does not have is not invented: there are no colors and no labels. *Delete* moves
 a note to the trash, exactly as on the phone, and can be undone from the page's *Trash*; *Delete
 forever* and *Empty trash* are permanent, and the page asks first.
 

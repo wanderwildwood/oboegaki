@@ -18,7 +18,7 @@ Not a fork. Written from scratch in Kotlin and Jetpack Compose, using Mudita's o
 
 ## Where this is up to
 
-Version 0.3.2. On a Kompakt: notes and lists syncing through Nextcloud
+On a Kompakt: notes and lists syncing through Nextcloud
 between two phones, a list shared between them and ticked on one while added to on the other,
 a voice note heard and written down, a page photographed and handed to the scanner.
 
@@ -307,7 +307,10 @@ Bundled, under their own licenses:
   `app/src/main/cpp/whisper.cpp`, trimmed to the parts an Android CPU build compiles
 - OpenAI's [Whisper](https://github.com/openai/whisper) model, MIT, as converted by the
   whisper.cpp project
-- [OkHttp](https://square.github.io/okhttp/), Apache 2.0
+- [OkHttp](https://square.github.io/okhttp/), Apache 2.0, with the
+  [Public Suffix List](https://publicsuffix.org) inside it, Mozilla Public License 2.0
+- [NanoHTTPD](https://github.com/NanoHttpd/nanohttpd) 2.3.1 and its WebSocket part, for Desktop
+  Sync, BSD 3-Clause
 - AndroidX and Jetpack Compose, [MMD](https://github.com/mudita/MMD), Kotlin and kotlinx.coroutines, Apache 2.0
 - The [Lato](https://www.latofonts.com) typeface (inside MMD), SIL Open Font License 1.1, copyright 2010-2014 tyPoland Lukasz Dziedzic
 - Icons from [Material Symbols](https://fonts.google.com/icons), Apache 2.0

@@ -4,8 +4,8 @@
 build/
 local.properties
 
-signing/signing.properties
-signing/signing.keystore
+/signing/*
+!/signing/.gitignore
 .cxx/
 .kotlin/
 # The Whisper model is fetched and checked by hash, not committed: models/fetch.sh.
