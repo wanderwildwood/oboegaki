@@ -9,6 +9,8 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.wanderwildwood.oboegaki.MainActivity
+import com.wanderwildwood.oboegaki.notes.FolderShelf
+import com.wanderwildwood.oboegaki.notes.Note
 import com.wanderwildwood.oboegaki.notes.Notes
 import com.wanderwildwood.oboegaki.notes.isTrashPath
 import com.wanderwildwood.oboegaki.notes.Reminder
@@ -176,9 +178,17 @@ object Reminders {
             return@synchronized
         }
         val zone = ZoneId.systemDefault()
+        // A folder that cannot be read just now, a card out, a mount offline, its leave taken
+        // back, reads as an empty one; nothing in it is taken as gone while that is so.
+        val readable by lazy { shelf != null && (shelf !is FolderShelf || shelf.reachable()) }
         val texts = HashMap<String, String?>()
-        fun text(path: String) = texts.getOrPut(path) { runCatching { shelf?.read(path) }.getOrNull() }
-        val everyNote by lazy { runCatching { shelf?.list() }.getOrNull().orEmpty() }
+        // Notes whose reading went wrong, as against notes that are not there.
+        val unread = HashSet<String>()
+        fun text(path: String) = texts.getOrPut(path) {
+            runCatching { shelf?.read(path) }.onFailure { unread += path }.getOrNull()
+        }
+        // Null when the notes could not be listed.
+        val everyNote: List<Note>? by lazy { runCatching { shelf?.list() }.getOrNull() }
 
         val out = mutableListOf<Record>()
         var next: Long? = null
@@ -200,32 +210,35 @@ object Reminders {
                 }
                 if (item.task.fields.summary != rec.key) rec = rec.copy(key = item.task.fields.summary)
                 done = item.task.fields.done
-            } else if (shelf == null) {
+            } else if (shelf == null || !readable) {
                 // The notes cannot be read just now: their reminders are kept as they are.
                 out += r
                 continue
             } else if (isTrashPath(r.path)) {
-                // In the trash: silent, and kept for a restore while the note is still there.
+                // In the trash: silent, and kept for a restore while the note is still there,
+                // or while there is no telling.
                 Notifier.cancel(context, r.id)
-                if (text(r.path) != null) out += r
+                if (text(r.path) != null || r.path in unread || everyNote.isNullOrEmpty()) out += r
                 continue
             } else {
-                var found = text(r.path)?.let { findReminder(it, r.key, r.at) }
-                if (found == null) {
-                    // Renamed or moved somewhere else, perhaps on another device: the one note that
-                    // has this reminder, if only one does.
-                    val elsewhere = everyNote.filter { n -> findReminder(n.text, r.key, r.at) != null }
-                    if (elsewhere.size == 1 && records.none { it.path == elsewhere[0].path && it.key == r.key && it.at == r.at }) {
-                        rec = rec.copy(path = elsewhere[0].path)
-                        found = findReminder(elsewhere[0].text, r.key, r.at)
+                // Found in its note, or in the one note it was renamed or moved to, perhaps on
+                // another device; or taken off; or no telling, when the notes cannot be read.
+                when (val seen = look(r, records, text(r.path), r.path in unread) { everyNote }) {
+                    is Seen.Found -> {
+                        rec = seen.record
+                        done = seen.reminder.done
+                    }
+                    Seen.Gone -> {
+                        // Taken off, here or on another device, or the note is gone.
+                        Notifier.cancel(context, r.id)
+                        continue
+                    }
+                    Seen.Unknown -> {
+                        // Kept as it is, to be looked for again once the notes can be read.
+                        out += r
+                        continue
                     }
                 }
-                if (found == null) {
-                    // Taken off, here or on another device, or the note is gone.
-                    Notifier.cancel(context, r.id)
-                    continue
-                }
-                done = found.done
             }
             val at = reminderTime(rec.at)?.atZone(zone)?.toInstant()?.toEpochMilli()
             if (at == null) {

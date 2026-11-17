@@ -41,6 +41,41 @@ class RecordsTest {
         assertEquals(listOf("Shopping.md", "Other.md"), renamed.map { it.path })
     }
 
+    private val milk = Record(4, "Groceries.md", "milk", "2026-10-08 17:00")
+    private fun note(path: String, text: String) = com.wanderwildwood.oboegaki.notes.note(path, text, 0L)
+
+    @Test
+    fun aReminderInItsNoteIsFound() {
+        val seen = look(milk, listOf(milk), "- [ ] milk ⏰ 2026-10-08 17:00\n", false) { emptyList() }
+        assertEquals(milk, (seen as Seen.Found).record)
+        assertEquals("milk", seen.reminder.key)
+    }
+
+    @Test
+    fun aReminderIsKeptWhileItsNoteCannotBeRead() {
+        // Reading the note went wrong: a folder offline, its leave taken back.
+        assertEquals(Seen.Unknown, look(milk, listOf(milk), null, true) { listOf(note("Other.md", "words")) })
+        // The notes could not be listed at all.
+        assertEquals(Seen.Unknown, look(milk, listOf(milk), null, false) { null })
+        // A folder not yet mounted, or a server's copy being fetched afresh, lists as empty.
+        assertEquals(Seen.Unknown, look(milk, listOf(milk), null, false) { emptyList() })
+    }
+
+    @Test
+    fun aReminderIsLetGoOnlyWhenTheNotesWereReadAndItIsNotThere() {
+        // Its note is gone, and the others were read.
+        assertEquals(Seen.Gone, look(milk, listOf(milk), null, false) { listOf(note("Other.md", "words")) })
+        // Taken off its note.
+        val off = "- [ ] milk\n"
+        assertEquals(Seen.Gone, look(milk, listOf(milk), off, false) { listOf(note("Groceries.md", off)) })
+    }
+
+    @Test
+    fun aReminderFollowsItsNoteRenamedElsewhere() {
+        val seen = look(milk, listOf(milk), null, false) { listOf(note("Lists/Shopping.md", "- [ ] milk ⏰ 2026-10-08 17:00\n")) }
+        assertEquals("Lists/Shopping.md", (seen as Seen.Found).record.path)
+    }
+
     @Test
     fun recordsRoundTrip() {
         val had = listOf(Record(3, "Lists/Groceries.md", "milk\tand honey", "2026-10-08 17:00", 123L, 456L))

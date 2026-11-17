@@ -1,6 +1,8 @@
 package com.wanderwildwood.oboegaki.remind
 
+import com.wanderwildwood.oboegaki.notes.Note
 import com.wanderwildwood.oboegaki.notes.Reminder
+import com.wanderwildwood.oboegaki.notes.findReminder
 import com.wanderwildwood.oboegaki.notes.reminders
 
 /**
@@ -62,4 +64,40 @@ fun afterEdit(records: List<Record>, from: String, to: String, before: String, a
         }
     }
     return if (from == to) out else out.map { if (it.path == from) it.copy(path = to) else it }
+}
+
+/** What [Reminders.sync] makes of a note's reminder after looking for it in the notes. */
+sealed interface Seen {
+    /** There, in its note or in the one note it moved to: [record] says which. */
+    data class Found(val record: Record, val reminder: Reminder) : Seen
+
+    /** The notes were read and it is not in them: taken off, here or elsewhere, or its note is gone. */
+    data object Gone : Seen
+
+    /**
+     * The notes could not be read just now, so there is no telling: a folder offline or not yet
+     * mounted, its leave taken back, or the copy of a server's notes being fetched afresh. The
+     * reminder is kept as it is and looked for again next time.
+     */
+    data object Unknown : Seen
+}
+
+/**
+ * Looks for [r] in [text], its note as read just now (null when not there or not readable), and
+ * failing that in every note, for one renamed or moved elsewhere. [readFailed] is true when
+ * reading its note went wrong, rather than finding no such note. [everyNote] lists the notes,
+ * or gives null when they could not be listed. A listing with nothing in it while there are
+ * reminders to look for is taken as a folder that could not be read, not one emptied, so a
+ * reminder is let go of only when the notes were really read and it is not in them.
+ */
+fun look(r: Record, records: List<Record>, text: String?, readFailed: Boolean, everyNote: () -> List<Note>?): Seen {
+    text?.let { findReminder(it, r.key, r.at) }?.let { return Seen.Found(r, it) }
+    if (readFailed) return Seen.Unknown
+    val notes = everyNote()?.takeIf { it.isNotEmpty() } ?: return Seen.Unknown
+    val elsewhere = notes.filter { findReminder(it.text, r.key, r.at) != null }
+    if (elsewhere.size == 1 && records.none { it.path == elsewhere[0].path && it.key == r.key && it.at == r.at }) {
+        val moved = findReminder(elsewhere[0].text, r.key, r.at)
+        if (moved != null) return Seen.Found(r.copy(path = elsewhere[0].path), moved)
+    }
+    return Seen.Gone
 }
