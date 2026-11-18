@@ -75,7 +75,9 @@ class DesktopServer(
     init {
         // SO_REUSEADDR, and unbound: NanoHTTPD binds it itself. So a switch off and on again, or a
         // reset, can take the port back at once instead of waiting out the old socket.
-        setServerSocketFactory { java.net.ServerSocket().apply { reuseAddress = true } }
+        // Each connection has REQUEST_TIMEOUT_MS to say something, so an idle or refused peer
+        // cannot hold one open; a paired page's WebSocket waits longer (see DesktopServerSocket).
+        setServerSocketFactory { DesktopServerSocket().apply { reuseAddress = true } }
         // A browser that is removed (or has gone unused for 30 days) is cut off at once, open page included.
         browsers.onRemoved = { gone ->
             sockets.toList().filter { it.browserId in gone }.forEach { s ->
@@ -85,8 +87,12 @@ class DesktopServer(
         }
     }
 
-    /** With "VPN only" on: this phone, Tailscale or a trusted VPN. With it off: still only private addresses. */
-    private fun peerAllowed(ip: String?) = if (vpnOnly()) Network.peerAllowed(ip, context) else isPrivatePeer(ip)
+    /**
+     * With "VPN only" on: this phone, Tailscale or a trusted VPN. With it off: still only private
+     * addresses. Either way 100.64/10 counts only while the phone itself is on Tailscale.
+     */
+    private fun peerAllowed(ip: String?) =
+        if (vpnOnly()) Network.peerAllowed(ip, context) else isPrivatePeer(ip, Network.onTailscale(context))
 
     // ------------------------------------------------------------------ push
 

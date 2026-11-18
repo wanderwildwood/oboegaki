@@ -168,15 +168,23 @@ private fun literalAddress(addr: String): InetAddress? {
 }
 
 /**
- * Whether a peer may talk to the server at all, with "VPN only" on: this phone itself, a
- * Tailscale address, or an address in the network of a VPN the phone has up ([vpnNets], already
- * stripped of any that overlap the Wi-Fi). Anything else, including something that is not an
- * address, is no.
+ * Whether this phone is on Tailscale now: one of its VPN interfaces ([vpnAddresses], read from
+ * VPN networks only) has an address in 100.64/10. The same range is the carrier's shared network
+ * on mobile data, so a peer there counts as Tailscale only while this is so.
  */
-fun isAllowedPeer(ip: String?, vpnNets: List<Subnet>): Boolean {
+fun onTailscale(vpnAddresses: List<Subnet>): Boolean =
+    vpnAddresses.any { it.address is Inet4Address && isTailscale(it.address.hostAddress.orEmpty()) }
+
+/**
+ * Whether a peer may talk to the server at all, with "VPN only" on: this phone itself, a
+ * Tailscale address while the phone is on Tailscale ([tailscaleUp]), or an address in the network
+ * of a VPN the phone has up ([vpnNets], already stripped of any that overlap the Wi-Fi). Anything
+ * else, including something that is not an address, is no.
+ */
+fun isAllowedPeer(ip: String?, vpnNets: List<Subnet>, tailscaleUp: Boolean = false): Boolean {
     val addr = ip?.substringBefore('%')?.lowercase() ?: return false
     if (addr == "127.0.0.1" || addr == "::1" || addr == "0:0:0:0:0:0:0:1") return true
-    if (isTailscale(addr)) return true
+    if (isTailscale(addr)) return tailscaleUp
     if (addr.startsWith("fd7a:115c:a1e0")) return true
     if (vpnNets.isEmpty()) return false
     val peer = literalAddress(addr) ?: return false
@@ -185,11 +193,12 @@ fun isAllowedPeer(ip: String?, vpnNets: List<Subnet>): Boolean {
 
 /**
  * Whether a peer is on a private network: this phone, 10/8, 172.16/12, 192.168/16, link-local
- * (169.254/16, fe80::/10), unique-local (fc00::/7) or Tailscale's 100.64/10. With "VPN only" off,
+ * (169.254/16, fe80::/10), unique-local (fc00::/7), or Tailscale's 100.64/10 while the phone is
+ * on Tailscale ([tailscaleUp]; without it that range is the carrier's). With "VPN only" off,
  * these are still the only peers let in, so a global IPv6 or cellular address never reaches the
  * server. Anything that is not an address is no.
  */
-fun isPrivatePeer(ip: String?): Boolean {
+fun isPrivatePeer(ip: String?, tailscaleUp: Boolean = false): Boolean {
     val addr = ip?.substringBefore('%')?.lowercase()?.trim() ?: return false
     // A literal only: a name made of hex letters and dots must never reach a DNS lookup.
     val v4 = Regex("^\\d{1,3}(\\.\\d{1,3}){3}$").matches(addr)
@@ -200,7 +209,7 @@ fun isPrivatePeer(ip: String?): Boolean {
         val a = bytes[0].toInt() and 0xFF
         val b = bytes[1].toInt() and 0xFF
         return a == 10 || a == 127 || (a == 172 && b in 16..31) || (a == 192 && b == 168) ||
-            (a == 169 && b == 254) || (a == 100 && b in 64..127)
+            (a == 169 && b == 254) || (tailscaleUp && a == 100 && b in 64..127)
     }
     if (bytes.size == 16) {
         val a = bytes[0].toInt() and 0xFF

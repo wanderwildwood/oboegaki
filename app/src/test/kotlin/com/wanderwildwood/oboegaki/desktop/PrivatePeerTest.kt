@@ -8,8 +8,18 @@ class PrivatePeerTest {
 
     @Test
     fun homeAndOfficeAddressesAreLetIn() {
-        for (ip in listOf("127.0.0.1", "10.1.2.3", "172.16.0.9", "172.31.255.1", "192.168.1.20", "169.254.3.4", "100.64.0.1", "100.127.1.1", "::1", "fe80::1", "fe80::abcd%wlan0", "fd12:3456::1", "fc00::5", "fd7a:115c:a1e0::1", "::ffff:192.168.1.5"))
+        for (ip in listOf("127.0.0.1", "10.1.2.3", "172.16.0.9", "172.31.255.1", "192.168.1.20", "169.254.3.4", "::1", "fe80::1", "fe80::abcd%wlan0", "fd12:3456::1", "fc00::5", "fd7a:115c:a1e0::1", "::ffff:192.168.1.5"))
             assertTrue(ip, isPrivatePeer(ip))
+    }
+
+    @Test
+    fun tailscalesRangeIsLetInOnlyWhileThePhoneIsOnTailscale() {
+        for (ip in listOf("100.64.0.1", "100.100.5.5", "100.127.1.1")) {
+            assertTrue(ip, isPrivatePeer(ip, tailscaleUp = true))
+            // Without it, the same range is the carrier's shared network on mobile data.
+            assertFalse(ip, isPrivatePeer(ip))
+        }
+        assertFalse(isPrivatePeer("100.128.0.1", tailscaleUp = true))
     }
 
     @Test

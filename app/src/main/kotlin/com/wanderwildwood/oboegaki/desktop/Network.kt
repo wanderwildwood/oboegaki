@@ -15,21 +15,34 @@ object Network {
 
     private const val CACHE_MS = 5_000L
 
-    @Volatile private var cached: Pair<Long, List<Subnet>>? = null
+    /** The VPN networks a peer may come from, and whether one of the phone's VPNs is Tailscale. */
+    private class Seen(val nets: List<Subnet>, val tailscale: Boolean)
 
-    /** The VPN networks a peer may come from, cached for a few seconds so a burst of requests asks once. */
-    fun vpnSubnets(context: Context): List<Subnet> {
+    @Volatile private var cached: Pair<Long, Seen>? = null
+
+    /** Read at most every few seconds, so a burst of requests asks once. */
+    private fun seen(context: Context): Seen {
         val now = android.os.SystemClock.elapsedRealtime()
-        cached?.let { (at, nets) -> if (now - at < CACHE_MS) return nets }
-        val nets = read(context)
-        cached = now to nets
-        return nets
+        cached?.let { (at, seen) -> if (now - at < CACHE_MS) return seen }
+        val seen = read(context)
+        cached = now to seen
+        return seen
     }
 
-    fun peerAllowed(ip: String?, context: Context): Boolean = isAllowedPeer(ip, vpnSubnets(context))
+    /** The VPN networks a peer may come from. */
+    fun vpnSubnets(context: Context): List<Subnet> = seen(context).nets
 
-    private fun read(context: Context): List<Subnet> {
-        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return emptyList()
+    /**
+     * Whether the phone is on Tailscale now: a VPN interface of its own holds an address in
+     * 100.64/10. Only then is that range taken for Tailscale; on mobile data without the VPN it is
+     * the carrier's shared network.
+     */
+    fun onTailscale(context: Context): Boolean = seen(context).tailscale
+
+    fun peerAllowed(ip: String?, context: Context): Boolean = seen(context).let { isAllowedPeer(ip, it.nets, it.tailscale) }
+
+    private fun read(context: Context): Seen {
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return Seen(emptyList(), false)
         return runCatching {
             fun subnetsOf(vpn: Boolean): List<Subnet> = cm.allNetworks
                 .filter { network ->
@@ -45,8 +58,9 @@ object Network {
                         if (addr.isLoopbackAddress || addr.isLinkLocalAddress) null else Subnet(addr, ia.networkPrefixLength.toInt())
                     }
                 }
-            trustedVpnNets(subnetsOf(vpn = true), subnetsOf(vpn = false))
-        }.getOrNull().orEmpty()
+            val vpn = subnetsOf(vpn = true)
+            Seen(trustedVpnNets(vpn, subnetsOf(vpn = false)), com.wanderwildwood.oboegaki.desktop.onTailscale(vpn))
+        }.getOrNull() ?: Seen(emptyList(), false)
     }
 
     private fun isPrivate(ip: String): Boolean =

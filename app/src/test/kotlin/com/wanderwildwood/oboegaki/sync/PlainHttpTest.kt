@@ -13,8 +13,21 @@ class PlainHttpTest {
 
     @Test
     fun httpOnAHomeOrVpnNetworkIsFine() {
-        for (a in listOf("http://192.168.1.5", "http://10.0.0.2:8080", "http://100.101.102.103", "http://nextcloud", "http://cloud.local", "http://box.lan", "http://pc.tail1234.ts.net", "http://localhost:8080"))
+        for (a in listOf("http://192.168.1.5", "http://10.0.0.2:8080", "http://nextcloud", "http://cloud.local", "http://box.lan", "http://pc.tail1234.ts.net", "http://localhost:8080"))
             assertTrue(a, LoginFlow.plainHttpAllowed(a))
+    }
+
+    @Test
+    fun httpToATailscaleAddressIsFineOnlyWhileThePhoneIsOnTailscale() {
+        assertTrue(LoginFlow.plainHttpAllowed("http://100.101.102.103", onTailscale = true))
+        assertFalse(LoginFlow.plainHttpAllowed("http://100.101.102.103", onTailscale = false))
+        assertFalse(LoginFlow.plainHttpAllowed("http://100.101.102.103"))
+        assertTrue(LoginFlow.plainHttpAllowed("http://192.168.1.5", onTailscale = false))
+    }
+
+    @Test(expected = Unreachable::class)
+    fun aSavedTailscaleServerWaitsForTailscaleRatherThanBeingRefused() {
+        WebDavRemote("http://100.101.102.103/", "ada", "app-password-for-tests", "Notes").list()
     }
 
     @Test

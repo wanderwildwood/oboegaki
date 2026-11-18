@@ -141,18 +141,42 @@ class VpnRangeTest {
     }
 
     @Test
-    fun tailscaleRangeIsLetIn() {
-        assertTrue(isAllowedPeer("100.64.0.1", emptyList()))
-        assertTrue(isAllowedPeer("100.100.5.5", emptyList()))
-        assertTrue(isAllowedPeer("100.127.255.255", emptyList()))
+    fun tailscaleRangeIsLetInWhileThePhoneIsOnTailscale() {
+        assertTrue(isAllowedPeer("100.64.0.1", emptyList(), tailscaleUp = true))
+        assertTrue(isAllowedPeer("100.100.5.5", emptyList(), tailscaleUp = true))
+        assertTrue(isAllowedPeer("100.127.255.255", emptyList(), tailscaleUp = true))
         assertTrue(isAllowedPeer("fd7a:115c:a1e0::1", emptyList()))
     }
 
     @Test
+    fun withoutTailscaleThatRangeIsTheCarriersAndRefused() {
+        assertFalse(isAllowedPeer("100.64.0.1", emptyList()))
+        assertFalse(isAllowedPeer("100.100.5.5", emptyList()))
+        assertFalse(isAllowedPeer("100.127.255.255", emptyList()))
+    }
+
+    @Test
     fun justOutsideTailscaleIsNot() {
-        assertFalse(isAllowedPeer("100.63.255.255", emptyList()))
-        assertFalse(isAllowedPeer("100.128.0.1", emptyList()))
-        assertFalse(isAllowedPeer("101.100.0.1", emptyList()))
+        assertFalse(isAllowedPeer("100.63.255.255", emptyList(), tailscaleUp = true))
+        assertFalse(isAllowedPeer("100.128.0.1", emptyList(), tailscaleUp = true))
+        assertFalse(isAllowedPeer("101.100.0.1", emptyList(), tailscaleUp = true))
+    }
+
+    @Test
+    fun thePhoneIsOnTailscaleOnlyWithAVpnAddressInItsRange() {
+        assertTrue(onTailscale(listOf(net("100.101.2.3", 32))))
+        assertTrue(onTailscale(listOf(net("10.8.0.2", 24), net("100.64.0.9", 32))))
+        assertFalse(onTailscale(listOf(net("10.8.0.2", 24))))
+        assertFalse(onTailscale(listOf(net("100.128.0.1", 32))))
+        assertFalse(onTailscale(listOf(net("fd7a:115c:a1e0::1", 128))))
+        assertFalse(onTailscale(emptyList()))
+    }
+
+    @Test
+    fun onlyTheWebSocketUpgradeLiftsTheReadLimit() {
+        assertTrue(isUpgradeHead("HTTP/1.1 101".toByteArray()))
+        assertFalse(isUpgradeHead("HTTP/1.1 200".toByteArray()))
+        assertFalse(isUpgradeHead("HTTP/1.1 10".toByteArray()))
     }
 
     @Test

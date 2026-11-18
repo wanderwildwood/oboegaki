@@ -83,7 +83,7 @@ class DesktopService : Service() {
             vpnOnly = { preferences.desktopVpnOnly },
             page = { html ?: "" },
         )
-        val failed = if (html == null) getString(R.string.desktop_failed_page) else runCatching { next.start(0, false) }.exceptionOrNull()
+        val failed = if (html == null) getString(R.string.desktop_failed_page) else runCatching { next.start(REQUEST_TIMEOUT_MS, false) }.exceptionOrNull()
             ?.let { it.message?.takeIf(String::isNotBlank) ?: it.javaClass.simpleName }
         if (failed != null) {
             Log.w(TAG, "the server could not start")

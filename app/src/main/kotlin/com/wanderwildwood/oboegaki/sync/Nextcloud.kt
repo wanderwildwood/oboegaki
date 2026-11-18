@@ -28,10 +28,14 @@ internal const val AGENT = "Notes (oboegaki)"
 /**
  * Throws [PlainHttpRefused] for a plain http [url] out on the internet, before anything carrying
  * the password is built for it: a server saved that way by an older version is kept, with its
- * password, but nothing is sent to it until its address is changed to https.
+ * password, but nothing is sent to it until its address is changed to https. A Tailscale
+ * address while the phone is not on Tailscale is [Unreachable] instead: nothing is sent to it,
+ * and it is asked again once Tailscale is on.
  */
 internal fun refusePlainHttp(url: String) {
-    if (!LoginFlow.plainHttpAllowed(url)) throw PlainHttpRefused()
+    if (LoginFlow.plainHttpAllowed(url)) return
+    if (LoginFlow.plainHttpAllowed(url, onTailscale = true)) throw Unreachable("not on Tailscale")
+    throw PlainHttpRefused()
 }
 
 /** The notes folder on a Nextcloud: WebDAV, under the user's own files. */
@@ -106,16 +110,25 @@ object LoginFlow {
     }
 
     /**
-     * Whether [address] may be used: any https one, or an http one whose host is on a home or VPN
-     * network (a private or Tailscale address, "localhost", a name with no dots, or one ending
-     * .local, .lan, .home.arpa, .internal or .ts.net). Plain http to a public host would send the
-     * login in the clear across the internet.
+     * Whether the phone is on Tailscale now. Set by the app at start; until then, and in tests,
+     * no. Only then is a 100.64/10 address taken for Tailscale: without the VPN that range is the
+     * carrier's shared network on mobile data.
      */
-    fun plainHttpAllowed(address: String): Boolean {
+    @Volatile var tailscaleUp: () -> Boolean = { false }
+
+    /**
+     * Whether [address] may be used: any https one, or an http one whose host is on a home or VPN
+     * network (a private address, a Tailscale one while the phone is on Tailscale, "localhost", a
+     * name with no dots, or one ending .local, .lan, .home.arpa, .internal or .ts.net). Plain http
+     * to a public host would send the login in the clear across the internet.
+     */
+    fun plainHttpAllowed(address: String): Boolean = plainHttpAllowed(address, runCatching { tailscaleUp() }.getOrDefault(false))
+
+    fun plainHttpAllowed(address: String, onTailscale: Boolean): Boolean {
         if (address.startsWith("https://")) return true
         val host = address.toHttpUrlOrNull()?.host?.lowercase() ?: return false
         if (host.contains(':') || host.matches(Regex("^\\d{1,3}(\\.\\d{1,3}){3}$"))) {
-            return com.wanderwildwood.oboegaki.desktop.isPrivatePeer(host)
+            return com.wanderwildwood.oboegaki.desktop.isPrivatePeer(host, onTailscale)
         }
         return !host.contains('.') || listOf(".local", ".lan", ".home.arpa", ".internal", ".ts.net").any { host.endsWith(it) }
     }
