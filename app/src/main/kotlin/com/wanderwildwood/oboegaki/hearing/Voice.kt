@@ -48,6 +48,8 @@ object Voice {
     val failed: StateFlow<Boolean> = _failed
 
     private var recorder: Recorder? = null
+    /** The sound being recorded now, left alone by [retryPending] until it is finished. */
+    @Volatile private var under: File? = null
     private lateinit var app: Context
     private val worker = Executors.newSingleThreadExecutor { Thread(it, "voice") }
 
@@ -92,7 +94,18 @@ object Voice {
             onSecond = { _recording.value = it },
             onFinished = { file, ok -> worker.execute { keep(file, ok) } },
         )
+        // Marked from the start: a recording cut short by the app being killed or the phone
+        // switched off is found and kept the next time the app opens, not left as a sound
+        // nothing knows about. [keep] writes the marker again with the answer given.
+        val marker = File(dir, "${wav.nameWithoutExtension}.pending")
+        under = wav
+        runCatching {
+            dir.mkdirs()
+            marker.writeText("1")
+        }
         if (!r.start(wav, context.getSystemService(android.media.AudioManager::class.java))) {
+            under = null
+            marker.delete()
             _failed.value = true
             return false
         }
@@ -124,24 +137,36 @@ object Voice {
     private fun keep(wav: File, ok: Boolean) {
         _recording.value = null
         recorder = null
+        under = null
+        val marker = File(dir, "${wav.nameWithoutExtension}.pending")
         if (!ok && (!wav.exists() || Wav.seconds(wav.length(), Wav.rateOf(wav)) < 1)) {
             wav.delete()
+            marker.delete()
             _failed.value = true
             return
         }
         // Marked first: a recording that cannot be made into a note just now (no folder to
         // keep it in, a write refused) is tried again the next time the app opens, not left
         // as a sound nothing knows about.
-        val marker = File(dir, "${wav.nameWithoutExtension}.pending")
         runCatching { marker.writeText(if (writeDown) "1" else "0") }
         store(wav, writeDown, open = true)
     }
 
     /** Recordings marked and not yet kept as notes, kept now if they can be. On the worker. */
     private fun retryPending() {
+        val now = under
         dir.listFiles { f -> f.name.endsWith(".pending") }?.sortedBy { it.name }?.forEach { marker ->
             val wav = File(dir, marker.name.removeSuffix(".pending") + ".wav")
+            // Still being recorded: kept when it ends.
+            if (now != null && wav.name == now.name) return@forEach
             if (!wav.exists()) {
+                marker.delete()
+                return@forEach
+            }
+            // Cut short while it was recorded, its header still says nothing of its length.
+            runCatching { Wav.repair(wav, if (full(app)) Wav.FULL_RATE else Wav.RATE) }
+            if (Wav.seconds(wav.length(), runCatching { Wav.rateOf(wav) }.getOrDefault(Wav.RATE)) < 1) {
+                wav.delete()
                 marker.delete()
                 return@forEach
             }

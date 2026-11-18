@@ -69,11 +69,15 @@ class Recorder(
         val bytes = ByteArray(rate * 2)
         var seconds = 0
         var ok = true
-        into.parentFile?.mkdirs()
-        val out = RandomAccessFile(into, "rw")
+        var out: RandomAccessFile? = null
         try {
-            out.setLength(0)
-            out.write(ByteArray(Wav.HEADER))
+            into.parentFile?.mkdirs()
+            val file = RandomAccessFile(into, "rw")
+            out = file
+            file.setLength(0)
+            // The rate written at once, so a recording cut short (the app killed, the phone
+            // switched off) can have its sizes put right from its length when it is found.
+            file.write(Wav.header(0, rate))
             record.startRecording()
             var listening = true
             while (running) {
@@ -95,19 +99,27 @@ class Recorder(
                     bytes[i * 2] = (s and 0xff).toByte()
                     bytes[i * 2 + 1] = (s shr 8 and 0xff).toByte()
                 }
-                out.write(bytes, 0, filled * 2)
+                file.write(bytes, 0, filled * 2)
                 seconds++
                 onSecond(seconds)
                 if (seconds >= LONGEST) running = false
             }
+        } catch (e: Throwable) {
+            // A full phone, say: what was written so far is kept, and the recording ends here
+            // instead of taking the app down before it could be kept.
+            ok = false
         } finally {
             // Released in a finally, or a failed read leaves the microphone held and the
             // next press finds it busy.
             runCatching { record.stop() }
-            record.release()
-            out.seek(0)
-            out.write(Wav.header(out.length() - Wav.HEADER, rate))
-            out.close()
+            runCatching { record.release() }
+            out?.let { file ->
+                runCatching {
+                    file.seek(0)
+                    file.write(Wav.header((file.length() - Wav.HEADER).coerceAtLeast(0), rate))
+                }
+                runCatching { file.close() }
+            }
             running = false
             onFinished(into, ok)
         }

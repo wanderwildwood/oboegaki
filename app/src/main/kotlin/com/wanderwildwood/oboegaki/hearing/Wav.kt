@@ -30,6 +30,23 @@ object Wav {
         ByteBuffer.wrap(b).order(ByteOrder.LITTLE_ENDIAN).int
     }
 
+    /**
+     * Puts right the header of a file this app was still writing when it stopped (the app
+     * killed, the phone switched off): the sizes from the file's length, and the rate from the
+     * header, or [rate] when the header holds none this app writes. True if it was changed.
+     */
+    fun repair(file: java.io.File, rate: Int = RATE): Boolean = java.io.RandomAccessFile(file, "rw").use { f ->
+        val length = f.length()
+        if (length < HEADER) return false
+        val head = ByteArray(HEADER).also { f.readFully(it) }
+        val written = ByteBuffer.wrap(head).order(ByteOrder.LITTLE_ENDIAN).getInt(24)
+        val right = header(length - HEADER, if (written == RATE || written == FULL_RATE) written else rate)
+        if (right.contentEquals(head)) return false
+        f.seek(0)
+        f.write(right)
+        true
+    }
+
     /** Whole seconds of sound in a file of [fileBytes] at [rate], as this app writes them. */
     fun seconds(fileBytes: Long, rate: Int = RATE): Int = ((fileBytes - HEADER).coerceAtLeast(0) / (rate * 2)).toInt()
 

@@ -26,6 +26,36 @@ class WavTest {
         assertEquals(90, Wav.seconds(44L + 90 * 32_000))
     }
 
+    @Test
+    fun aRecordingCutShortHasItsSizesPutRight() {
+        val f = java.io.File.createTempFile("cut", ".wav")
+        try {
+            // As the recorder starts a file: the rate, and no length yet; then two seconds.
+            f.writeBytes(Wav.header(0, Wav.FULL_RATE) + ByteArray(2 * Wav.FULL_RATE * 2))
+            assertEquals(0, Wav.samples(f.readBytes()).size)
+            assert(Wav.repair(f))
+            assertEquals(Wav.FULL_RATE, Wav.rateOf(f))
+            assertEquals(2 * 16_000, Wav.samples(f.readBytes()).size)
+            assert(!Wav.repair(f))
+        } finally {
+            f.delete()
+        }
+    }
+
+    @Test
+    fun aHeaderWithNoRateTakesTheOneGiven() {
+        val f = java.io.File.createTempFile("cut", ".wav")
+        try {
+            f.writeBytes(ByteArray(Wav.HEADER + 32_000))
+            assert(Wav.repair(f, Wav.RATE))
+            assertEquals(Wav.RATE, Wav.rateOf(f))
+            assertEquals(1, Wav.seconds(f.length(), Wav.rateOf(f)))
+            assertEquals(16_000, Wav.samples(f.readBytes()).size)
+        } finally {
+            f.delete()
+        }
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun anyOtherFormatIsRefused() {
         val bytes = file(shortArrayOf(1, 2))
