@@ -69,6 +69,21 @@ sealed interface Moving {
     data class Done(val failed: Int) : Moving
 }
 
+/**
+ * [now] with [text] as a paragraph under its line [after]; [now] as it is when the text is
+ * there already; null when no line of it is [after], so the words are not for this note. A
+ * short phrase that happens to be in some other note does not count as there.
+ */
+internal fun withUnder(now: String, after: String, text: String): String? {
+    val lines = now.split('\n').toMutableList()
+    val at = lines.indexOfFirst { it.trim() == after }
+    if (at < 0) return null
+    if (text in now) return now
+    lines.add(at + 1, "")
+    lines.add(at + 2, text)
+    return lines.joinToString("\n")
+}
+
 /** The most of a picture shared in that is read: far over any camera's photo, short of filling the memory. */
 private const val SHARED_PICTURE_BYTES = 48 * 1024 * 1024
 
@@ -855,20 +870,16 @@ object Notes {
      */
     fun addUnder(path: String, after: String, text: String): Boolean {
         val shelf = shelf() ?: return false
-        val done = synchronized(notesLock) {
-            fun into(p: String): Boolean {
-                val now = shelf.read(p) ?: return false
-                if (text in now) return true
-                val lines = now.split('\n').toMutableList()
-                val at = lines.indexOfFirst { it.trim() == after }
-                if (at < 0) return false
-                lines.add(at + 1, "")
-                lines.add(at + 2, text)
-                shelf.write(p, lines.joinToString("\n"))
-                return true
-            }
-            into(path) || shelf.list().asSequence().map { it.path }.filter { it != path }.any { into(it) }
+        // Each note read and written under the lock, the looking through all of them not.
+        fun into(p: String): Boolean = synchronized(notesLock) {
+            val now = shelf.read(p) ?: return@synchronized false
+            val next = withUnder(now, after, text) ?: return@synchronized false
+            if (next != now) shelf.write(p, next)
+            true
         }
+        val done = into(path) || runCatching { shelf.list() }.getOrDefault(emptyList()).asSequence()
+            .filter { n -> n.path != path && n.text.split('\n').any { it.trim() == after } }
+            .any { into(it.path) }
         if (done) _changed.value++
         return done
     }
