@@ -100,11 +100,11 @@ fun RecordScreen(seconds: Int?, paused: Boolean, onStop: () -> Unit) {
 /**
  * Before recording, when another app asked for one: nothing is heard until the reader presses
  * Start. Only the app's own Record shortcut starts the microphone at once. Back goes to the list.
+ * Whether it is written down is asked on the recording screen, which is read when it ends.
  */
 @Composable
 fun RecordStartScreen(onStart: () -> Unit, onBack: () -> Unit) {
     BackHandler(onBack = onBack)
-    var writeDown by remember { mutableStateOf(Voice.writeDown) }
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -112,23 +112,6 @@ fun RecordStartScreen(onStart: () -> Unit, onBack: () -> Unit) {
     ) {
         TextMMD(text = stringResource(R.string.record_label), style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.height(32.dp))
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .semantics { role = Role.Switch; toggleableState = ToggleableState(writeDown) }
-                .clickable {
-                    writeDown = !writeDown
-                    Voice.writeDown = writeDown
-                }
-                .heightIn(min = 48.dp)
-                .padding(vertical = 10.dp),
-        ) {
-            TextMMD(text = stringResource(R.string.record_write_down), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-            Spacer(Modifier.width(12.dp))
-            SwitchMMD(checked = writeDown, onCheckedChange = null)
-        }
-        Spacer(Modifier.height(20.dp))
         ButtonMMD(onClick = onStart, modifier = Modifier.fillMaxWidth().height(64.dp)) {
             Icon(Icons.Mic, contentDescription = null, modifier = Modifier.size(24.dp))
             Spacer(Modifier.size(10.dp))
