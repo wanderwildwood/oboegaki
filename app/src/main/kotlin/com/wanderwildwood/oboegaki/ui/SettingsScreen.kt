@@ -512,6 +512,8 @@ private fun syncValue(sync: SyncState, last: Long): String = when (sync) {
     SyncState.SignedOut -> stringResource(R.string.sync_signed_out)
     SyncState.PlainHttp -> stringResource(R.string.sync_plain_http)
     is SyncState.Failed -> stringResource(R.string.sync_failed, sync.why)
+    SyncState.ServerFolderEmpty -> stringResource(R.string.sync_server_folder_empty)
+    SyncState.PathRefused -> stringResource(R.string.sync_path_refused)
     SyncState.Idle -> if (last == 0L) {
         stringResource(R.string.settings_never_synced)
     } else {

@@ -10,6 +10,8 @@ import com.wanderwildwood.oboegaki.sync.WebDavRemote
 import com.wanderwildwood.oboegaki.sync.nextcloudRemote
 import com.wanderwildwood.oboegaki.sync.PlainHttpRefused
 import com.wanderwildwood.oboegaki.sync.Refused
+import com.wanderwildwood.oboegaki.sync.PathRefused
+import com.wanderwildwood.oboegaki.sync.ServerFolderEmpty
 import com.wanderwildwood.oboegaki.glance.GlanceProvider
 import com.wanderwildwood.oboegaki.remind.Reminders
 import com.wanderwildwood.oboegaki.tasks.Tasks
@@ -47,6 +49,10 @@ sealed interface SyncState {
     /** The server refused the app password: it was revoked, or the account changed. */
     data object SignedOut : SyncState
     data class Failed(val why: String) : SyncState
+    /** Notes synced before and the server's folder empty now: nothing here was deleted for it. */
+    data object ServerFolderEmpty : SyncState
+    /** The server named a file outside the notes folder, and it was not written. */
+    data object PathRefused : SyncState
     /** The server's address is plain http out on the internet: nothing is sent until it is https. */
     data object PlainHttp : SyncState
 }
@@ -310,6 +316,10 @@ object Notes {
             _sync.value = SyncState.Unreachable
         } catch (_: Refused) {
             _sync.value = SyncState.SignedOut
+        } catch (_: ServerFolderEmpty) {
+            _sync.value = SyncState.ServerFolderEmpty
+        } catch (_: PathRefused) {
+            _sync.value = SyncState.PathRefused
         } catch (e: Exception) {
             _sync.value = SyncState.Failed(e.message ?: e.javaClass.simpleName)
         } finally {

@@ -96,7 +96,7 @@ class Sync(
         // Several notes synced before and none there now is a folder gone or emptied on the
         // server (or made again, empty), not every note deleted: nothing here is touched for it.
         if (state.size >= 3 && there.isEmpty()) {
-            throw java.io.IOException("the notes folder on the server is empty, so nothing here was deleted")
+            throw ServerFolderEmpty()
         }
         val here = localPaths()
         var sent = 0
@@ -483,7 +483,7 @@ class Sync(
 
     /** [root]/[path], refused when it would land outside [root]: nothing is written there. */
     private fun outsideRefused(root: File, path: String): File =
-        inside(root, path) ?: throw java.io.IOException("A path outside the notes folder was refused")
+        inside(root, path) ?: throw PathRefused()
 
     private fun readState(): Map<String, String> {
         if (!stateFile.isFile) return emptyMap()
@@ -502,6 +502,12 @@ class Sync(
         temp.renameTo(stateFile)
     }
 }
+
+/** Several notes synced before and none in the server's folder now: nothing here was touched for it. */
+class ServerFolderEmpty : java.io.IOException("the notes folder on the server is empty")
+
+/** The server named a file outside the notes folder: it was not written. */
+class PathRefused : java.io.IOException("a path outside the notes folder")
 
 /** Where the moves waiting for the sync that keeps [stateFile] are noted. */
 fun movesFileFor(stateFile: File) = File(stateFile.parentFile, stateFile.name + ".moves")

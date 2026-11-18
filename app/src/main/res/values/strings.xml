@@ -76,6 +76,8 @@
     <string name="sync_plain_http">Not synced: the server\'s address starts with http:// and is out on the internet, so your password would travel unprotected. Change it to an https:// address in settings. Nothing here was lost.</string>
     <!-- %1$s is whatever the server or the network said -->
     <string name="sync_failed">The last sync stopped partway: %1$s</string>
+    <string name="sync_server_folder_empty">Not synced: the notes folder on the server is empty, though notes here came from it, so nothing here was deleted.</string>
+    <string name="sync_path_refused">Not synced: the server named a file outside the notes folder, so it was not written. Nothing here was lost.</string>
     <!-- Added after the sync line when a sign-out, a new folder or a new server was held back for it -->
     <string name="sync_held">So the notes here were not let go: sign out or change the folder again once a sync goes through, or move them to a folder on this phone in Settings.</string>
 
