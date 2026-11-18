@@ -63,6 +63,9 @@ sealed interface Moving {
     data class Done(val failed: Int) : Moving
 }
 
+/** The most of a picture shared in that is read: far over any camera's photo, short of filling the memory. */
+private const val SHARED_PICTURE_BYTES = 48 * 1024 * 1024
+
 /**
  * The notes, wherever they are kept, and the one place the screens go to change them.
  *
@@ -774,7 +777,18 @@ object Notes {
 
     private fun pictureBytes(uri: Uri): Pair<ByteArray, String> {
         val resolver = appContext.contentResolver
-        val bytes = resolver.openInputStream(uri)!!.use { it.readBytes() }
+        // Read no further than a picture could be, so a stream without end cannot fill the memory.
+        val bytes = resolver.openInputStream(uri)!!.use { input ->
+            val out = ByteArrayOutputStream()
+            val buffer = ByteArray(64 * 1024)
+            while (true) {
+                val n = input.read(buffer)
+                if (n < 0) break
+                out.write(buffer, 0, n)
+                if (out.size() > SHARED_PICTURE_BYTES) error("too large")
+            }
+            out.toByteArray()
+        }
         val ext = when (resolver.getType(uri)?.lowercase()) {
             "image/jpeg", "image/jpg" -> "jpg"
             "image/png" -> "png"

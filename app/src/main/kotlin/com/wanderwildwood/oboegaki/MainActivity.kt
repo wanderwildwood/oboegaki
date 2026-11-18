@@ -239,7 +239,8 @@ class MainActivity : ComponentActivity() {
             val clip = intent.clipData
             if (clip != null) for (i in 0 until clip.itemCount) clip.getItemAt(i).uri?.let { out += it }
         }
-        return out.distinct()
+        // As for a file to view: another app's content, never a file path or this app's own providers.
+        return out.distinct().filter { it.scheme == "content" && it.authority?.startsWith(packageName) != true }
     }
 }
 
