@@ -395,7 +395,8 @@ object Notes {
         when (place) {
             Keeping.NEXTCLOUD -> {
                 preferences.account = null
-                // Its task lists are its own; the ones kept on this phone stay.
+                // Its task lists are its own; the ones kept on this phone stay, and so does any
+                // task the last sync could not send, moved into the phone's list.
                 Tasks.init(appContext)
                 Tasks.forgetServer()
             }

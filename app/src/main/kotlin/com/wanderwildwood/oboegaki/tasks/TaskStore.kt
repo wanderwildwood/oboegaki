@@ -195,6 +195,21 @@ class TaskStore(private val root: File) {
         item(to, newName)
     }
 
+    /**
+     * Every task in a server list that was added or changed here and has not gone up yet, moved
+     * into the list kept on this phone, so letting go of the server does not lose it. A delete
+     * that has not gone up is not kept: the server still has that task. Returns how many moved.
+     */
+    fun keepUnsentOnPhone(phoneName: String): Int = synchronized(lock) {
+        var moved = 0
+        for (l in lists().filter { !it.onPhone }) {
+            for (e in entries(l.id).filter { it.dirty && !it.deleted }) {
+                if (move(l.id, e.name, phoneList(phoneName).id) != null) moved++
+            }
+        }
+        moved
+    }
+
     // ---------------------------------------------------------------- what the sync writes
 
     /** The server's copy taken as it is, here and as the base. */

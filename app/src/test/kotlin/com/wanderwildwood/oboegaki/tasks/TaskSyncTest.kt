@@ -267,4 +267,32 @@ class TaskSyncTest {
         assertEquals(2, store.items(list).size)
         assertNull(store.find("nobody"))
     }
+
+    @Test
+    fun lettingGoOfTheServerKeepsWhatHasNotGoneUpOnThePhone() {
+        server.write("/dav/calendars/ada/personal/web-1.ics", withExtras)
+        sync()
+        val sent = store.items(list).single()
+        store.add(list, Fields("Call Tomas"), t0, uid = "off-1")
+        store.add(list, Fields("Seed order"), t0, uid = "off-2")
+        store.edit(list, sent.name, sent.task.fields.copy(done = true), t0)
+        store.delete(list, store.items(list).first { it.task.uid == "off-2" }.name)
+
+        assertEquals(2, store.keepUnsentOnPhone("On this phone"))
+        for (l in store.lists().filter { !it.onPhone }) store.dropList(l.id)
+
+        val kept = store.items(PHONE)
+        assertEquals(setOf("Call Tomas", "Feed the llamas"), kept.map { it.task.fields.summary }.toSet())
+        assertTrue(kept.first { it.task.uid == "web-1" }.task.fields.done)
+        assertTrue(store.lists().all { it.onPhone })
+    }
+
+    @Test
+    fun lettingGoAfterAGoodSyncKeepsNothingBack() {
+        sync()
+        store.add(list, Fields("Call Tomas"), t0, uid = "phone-1")
+        sync()
+        assertEquals(0, store.keepUnsentOnPhone("On this phone"))
+        assertTrue(store.items(PHONE).isEmpty())
+    }
 }

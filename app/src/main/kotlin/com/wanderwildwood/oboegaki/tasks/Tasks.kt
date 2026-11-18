@@ -162,8 +162,13 @@ object Tasks {
         else -> Times.whenShort(appContext, at)
     }
 
-    /** Stop syncing tasks with a server this phone no longer signs in to; the server keeps them. */
+    /**
+     * Stop syncing tasks with a server this phone no longer signs in to; the server keeps them.
+     * A task added or changed here that the last sync could not send stays, in the list kept on
+     * this phone.
+     */
     fun forgetServer() {
+        store.keepUnsentOnPhone(appContext.getString(R.string.tasks_on_phone))
         for (l in store.lists().filter { !it.onPhone }) store.dropList(l.id)
         _sync.value = SyncState.Idle
         reload()
