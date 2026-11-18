@@ -1,7 +1,7 @@
 # Desktop Sync (design)
 
 An HTTP + WebSocket server that runs inside Notes, on the phone, and serves its own web page
-to a browser on a computer. No cloud, no relay. It is modelled on Messaging's Desktop Sync and
+to a browser on a computer. No cloud, no relay. It is modeled on Messaging's Desktop Sync and
 keeps its access rules; the code is Notes' own copy (NanoHTTPD, BSD-3-Clause, is the one library
 added).
 
