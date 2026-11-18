@@ -250,6 +250,7 @@
     <string name="cd_record">Record a voice note</string>
     <string name="record_title">Recording</string>
     <string name="record_stop">Stop</string>
+    <string name="record_start">Start recording</string>
     <string name="record_paused">Paused</string>
     <string name="record_pause">Pause</string>
     <string name="record_resume">Go on recording</string>

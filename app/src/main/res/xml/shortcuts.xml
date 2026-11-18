@@ -16,7 +16,7 @@
         <intent
             android:action="com.wanderwildwood.oboegaki.RECORD"
             android:targetPackage="com.wanderwildwood.oboegaki"
-            android:targetClass="com.wanderwildwood.oboegaki.MainActivity" />
+            android:targetClass="com.wanderwildwood.oboegaki.RecordShortcut" />
     </shortcut>
     <shortcut
         android:shortcutId="tasks"

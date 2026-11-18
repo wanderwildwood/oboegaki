@@ -54,6 +54,7 @@ import com.wanderwildwood.oboegaki.ui.NoteScreen
 import com.wanderwildwood.oboegaki.ui.SettingsScreen
 import com.wanderwildwood.oboegaki.ui.ShareScreen
 import com.wanderwildwood.oboegaki.ui.RecordScreen
+import com.wanderwildwood.oboegaki.ui.RecordStartScreen
 import com.wanderwildwood.oboegaki.ui.ScanScreen
 import com.wanderwildwood.oboegaki.ui.OutsideScreen
 import com.wanderwildwood.oboegaki.hearing.RecordService
@@ -78,7 +79,10 @@ import com.wanderwildwood.oboegaki.ui.ArmedScope
 data class Capture(
     val title: String,
     val text: String,
+    /** Record at once: from the app's own Record shortcut only. */
     val record: Boolean = false,
+    /** Record, asked for by another app: the Start screen, nothing heard until it is pressed. */
+    val askRecord: Boolean = false,
     val open: Uri? = null,
     /** Pictures shared in, to become a note that shows them or a scan. */
     val pictures: List<Uri> = emptyList(),
@@ -97,6 +101,8 @@ private sealed interface Screen {
     data object WebDav : Screen
     data object Obsidian : Screen
     data object Recording : Screen
+    /** A recording another app asked for, waiting for Start. */
+    data object RecordStart : Screen
     /** [pictures]: shared in to be scanned, one page each, rather than photographed. */
     data class Scan(val pictures: kotlin.collections.List<Uri> = emptyList()) : Screen
     data class Outside(val uri: Uri) : Screen
@@ -110,6 +116,16 @@ private sealed interface Screen {
 private const val NEW_NOTE = "com.wanderwildwood.oboegaki.NEW_NOTE"
 private const val RECORD = "com.wanderwildwood.oboegaki.RECORD"
 private const val TASKS = "com.wanderwildwood.oboegaki.TASKS"
+
+/** The Record shortcut's activity-alias (AndroidManifest.xml), which no other app can start. */
+const val RECORD_SHORTCUT = "com.wanderwildwood.oboegaki.RecordShortcut"
+
+/**
+ * Whether a Record intent that reached [component] starts the microphone at once. Only through
+ * the shortcut's alias: MainActivity is open to every app, so a Record sent there by name
+ * waits for the reader's Start.
+ */
+fun recordsAtOnce(component: String?): Boolean = component == RECORD_SHORTCUT
 
 class MainActivity : ComponentActivity() {
 
@@ -203,7 +219,8 @@ class MainActivity : ComponentActivity() {
             // A reminder's calendar event, opened in Memo from Datebook: its note, or the list if it is gone.
             intent.action == CalendarContract.ACTION_HANDLE_CUSTOM_EVENT -> NoteLink.path(intent)?.let { Capture("", "", note = it) }
             intent.action == NEW_NOTE -> Capture("", "")
-            intent.action == RECORD -> Capture("", "", record = true)
+            intent.action == RECORD ->
+                if (recordsAtOnce(intent.component?.className)) Capture("", "", record = true) else Capture("", "", askRecord = true)
             intent.action == TASKS -> Capture("", "", tasks = true)
             // A file another app hands over, never a path into this app's own storage or providers.
             intent.action == Intent.ACTION_VIEW && intent.data?.scheme == "content" &&
@@ -346,6 +363,9 @@ private fun App(capture: MutableState<Capture?>) {
         } else if (pending != null && pending.record && keeping != Keeping.NOWHERE) {
             capture.value = null
             recordAsking()
+        } else if (pending != null && pending.askRecord && keeping != Keeping.NOWHERE) {
+            capture.value = null
+            screen = if (Voice.recording.value != null) Screen.Recording else Screen.RecordStart
         } else if (pending != null && keeping != Keeping.NOWHERE) {
             capture.value = null
             screen = Screen.Note(
@@ -453,6 +473,10 @@ private fun App(capture: MutableState<Capture?>) {
                     path != null
                 },
                 onCancel = { screen = Screen.List },
+            )
+            Screen.RecordStart -> RecordStartScreen(
+                onStart = { recordAsking() },
+                onBack = { screen = Screen.List },
             )
             Screen.Recording -> RecordScreen(
                 seconds = recordingSeconds,
