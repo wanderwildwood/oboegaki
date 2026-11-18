@@ -119,7 +119,7 @@ class FileShelf(
         }
     }
 
-    override fun exists(path: String): Boolean = File(root, path).isFile
+    override fun exists(path: String): Boolean = inside(root, path)?.isFile == true
 
     override fun move(from: String, to: String) = rename(from, to)
 
@@ -134,7 +134,9 @@ class FileShelf(
         }
     }
 
-    override fun uriOf(path: String): Uri? = File(root, path).takeIf { it.isFile }?.let(address)
+    // A note's embed names a file beside it; one that climbs out of the folder is not there.
+    override fun uriOf(path: String): Uri? =
+        inside(root, path)?.takeIf { it.isFile }?.let { runCatching { address(it) }.getOrNull() }
 
     override fun files(): List<String> = synchronized(notesLock) {
         root.walkTopDown()

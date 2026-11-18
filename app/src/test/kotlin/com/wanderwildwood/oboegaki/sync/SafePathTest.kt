@@ -52,4 +52,12 @@ class SafePathTest {
         shelf.write("kept.md", "yes")
         assertEquals("yes", shelf.read("kept.md"))
     }
+
+    @Test fun theShelfOffersNoFileOutsideItsFolderToOpen() {
+        val root = tmp.newFolder("own")
+        File(tmp.root, "other.pdf").writeText("someone else's")
+        val shelf = FileShelf(root, address = { error("asked for $it") })
+        assertNull(shelf.uriOf("../other.pdf"))
+        assertFalse(shelf.exists("../other.pdf"))
+    }
 }
