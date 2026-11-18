@@ -154,11 +154,11 @@ object Voice {
 
     /** Recordings marked and not yet kept as notes, kept now if they can be. On the worker. */
     private fun retryPending() {
-        val now = under
         dir.listFiles { f -> f.name.endsWith(".pending") }?.sortedBy { it.name }?.forEach { marker ->
             val wav = File(dir, marker.name.removeSuffix(".pending") + ".wav")
-            // Still being recorded: kept when it ends.
-            if (now != null && wav.name == now.name) return@forEach
+            // Still being recorded: kept when it ends. Asked for each one, as it comes: a
+            // recording begun since the folder was looked through is marked as it begins.
+            if (stillRecording(wav, under, System.currentTimeMillis())) return@forEach
             if (!wav.exists()) {
                 marker.delete()
                 return@forEach
@@ -287,3 +287,15 @@ object Voice {
     /** "2026-10-05 0214": the date and the minute, as voice notes have always been titled. */
     private const val TITLE_STAMP = 15
 }
+
+/**
+ * Whether [wav] may still be in the making: the recording under way ([under]), or a sound
+ * written to in the last few seconds, which a recorder begun a moment ago may be. Left for
+ * the next opening, never taken as cut short.
+ */
+internal fun stillRecording(wav: File, under: File?, now: Long): Boolean =
+    (under != null && wav.name == under.name) ||
+        (wav.exists() && now - wav.lastModified() in 0 until RECENT_MS)
+
+/** How long after its last write a recording is still taken for one under way. */
+internal const val RECENT_MS = 10_000L
