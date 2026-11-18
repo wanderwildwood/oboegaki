@@ -449,12 +449,15 @@ object Notes {
             var went = false
             afterSync {
                 went = lastSyncWent(place)
-                if (went) syncDir(place).deleteRecursively()
+                // Held: the old folder stays, with the copy that may hold what it does not.
+                if (!went) return@afterSync
+                syncDir(place).deleteRecursively()
+                // Named inside the lock, so no sync can come between and fetch the old folder
+                // into the copy just let go.
+                if (place == Keeping.WEBDAV) preferences.davFolder = folder else preferences.remoteFolder = folder
+                _list.value = emptyList()
             }
-            // Held: the old folder stays, with the copy that may hold what it does not.
             if (!went) return@launch
-            if (place == Keeping.WEBDAV) preferences.davFolder = folder else preferences.remoteFolder = folder
-            _list.value = emptyList()
             syncNow()
         }
     }
