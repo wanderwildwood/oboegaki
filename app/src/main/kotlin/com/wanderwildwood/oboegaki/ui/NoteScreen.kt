@@ -291,7 +291,10 @@ fun NoteScreen(
                             modifier = Modifier
                                 .clickable {
                                     // A folder that will not take it just now keeps the note open.
-                                    if (runCatching { Notes.delete(at) }.isSuccess) {
+                                    // Nothing there to go is done only for a new note never kept;
+                                    // a kept one not found is a folder gone, not a note.
+                                    val gone = runCatching { Notes.delete(at) || (fresh && loaded.isEmpty()) }.getOrDefault(false)
+                                    if (gone) {
                                         deleted = true
                                         onClose()
                                     } else {
@@ -385,7 +388,7 @@ fun NoteScreen(
                 MenuRow(stringResource(if (archived) R.string.cd_unarchive else R.string.cd_archive)) {
                     menuOpen = false
                     // Put away only once what was typed is kept, and closed only once it went.
-                    if (!trySave() || runCatching { if (archived) Notes.unarchive(at) else Notes.archive(at) }.isFailure) {
+                    if (!trySave() || runCatching { (if (archived) Notes.unarchive(at) else Notes.archive(at)) ?: error("$at not moved") }.isFailure) {
                         said = context.getString(R.string.note_not_done)
                     } else {
                         deleted = true

@@ -906,12 +906,15 @@ object Notes {
      * Delete a note: moved to the trash, with the recordings and scans it holds that sit beside
      * it (`![[name]]` links to files in the same folder, unless another note also links them),
      * to wait [TRASH_DAYS] days. Its pin goes, and its reminders are kept with it, silent, to ring
-     * again if it is restored.
+     * again if it is restored. Returns whether a note was there to go; throws when the folder is
+     * not there or the note in it cannot be read just now (a card taken out, a mount timed out),
+     * so nothing is said to have gone that did not.
      */
-    fun delete(path: String) {
-        val shelf = shelf() ?: return
+    fun delete(path: String): Boolean {
+        val shelf = shelf() ?: throw java.io.IOException("no folder for the notes")
         val trashed = synchronized(notesLock) {
-            val text = shelf.read(path) ?: return
+            val text = shelf.read(path)
+                ?: if (shelf.exists(path)) throw java.io.IOException("$path could not be read") else return false
             val folder = path.substringBeforeLast('/', "")
             val prefix = if (folder.isEmpty()) "" else "$folder/"
             val others = _list.value.filter { it.path != path }
@@ -935,6 +938,7 @@ object Notes {
         Reminders.moved(appContext, path, trashed)
         Reminders.syncSoon(appContext)
         refresh()
+        return true
     }
 
     /**
