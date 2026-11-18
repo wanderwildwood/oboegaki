@@ -394,7 +394,48 @@ object Notes {
         runSync(place)
         val went = _sync.value == SyncState.Idle
         _held.value = !went
+        if (!went) sayHeld(_sync.value == SyncState.ServerFolderEmpty)
         return went
+    }
+
+    /**
+     * Say at once that Settings' sign-out, new folder or new server was held, wherever the
+     * reader is by then: Settings has already closed, and the list's line alone is easy to miss.
+     */
+    private fun sayHeld(folderEmpty: Boolean) {
+        val words = if (folderEmpty) com.wanderwildwood.oboegaki.R.string.held_server_folder_empty else com.wanderwildwood.oboegaki.R.string.held_not_synced
+        runCatching {
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                android.widget.Toast.makeText(appContext, words, android.widget.Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    /**
+     * The server's notes folder came back empty, though notes here came from it, and the reader
+     * chose to send these notes up to it: what the sync knew of the server is forgotten, so the
+     * next sync is a first one and every note here goes up. Nothing here is touched. Only while
+     * the sync still stops on the empty folder; otherwise there is nothing to choose.
+     */
+    fun sendUpToEmptyFolder() {
+        scope.launch {
+            val place = preferences.keeping
+            if (!place.isServer) return@launch
+            var chosen = false
+            afterSync {
+                if (_sync.value != SyncState.ServerFolderEmpty) return@afterSync
+                val dir = syncDir(place)
+                Sync(
+                    notes = mirror(place),
+                    base = File(dir, "base"),
+                    stateFile = File(dir, "state"),
+                    guard = { synchronized(notesLock) { it() } },
+                ).startAfresh()
+                _held.value = false
+                chosen = true
+            }
+            if (chosen) syncNow()
+        }
     }
 
     /**

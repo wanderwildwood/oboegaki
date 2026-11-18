@@ -421,6 +421,13 @@ private fun App(capture: MutableState<Capture?>) {
                 onPull = if (keeping.isServer) ({ Notes.syncAndWait(); Notes.sync.value }) else null,
                 folderGone = keeping == Keeping.FOLDER && folderGone,
                 onChooseFolder = { chooseFolder.launch(null) },
+                onSendUp = { Notes.sendUpToEmptyFolder() },
+                // The move to a folder on this phone, bringing the notes: the server is let go
+                // only once they are there.
+                onKeepHere = {
+                    move = Notes.startMove(true)
+                    chooseFolder.launch(null)
+                },
             )
             Screen.Trash -> {
                 BackHandler { screen = Screen.List }

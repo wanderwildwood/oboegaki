@@ -200,6 +200,44 @@ class SyncTest {
     }
 
     @Test
+    fun startingAfreshSendsEveryNoteUpToTheEmptiedFolder() {
+        val his = phone("his")
+        for (n in 1..3) his.write("note$n.md", "x$n")
+        his.sync.run(server)
+        server.files.clear()
+        assertTrue(runCatching { his.sync.run(server) }.exceptionOrNull() is ServerFolderEmpty)
+        his.write("note4.md", "x4")
+
+        his.sync.startAfresh()
+        his.sync.run(server)
+
+        for (n in 1..4) assertEquals("x$n", server.files["note$n.md"]!!.first)
+        assertEquals("x1", his.read("note1.md"))
+        // And it syncs as before from then on.
+        his.write("note1.md", "y1")
+        his.sync.run(server)
+        assertEquals("y1", server.files["note1.md"]!!.first)
+    }
+
+    @Test
+    fun startingAfreshKeepsBothWhenTheFolderFilledAgainMeanwhile() {
+        val his = phone("his")
+        for (n in 1..3) his.write("note$n.md", "x$n")
+        his.sync.run(server)
+        server.files.clear()
+        assertTrue(runCatching { his.sync.run(server) }.exceptionOrNull() is ServerFolderEmpty)
+        server.set("note1.md", "other")
+
+        his.sync.startAfresh()
+        his.sync.run(server)
+
+        // Merged or kept beside it: neither is lost.
+        val here = his.notes.walk().filter { it.isFile }.joinToString("\n") { it.readText() }
+        assertTrue("x1" in here)
+        assertTrue("other" in here)
+    }
+
+    @Test
     fun deletingOnOnePhoneDeletesEverywhere() {
         val his = phone("his")
         val hers = phone("hers")

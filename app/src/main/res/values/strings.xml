@@ -80,6 +80,10 @@
     <string name="sync_path_refused">Not synced: the server named a file outside the notes folder, so it was not written. Nothing here was lost.</string>
     <!-- Added after the sync line when a sign-out, a new folder or a new server was held back for it -->
     <string name="sync_held">So the notes here were not let go: sign out or change the folder again once a sync goes through, or move them to a folder on this phone in Settings.</string>
+    <string name="held_not_synced">Not done: the last sync did not go through, so the notes on this phone were kept. The list says why.</string>
+    <string name="held_server_folder_empty">Not done: the notes folder on the server is empty. Choose on the list whether to send these notes up to it or keep them on this phone.</string>
+    <string name="sync_send_up">Send these notes up to the empty folder</string>
+    <string name="sync_keep_here">Keep them on this phone</string>
 
     <!-- ============================================================ -->
     <!-- A note -->

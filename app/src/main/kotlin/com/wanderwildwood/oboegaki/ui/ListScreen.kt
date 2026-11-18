@@ -97,6 +97,10 @@ fun ListScreen(
     // The chosen folder can no longer be read: say so, with the way to choose it again.
     folderGone: Boolean = false,
     onChooseFolder: () -> Unit = {},
+    // The server's notes folder came back empty: send these notes up to it, or keep them on
+    // this phone in a folder of its own. Nothing is touched until one is pressed.
+    onSendUp: () -> Unit = {},
+    onKeepHere: () -> Unit = {},
 ) {
     val pull = rememberPull { onPull?.invoke() ?: SyncState.Idle }
     var searching by remember { mutableStateOf(false) }
@@ -200,6 +204,22 @@ fun ListScreen(
                     style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
                 )
+                DottedRule(start = 20.dp)
+            }
+
+            if (sync == SyncState.ServerFolderEmpty && moving == null) {
+                HouseButton(
+                    label = stringResource(R.string.sync_send_up),
+                    onClick = onSendUp,
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                )
+                Spacer(Modifier.height(10.dp))
+                HouseButton(
+                    label = stringResource(R.string.sync_keep_here),
+                    onClick = onKeepHere,
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                )
+                Spacer(Modifier.height(10.dp))
                 DottedRule(start = 20.dp)
             }
 

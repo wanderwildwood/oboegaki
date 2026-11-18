@@ -88,6 +88,22 @@ class Sync(
         }
     }
 
+    /**
+     * Forget all this knows of the server: the etags, the agreed copies and the moves still to
+     * make, so the next [run] is a first sync and every note and attachment here goes up. For a
+     * server folder that came back empty ([ServerFolderEmpty]) when the reader chose to send these
+     * notes up to it. The notes here are not touched; a note there by then with the same name is
+     * met as on any first sync, and both are kept.
+     */
+    fun startAfresh() {
+        guard {
+            stateFile.delete()
+            blobStateFile.delete()
+            movesFile.delete()
+            base.deleteRecursively()
+        }
+    }
+
     fun run(remote: Remote): Result {
         val state = readState().toMutableMap()
         applyMoves(remote, state)
