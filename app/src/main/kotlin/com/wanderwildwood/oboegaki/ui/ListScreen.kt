@@ -46,6 +46,7 @@ import com.wanderwildwood.oboegaki.notes.Note
 import com.wanderwildwood.oboegaki.notes.Order
 import com.wanderwildwood.oboegaki.notes.Showing
 import com.wanderwildwood.oboegaki.notes.Moving
+import com.wanderwildwood.oboegaki.notes.Notes
 import com.wanderwildwood.oboegaki.notes.SyncState
 import com.wanderwildwood.oboegaki.notes.arrange
 import com.wanderwildwood.oboegaki.notes.folders
@@ -191,7 +192,9 @@ fun ListScreen(
         },
     ) { contentPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(contentPadding).dismissedByPress(pull)) {
-            (movingLine(moving) ?: pulledWords(pull.pulled) { syncLine(it) } ?: syncLine(sync))?.let { line ->
+            val held by Notes.held.collectAsStateWithLifecycle()
+            (movingLine(moving) ?: pulledWords(pull.pulled) { syncLine(it) } ?: syncLine(sync)
+                ?.let { if (held) it + " " + stringResource(R.string.sync_held) else it })?.let { line ->
                 TextMMD(
                     text = line,
                     style = MaterialTheme.typography.labelSmall,

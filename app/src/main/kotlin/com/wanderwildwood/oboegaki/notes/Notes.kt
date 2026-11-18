@@ -289,6 +289,7 @@ object Notes {
             val result = sync.run(remote)
             preferences.lastSync = System.currentTimeMillis()
             _sync.value = SyncState.Idle
+            _held.value = false
             if (sharing != null) {
                 runCatching { sharedPaths(sharing) }.onSuccess { (all, withMe) -> _shared.value = all; _sharedWithMe.value = withMe }
             } else {
@@ -348,14 +349,39 @@ object Notes {
     /** Wait for any sync in progress to finish, then run [block]. */
     private suspend fun afterSync(block: () -> Unit) = syncing.withLock { block() }
 
-    /** Stop keeping notes on the server on this phone. What is on the server is not touched. */
+    private val _held = MutableStateFlow(false)
+
+    /**
+     * True when a sign-out, a new server folder or a new WebDAV server was held back because
+     * the last sync before it did not finish: the phone's copy may hold notes the server does
+     * not have yet, so it is not let go.
+     */
+    val held: StateFlow<Boolean> = _held
+
+    /**
+     * Sync with [place] once more and say whether it ended well: only then may the phone's
+     * copy of it be let go. Called inside [afterSync].
+     */
+    private fun lastSyncWent(place: Keeping): Boolean {
+        runSync(place)
+        val went = _sync.value == SyncState.Idle
+        _held.value = !went
+        return went
+    }
+
+    /**
+     * Stop keeping notes on the server on this phone. What is on the server is not touched.
+     * The phone's copy goes up one last time first, and is let go only if that worked.
+     */
     fun signOut() {
         scope.launch {
             // The tasks, too, send what they have before they are let go.
             if (preferences.keeping == Keeping.NEXTCLOUD) runCatching { Tasks.finalSync() }
             afterSync {
-                syncDir(preferences.keeping).deleteRecursively()
-                forget(preferences.keeping)
+                val place = preferences.keeping
+                if (!lastSyncWent(place)) return@afterSync
+                syncDir(place).deleteRecursively()
+                forget(place)
                 preferences.keeping = Keeping.NOWHERE
                 preferences.lastSync = 0
                 _sync.value = SyncState.Idle
@@ -391,10 +417,13 @@ object Notes {
     fun changeRemoteFolder(folder: String) {
         scope.launch {
             val place = preferences.keeping
+            var went = false
             afterSync {
-                runSync(place)
-                syncDir(place).deleteRecursively()
+                went = lastSyncWent(place)
+                if (went) syncDir(place).deleteRecursively()
             }
+            // Held: the old folder stays, with the copy that may hold what it does not.
+            if (!went) return@launch
             if (place == Keeping.WEBDAV) preferences.davFolder = folder else preferences.remoteFolder = folder
             _list.value = emptyList()
             syncNow()
@@ -420,13 +449,16 @@ object Notes {
             return
         }
         scope.launch {
+            var went = false
             afterSync {
-                runSync(Keeping.WEBDAV)
+                went = lastSyncWent(Keeping.WEBDAV)
+                if (!went) return@afterSync
                 syncDir(Keeping.WEBDAV).deleteRecursively()
                 preferences.dav = dav
                 preferences.davFolder = wanted
                 preferences.lastSync = 0
             }
+            if (!went) return@launch
             _list.value = emptyList()
             syncNow()
         }
