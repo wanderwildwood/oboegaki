@@ -10,8 +10,10 @@ import com.wanderwildwood.oboegaki.sync.canonicalEtag
 import com.wanderwildwood.oboegaki.sync.listedForm
 import com.wanderwildwood.oboegaki.sync.encodePath
 import com.wanderwildwood.oboegaki.sync.http
+import com.wanderwildwood.oboegaki.sync.sameCredentialDomain
 import okhttp3.Credentials
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -42,7 +44,18 @@ class CalDavServer(
 
     private fun url(href: String) = if (href.startsWith("http://") || href.startsWith("https://")) href else origin + href
 
-    private fun request(url: String) = Request.Builder().also { refusePlainHttp(url) }.url(url)
+    private val serverHost = account.server.trimEnd('/').toHttpUrl().host
+
+    /**
+     * A link the server hands back may name another host. The password goes with it only on
+     * this server's own domain ([sameCredentialDomain]); anywhere else nothing is sent at all.
+     */
+    private fun refuseOtherDomain(url: String) {
+        val host = url.toHttpUrlOrNull()?.host ?: throw IOException("not an address")
+        if (!sameCredentialDomain(serverHost, host)) throw IOException("a link to another domain was not followed")
+    }
+
+    private fun request(url: String) = Request.Builder().also { refusePlainHttp(url); refuseOtherDomain(url) }.url(url)
         .header("Authorization", Credentials.basic(user, password))
         .header("User-Agent", "Notes (oboegaki)")
 
