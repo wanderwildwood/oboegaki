@@ -129,6 +129,33 @@ object Voice {
             _failed.value = true
             return
         }
+        // Marked first: a recording that cannot be made into a note just now (no folder to
+        // keep it in, a write refused) is tried again the next time the app opens, not left
+        // as a sound nothing knows about.
+        val marker = File(dir, "${wav.nameWithoutExtension}.pending")
+        runCatching { marker.writeText(if (writeDown) "1" else "0") }
+        store(wav, writeDown, open = true)
+    }
+
+    /** Recordings marked and not yet kept as notes, kept now if they can be. On the worker. */
+    private fun retryPending() {
+        dir.listFiles { f -> f.name.endsWith(".pending") }?.sortedBy { it.name }?.forEach { marker ->
+            val wav = File(dir, marker.name.removeSuffix(".pending") + ".wav")
+            if (!wav.exists()) {
+                marker.delete()
+                return@forEach
+            }
+            val write = runCatching { marker.readText().trim() != "0" }.getOrDefault(true)
+            store(wav, write, open = false)
+        }
+    }
+
+    /**
+     * A recording made into a note beside its sound, and queued to be heard when [write].
+     * [open]: the note is opened on screen, for a recording just finished.
+     */
+    private fun store(wav: File, write: Boolean, open: Boolean) {
+        val marker = File(dir, "${wav.nameWithoutExtension}.pending")
         val stamp = wav.nameWithoutExtension
         val folder = Notes.newFolder
         val notePath = Notes.newPath(folder, "Voice ${stamp.take(TITLE_STAMP)}")
@@ -142,25 +169,27 @@ object Voice {
             shelf.writeBytes(inFolder(folder, audioPath), m4a.readBytes(), "audio/mp4")
             shelf.write(notePath, "![[$audioPath]]\n")
         } catch (e: Exception) {
-            _failed.value = true
+            if (open) _failed.value = true
             return
         } finally {
             m4a.delete()
         }
         // Not to be written down: the sound is kept in the note, and that is all.
-        if (!writeDown) {
+        if (!write) {
             wav.delete()
-            _made.value = notePath
+            marker.delete()
+            if (open) _made.value = notePath
             refreshHearing()
             Notes.afterEdit()
             return
         }
         // What is left to do: hear the WAV, and put the words in this note under this link.
         File(dir, "$stamp.target").writeText("$notePath\n$audioPath\n")
-        _made.value = notePath
+        marker.delete()
+        if (open) _made.value = notePath
         refreshHearing()
         Notes.afterEdit()
-        catchUp(app)
+        if (open) catchUp(app)
     }
 
     /** Hear every recording still waiting. */
@@ -171,6 +200,7 @@ object Voice {
                 .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "oboegaki:hearing")
             lock.acquire(60 * 60 * 1000L)
             try {
+                retryPending()
                 val tried = mutableSetOf<String>()
                 while (true) {
                     val target = dir.listFiles { f -> f.name.endsWith(".target") }
@@ -193,16 +223,26 @@ object Voice {
         // The English model in the APK if the other one has gone missing, rather than nothing.
         val model = Speech.modelFor(Speech.language)
         val language = if (model == null) "en" else Speech.language
-        val samples = runCatching { Wav.samples(wav.readBytes()) }.getOrNull()
-        val text = when {
-            samples == null -> ""
-            !Listening.anythingSaid(samples) -> ""
-            else -> Whisper.transcribe(app.assets, Whisper.MODEL, model?.path, language, samples, THREADS)
-                ?.let(Listening::tidy)
-                // Whisper could not run at all: left waiting, and tried again next time.
-                ?: return
+        // Heard before, with no note to put the words in at the time: the words, not the sound.
+        val heard = File(dir, "$stamp.heard")
+        val text = if (heard.exists()) heard.readText() else {
+            val samples = runCatching { Wav.samples(wav.readBytes()) }.getOrNull()
+            when {
+                samples == null -> ""
+                !Listening.anythingSaid(samples) -> ""
+                else -> Whisper.transcribe(app.assets, Whisper.MODEL, model?.path, language, samples, THREADS)
+                    ?.let(Listening::tidy)
+                    // Whisper could not run at all: left waiting, and tried again next time.
+                    ?: return
+            }
         }
-        if (text.isNotEmpty()) Notes.addUnder(notePath, "![[$audioPath]]", text)
+        // Put under the recording's link, in its note or in whichever note holds the link now.
+        // No note holds it (deleted to the trash, say): the words are kept and tried again.
+        if (text.isNotEmpty() && !Notes.addUnder(notePath, "![[$audioPath]]", text)) {
+            if (heard.exists() || runCatching { heard.writeText(text) }.isSuccess) wav.delete()
+            return
+        }
+        heard.delete()
         wav.delete()
         target.delete()
         refreshHearing()

@@ -819,19 +819,30 @@ object Notes {
      * the note was made and perhaps after it was edited, so it goes under the recording wherever
      * that now is rather than at a remembered position.
      */
-    fun addUnder(path: String, after: String, text: String) {
-        val shelf = shelf() ?: return
-        synchronized(notesLock) {
-            val now = shelf.read(path) ?: return
-            if (text in now) return
-            val lines = now.split('\n').toMutableList()
-            val at = lines.indexOfFirst { it.trim() == after }
-            if (at < 0) return
-            lines.add(at + 1, "")
-            lines.add(at + 2, text)
-            shelf.write(path, lines.joinToString("\n"))
+    /**
+     * Puts [text] under the line [after] in the note at [path]; or, where that note has been
+     * renamed, moved or archived since, in whichever note now holds that line (a voice note's
+     * link to its recording goes with it). False when no note holds it: the caller keeps the
+     * text for another try.
+     */
+    fun addUnder(path: String, after: String, text: String): Boolean {
+        val shelf = shelf() ?: return false
+        val done = synchronized(notesLock) {
+            fun into(p: String): Boolean {
+                val now = shelf.read(p) ?: return false
+                if (text in now) return true
+                val lines = now.split('\n').toMutableList()
+                val at = lines.indexOfFirst { it.trim() == after }
+                if (at < 0) return false
+                lines.add(at + 1, "")
+                lines.add(at + 2, text)
+                shelf.write(p, lines.joinToString("\n"))
+                return true
+            }
+            into(path) || shelf.list().asSequence().map { it.path }.filter { it != path }.any { into(it) }
         }
-        _changed.value++
+        if (done) _changed.value++
+        return done
     }
 
     private val _trash = MutableStateFlow<List<Trashed>>(emptyList())
