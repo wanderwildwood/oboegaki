@@ -11,11 +11,6 @@ Not a fork. Written from scratch in Kotlin and Jetpack Compose, using Mudita's o
 [MMD](https://github.com/mudita/MMD) design system, with speech recognition by
 [whisper.cpp](https://github.com/ggml-org/whisper.cpp) running on the phone itself.
 
-| | |
-|---|---|
-| ![Every note, newest first](screenshots/1-list.png) | ![A list, ticked in one tap](screenshots/2-checklist.png) |
-| ![The Trash: deleted notes wait seven days](screenshots/3-trash.png) | ![Desktop Sync in Settings, off until you turn it on](screenshots/4-desktop-sync.png) |
-
 ## Where this is up to
 
 Version 0.3.2. On a Kompakt: notes and lists syncing through Nextcloud
