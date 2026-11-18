@@ -75,8 +75,9 @@ a voice note heard and written down, a page photographed and handed to the scann
 - **Tasks** that are real tasks: on a Nextcloud, the same ones its Tasks app, Thunderbird or any
   CalDAV app shows, on a page of their own (the tick-in-a-circle at the top of the list). See
   [Tasks](#tasks).
-- **On the lock screen**, through [Glance](https://github.com/wanderwildwood/hitome), the pinned
-  notes, and how much of each list is left to do.
+- **On the lock screen**, through [Glance](https://github.com/wanderwildwood/hitome), what is due
+  today, then the pinned notes, each with its first open items under its title, so a pinned
+  note can hold standing reminders that need no date.
 
 ## Desktop Sync
 

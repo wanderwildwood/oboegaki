@@ -13,8 +13,9 @@ Memo collects nothing about you and has no analytics, ads or tracking of any kin
 - **Deleted notes** are kept for 7 days in a hidden folder next to your notes, wherever you keep
   them, then removed.
 - **Reminders** are set on the phone's own alarm clock and ring only on the phone.
-- **Pinned notes on the lock screen** are handed to Glance, only when it is on the phone and the
-  setting is on; they go no further.
+- **Today and pinned notes on the lock screen** (what is due today, and each pinned note's title
+  and first open items) are handed to Glance, only when it is on the phone and the setting is on;
+  they go no further.
 - **Desktop Sync** is off until you switch it on in Settings, and only runs while it is on. While
   it runs, the phone itself serves your notes and tasks, in full, to a browser that has the link
   or the six-digit code. Nothing goes through any server of ours or anyone's: the browser talks
