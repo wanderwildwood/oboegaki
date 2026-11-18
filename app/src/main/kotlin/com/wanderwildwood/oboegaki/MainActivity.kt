@@ -290,11 +290,19 @@ private fun App(capture: MutableState<Capture?>) {
         }
     }
 
+    // A note opens with what it says. One there but not readable just now is not opened: an
+    // editor on nothing would save nothing over it.
+    fun opened(path: String): Screen? {
+        val text = Notes.read(path)
+        if (text == null) android.widget.Toast.makeText(context, R.string.note_unreadable, android.widget.Toast.LENGTH_LONG).show()
+        return text?.let { Screen.Note(path, it, fresh = false) }
+    }
+
     // A recording just kept opens as its note.
     LaunchedEffect(made) {
         val path = made ?: return@LaunchedEffect
         Voice.opened()
-        screen = Screen.Note(path, Notes.read(path).orEmpty(), fresh = false)
+        screen = opened(path) ?: Screen.List
     }
 
     val chooseFolder = rememberLauncherForActivityResult(FilesOpenTree()) { uri: Uri? ->
@@ -375,7 +383,7 @@ private fun App(capture: MutableState<Capture?>) {
                     Notes.preferences.order = o
                 },
                 onOpen = { note ->
-                    screen = Screen.Note(note.path, Notes.read(note.path).orEmpty(), fresh = false)
+                    opened(note.path)?.let { screen = it }
                 },
                 // Made in the folder being shown, or where new notes go.
                 onNew = { folder -> screen = Screen.Note(Notes.newPath(folder.ifEmpty { Notes.newFolder }), "", fresh = true) },
@@ -384,9 +392,9 @@ private fun App(capture: MutableState<Capture?>) {
                 onSettings = { screen = Screen.Settings },
                 onTasks = { screen = Screen.Tasks },
                 onOpenToday = { entry ->
-                    screen = when (entry) {
-                        is Entry.OfTask -> Screen.Task(entry.item.list, entry.item.name, fromList = true)
-                        is Entry.OfNote -> Screen.Note(entry.path, Notes.read(entry.path).orEmpty(), fresh = false)
+                    when (entry) {
+                        is Entry.OfTask -> { screen = Screen.Task(entry.item.list, entry.item.name, fromList = true) }
+                        is Entry.OfNote -> { opened(entry.path)?.let { screen = it } }
                     }
                 },
                 onTrash = { screen = Screen.Trash },
@@ -425,17 +433,24 @@ private fun App(capture: MutableState<Capture?>) {
                 canKeep = keeping != Keeping.NOWHERE,
                 onKeep = { name, text ->
                     val path = Notes.newPath(Notes.newFolder, name.substringBeforeLast('.').ifEmpty { name })
-                    Notes.shelf()?.write(path, text)
-                    Notes.afterEdit()
-                    screen = Screen.Note(path, text, fresh = false)
+                    // A folder that will not take it just now leaves the file on the screen.
+                    if (runCatching { Notes.shelf()?.write(path, text) }.isSuccess) {
+                        Notes.afterEdit()
+                        screen = Screen.Note(path, text, fresh = false)
+                    } else {
+                        android.widget.Toast.makeText(context, R.string.outside_not_kept, android.widget.Toast.LENGTH_LONG).show()
+                    }
                 },
                 onClose = { screen = Screen.List },
             )
             is Screen.Scan -> ScanScreen(
                 pictures = now.pictures,
                 onDone = { pdf ->
-                    val path = Notes.saveScan(pdf)
-                    screen = if (path != null) Screen.Note(path, Notes.read(path).orEmpty(), fresh = false) else Screen.List
+                    // A scan that could not be kept stays on its screen, its pages there to try again.
+                    val path = runCatching { Notes.saveScan(pdf) }.getOrNull()
+                    if (path != null) screen = opened(path) ?: Screen.List
+                    else android.widget.Toast.makeText(context, R.string.scan_not_saved, android.widget.Toast.LENGTH_LONG).show()
+                    path != null
                 },
                 onCancel = { screen = Screen.List },
             )
@@ -450,7 +465,7 @@ private fun App(capture: MutableState<Capture?>) {
             is Screen.Share -> ShareScreen(
                 path = now.path,
                 title = now.title,
-                onBack = { screen = Screen.Note(now.path, Notes.read(now.path).orEmpty(), fresh = false) },
+                onBack = { screen = opened(now.path) ?: Screen.List },
             )
             Screen.Settings -> {
                 BackHandler { screen = Screen.List }

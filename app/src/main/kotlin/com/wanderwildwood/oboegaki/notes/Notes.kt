@@ -637,6 +637,9 @@ object Notes {
             var now = text
             var merged = false
             val onDisk = shelf.read(path)
+            // There but not readable just now (a provider restarting, a mount timing out): what
+            // the editor holds may be nothing of it, so nothing goes over it.
+            if (onDisk == null && shelf.exists(path)) throw java.io.IOException("$path could not be read")
             if (onDisk != null && onDisk != loaded && onDisk != text) {
                 val together = merge(loaded, text, onDisk)
                 if (together != null) {

@@ -473,6 +473,13 @@
     <string name="tasks_done_hide">Done · %1$d · hide</string>
     <!-- Said when a note could not be written to its folder; the text stays in the editor -->
     <string name="note_not_saved">This note could not be saved just now. What you typed is still here.</string>
+    <!-- Back was pressed on a note that could not be saved -->
+    <string name="note_not_saved_back">This note could not be saved just now. What you typed is still here; press Back again to leave without it.</string>
+    <!-- Archive, move, pin or delete on a note when the notes folder would not take it -->
+    <string name="note_not_done">That could not be done just now: the notes folder did not take it.</string>
+    <string name="note_unreadable">That note could not be read just now, so it was not opened.</string>
+    <string name="scan_not_saved">The scan could not be kept just now. Its pages are still here: press Done again to try once more.</string>
+    <string name="outside_not_kept">That could not be kept as a note just now.</string>
     <string name="tasks_unreachable">Couldn\'t reach the Nextcloud. Changes wait here and go when it can be reached.</string>
     <string name="tasks_failed">Some lists didn\'t sync: %1$s</string>
     <string name="tasks_move_to_nextcloud">Move these to %1$s on the Nextcloud</string>

@@ -124,22 +124,29 @@ fun NoteScreen(
 
     val context = LocalContext.current
 
-    fun save() {
-        if (deleted) return
+    // Back found the note could not be saved, and said so: a second Back leaves without it.
+    var unsaved by remember { mutableStateOf(false) }
+
+    // Whether what the editor holds is kept now. A folder that cannot be written just now (a
+    // card taken out, a full phone) does not close the editor: what was typed stays, and is
+    // tried again.
+    fun trySave(): Boolean {
+        if (deleted) return true
         val from = at
         val before = loaded
         val edited = body.text
-        // A folder that cannot be written just now (a card taken out, a full phone) does not
-        // close the editor: what was typed stays, is said not saved, and is tried again.
-        val saved = runCatching { Notes.save(at, loaded, body.text, title) }.getOrElse {
-            android.widget.Toast.makeText(context, R.string.note_not_saved, android.widget.Toast.LENGTH_LONG).show()
-            return
-        }
+        val saved = runCatching { Notes.save(at, loaded, body.text, title) }.getOrElse { return false }
         // What changed here, not what a merge brought in, says which reminders this phone set.
         Reminders.edited(context, from, saved.path, before, edited)
         at = saved.path
         loaded = saved.text
+        unsaved = false
         if (saved.text != body.text) body = body.copy(text = saved.text, selection = TextRange(saved.text.length.coerceAtMost(body.selection.end)))
+        return true
+    }
+
+    fun save() {
+        if (!trySave()) android.widget.Toast.makeText(context, R.string.note_not_saved, android.widget.Toast.LENGTH_LONG).show()
     }
 
     // A moment after the typing stops.
@@ -188,11 +195,19 @@ fun NoteScreen(
         }
     }
 
+    // What a share, a reminder or a move has to say, up until it is closed: a Toast's few
+    // seconds can pass unread on this panel.
+    var said by remember { mutableStateOf<String?>(null) }
+
     val close = {
         if (writing && !fresh && readable(body.text)) {
             writing = false
-        } else {
+        } else if (trySave() || unsaved) {
             onClose()
+        } else {
+            // Not closed on what could not be kept: said so, and a second Back is the way out.
+            unsaved = true
+            said = context.getString(R.string.note_not_saved_back)
         }
     }
     BackHandler(onBack = close)
@@ -201,9 +216,6 @@ fun NoteScreen(
     var menuOpen by remember { mutableStateOf(false) }
     var moving by remember { mutableStateOf(false) }
     var noCalendar by remember { mutableStateOf(false) }
-    // What a share, a reminder or a move has to say, up until it is closed: a Toast's few
-    // seconds can pass unread on this panel.
-    var said by remember { mutableStateOf<String?>(null) }
     // The note's own reminder being set (-1), or an item's, by its line.
     var reminding by remember { mutableStateOf<Int?>(null) }
     // The item held down, by its line: what to do with it.
@@ -278,9 +290,14 @@ fun NoteScreen(
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier
                                 .clickable {
-                                    deleted = true
-                                    Notes.delete(at)
-                                    onClose()
+                                    // A folder that will not take it just now keeps the note open.
+                                    if (runCatching { Notes.delete(at) }.isSuccess) {
+                                        deleted = true
+                                        onClose()
+                                    } else {
+                                        armed.value = false
+                                        said = context.getString(R.string.note_not_done)
+                                    }
                                 }
                                 .padding(horizontal = 12.dp, vertical = 12.dp),
                         )
@@ -308,7 +325,7 @@ fun NoteScreen(
                                 stringResource(if (isPinned) R.string.cd_unpin else R.string.cd_pin),
                             ) {
                                 save()
-                                Notes.togglePin(at)
+                                if (runCatching { Notes.togglePin(at) }.isFailure) said = context.getString(R.string.note_not_done)
                             }
                         }
                         BarButton(Icons.Delete, stringResource(R.string.cd_delete)) { armed.value = true }
@@ -367,10 +384,13 @@ fun NoteScreen(
                 val archived = isArchived(at)
                 MenuRow(stringResource(if (archived) R.string.cd_unarchive else R.string.cd_archive)) {
                     menuOpen = false
-                    save()
-                    deleted = true
-                    if (archived) Notes.unarchive(at) else Notes.archive(at)
-                    onClose()
+                    // Put away only once what was typed is kept, and closed only once it went.
+                    if (!trySave() || runCatching { if (archived) Notes.unarchive(at) else Notes.archive(at) }.isFailure) {
+                        said = context.getString(R.string.note_not_done)
+                    } else {
+                        deleted = true
+                        onClose()
+                    }
                 }
                 // To another folder; on Nextcloud, another category. An archived note goes back first.
                 if (!archived) {
@@ -396,9 +416,10 @@ fun NoteScreen(
             // The folder it is in already, or a name that cannot be one, is no move.
             val folder = chosen?.let { moveTarget(at, it).first }
             if (folder != null) {
-                save()
-                val moved = Notes.moveTo(at, folder)
-                if (moved != null) {
+                val moved = if (trySave()) runCatching { Notes.moveTo(at, folder) }.getOrNull() else null
+                if (moved == null) {
+                    said = context.getString(R.string.note_not_done)
+                } else {
                     at = moved
                     val where = folder.ifEmpty { context.getString(R.string.settings_new_top) }
                     said = context.getString(R.string.note_moved, where)

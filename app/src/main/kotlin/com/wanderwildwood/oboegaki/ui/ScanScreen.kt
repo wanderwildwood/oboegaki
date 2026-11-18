@@ -84,7 +84,7 @@ import kotlin.math.hypot
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ScanScreen(pictures: List<Uri> = emptyList(), onDone: (pdf: ByteArray) -> Unit, onCancel: () -> Unit) {
+fun ScanScreen(pictures: List<Uri> = emptyList(), onDone: (pdf: ByteArray) -> Boolean, onCancel: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val pages = remember { mutableStateListOf<Bitmap>() }
@@ -281,7 +281,8 @@ fun ScanScreen(pictures: List<Uri> = emptyList(), onDone: (pdf: ByteArray) -> Un
                             busy = true
                             scope.launch {
                                 val pdf = withContext(Dispatchers.Default) { Scanner.pdf(pages.toList()) }
-                                onDone(pdf)
+                                // Not kept: the pages stay, and Done can be pressed again.
+                                if (!onDone(pdf)) busy = false
                             }
                         },
                         modifier = Modifier.fillMaxWidth().height(52.dp),
