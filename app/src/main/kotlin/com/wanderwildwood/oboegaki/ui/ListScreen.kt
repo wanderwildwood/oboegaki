@@ -105,7 +105,7 @@ fun ListScreen(
     val pull = rememberPull { onPull?.invoke() ?: SyncState.Idle }
     var searching by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
-    var choosing by remember { mutableStateOf(false) }
+    var choosing by remember { mutableStateOf<Choosing?>(null) }
     val shown = arrange(notes, shared, showing, order, if (searching) query else "", pinned)
     val listState = rememberLazyListState()
     val allFolders = folders(notes)
@@ -251,17 +251,37 @@ fun ListScreen(
                 LaunchedEffect(Unit) { focus.requestFocus() }
             }
 
-            TextMMD(
-                text = viewLabel(showing, order),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { choosing = true }
-                    .heightIn(min = 48.dp)
-                    .wrapContentHeight(Alignment.CenterVertically)
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
-            )
+            // Two halves, each opening its own short menu: what to show, and in what order
+            androidx.compose.foundation.layout.Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextMMD(
+                    text = showingLabel(showing),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .clickable { choosing = Choosing.SHOW }
+                        .heightIn(min = 48.dp)
+                        .wrapContentHeight(Alignment.CenterVertically)
+                        .padding(horizontal = 12.dp, vertical = 12.dp),
+                )
+                TextMMD(text = "·", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                TextMMD(
+                    text = orderLabel(order),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    modifier = Modifier
+                        .clickable { choosing = Choosing.ORDER }
+                        .heightIn(min = 48.dp)
+                        .wrapContentHeight(Alignment.CenterVertically)
+                        .padding(horizontal = 12.dp, vertical = 12.dp),
+                )
+            }
 
             // Inside a folder, the way back up and the folders in it come first, so a folder is
             // walked like one rather than found only through the line above.
@@ -369,29 +389,40 @@ fun ListScreen(
         )
     }
 
-    if (choosing) {
-        ViewDialog(
+    when (choosing) {
+        Choosing.SHOW -> ShowDialog(
             showing = showing,
-            order = order,
             folders = allFolders,
             canShare = canShare,
-            onChoose = { s, o ->
-                choosing = false
-                onView(s, o)
+            onChoose = { s ->
+                choosing = null
+                onView(s, order)
             },
             onTrash = {
-                choosing = false
+                choosing = null
                 onTrash()
             },
-            onDismiss = { choosing = false },
+            onDismiss = { choosing = null },
         )
+        Choosing.ORDER -> OrderDialog(
+            order = order,
+            onChoose = { o ->
+                choosing = null
+                onView(showing, o)
+            },
+            onDismiss = { choosing = null },
+        )
+        null -> {}
     }
 }
 
-/** "All notes · newest first", or whatever the list has been narrowed to. */
+/** Which of the view line's two menus is open. */
+private enum class Choosing { SHOW, ORDER }
+
+/** "All notes", or whatever the list has been narrowed to. */
 @Composable
-private fun viewLabel(showing: String, order: Order): String {
-    val what = Showing.folderOf(showing)?.substringAfterLast('/') ?: stringResource(
+private fun showingLabel(showing: String): String =
+    Showing.folderOf(showing)?.substringAfterLast('/') ?: stringResource(
         when (showing) {
             Showing.SHARED -> R.string.view_shared
             Showing.LISTS -> R.string.view_lists
@@ -401,42 +432,41 @@ private fun viewLabel(showing: String, order: Order): String {
             else -> R.string.view_all
         },
     )
-    val how = stringResource(
-        when (order) {
-            Order.TITLE -> R.string.view_by_title
-            Order.OLDEST -> R.string.view_oldest
-            Order.CHANGED -> R.string.view_newest
-        },
-    )
-    return "$what · $how"
-}
+
+/** "newest first", "oldest first" or "by title". */
+@Composable
+private fun orderLabel(order: Order): String = stringResource(
+    when (order) {
+        Order.TITLE -> R.string.view_by_title
+        Order.OLDEST -> R.string.view_oldest
+        Order.CHANGED -> R.string.view_newest
+    },
+)
 
 /**
- * What to show and in what order. Choosing anything applies it and closes, so the common case,
- * one change, is one tap; the current choices are in bold.
+ * What to show: the kinds of note, then the folders, then the Trash, which is a place of its own
+ * rather than a way of narrowing the list. Choosing applies it and closes; the current one is ticked.
  */
 @Composable
-private fun ViewDialog(
+private fun ShowDialog(
     showing: String,
-    order: Order,
     folders: List<String>,
     canShare: Boolean,
-    onChoose: (String, Order) -> Unit,
+    onChoose: (String) -> Unit,
     onTrash: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     EInkDialog(onDismiss = onDismiss) {
         PagedColumn(modifier = Modifier.fillMaxWidth().height(dialogListHeightDp(440, rememberWindowHeightDp()).dp), showCutRow = true) {
             item { DialogHeading(stringResource(R.string.view_show)) }
-            item { Choice(stringResource(R.string.view_all), showing == Showing.ALL) { onChoose(Showing.ALL, order) } }
-            item { Choice(stringResource(R.string.view_lists), showing == Showing.LISTS) { onChoose(Showing.LISTS, order) } }
-            item { Choice(stringResource(R.string.view_voice), showing == Showing.VOICE) { onChoose(Showing.VOICE, order) } }
-            item { Choice(stringResource(R.string.view_scans), showing == Showing.SCANS) { onChoose(Showing.SCANS, order) } }
+            item { Choice(stringResource(R.string.view_all), showing == Showing.ALL) { onChoose(Showing.ALL) } }
+            item { Choice(stringResource(R.string.view_lists), showing == Showing.LISTS) { onChoose(Showing.LISTS) } }
+            item { Choice(stringResource(R.string.view_voice), showing == Showing.VOICE) { onChoose(Showing.VOICE) } }
+            item { Choice(stringResource(R.string.view_scans), showing == Showing.SCANS) { onChoose(Showing.SCANS) } }
             if (canShare) {
-                item { Choice(stringResource(R.string.view_shared), showing == Showing.SHARED) { onChoose(Showing.SHARED, order) } }
+                item { Choice(stringResource(R.string.view_shared), showing == Showing.SHARED) { onChoose(Showing.SHARED) } }
             }
-            item { Choice(stringResource(R.string.view_archive), showing == Showing.ARCHIVE) { onChoose(Showing.ARCHIVE, order) } }
-            item { Choice(stringResource(R.string.view_trash), false) { onTrash() } }
+            item { Choice(stringResource(R.string.view_archive), showing == Showing.ARCHIVE) { onChoose(Showing.ARCHIVE) } }
             if (folders.isNotEmpty()) item { DialogHeading(stringResource(R.string.view_folders)) }
             for (folder in folders) {
                 item(key = "folder-$folder") {
@@ -444,13 +474,24 @@ private fun ViewDialog(
                     Choice(
                         label = "    ".repeat(depth) + folder.substringAfterLast('/'),
                         chosen = showing == Showing.folder(folder),
-                    ) { onChoose(Showing.folder(folder), order) }
+                    ) { onChoose(Showing.folder(folder)) }
                 }
             }
-            item { DialogHeading(stringResource(R.string.view_order)) }
-            item { Choice(stringResource(R.string.view_newest_choice), order == Order.CHANGED) { onChoose(showing, Order.CHANGED) } }
-            item { Choice(stringResource(R.string.view_oldest_choice), order == Order.OLDEST) { onChoose(showing, Order.OLDEST) } }
-            item { Choice(stringResource(R.string.view_by_title_choice), order == Order.TITLE) { onChoose(showing, Order.TITLE) } }
+            item { Spacer(Modifier.height(12.dp)) }
+            item { Choice(stringResource(R.string.view_trash), false) { onTrash() } }
+        }
+    }
+}
+
+/** In what order: three choices, the current one ticked. Choosing applies it and closes. */
+@Composable
+private fun OrderDialog(order: Order, onChoose: (Order) -> Unit, onDismiss: () -> Unit) {
+    EInkDialog(onDismiss = onDismiss) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            DialogHeading(stringResource(R.string.view_order))
+            Choice(stringResource(R.string.view_newest_choice), order == Order.CHANGED) { onChoose(Order.CHANGED) }
+            Choice(stringResource(R.string.view_oldest_choice), order == Order.OLDEST) { onChoose(Order.OLDEST) }
+            Choice(stringResource(R.string.view_by_title_choice), order == Order.TITLE) { onChoose(Order.TITLE) }
         }
     }
 }
@@ -459,21 +500,28 @@ private fun ViewDialog(
 private fun DialogHeading(text: String) {
     TextMMD(
         text = text,
-        style = MaterialTheme.typography.labelSmall,
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
         modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
     )
 }
 
 @Composable
 private fun Choice(label: String, chosen: Boolean, onClick: () -> Unit) {
-    TextMMD(
-        text = label,
-        style = MaterialTheme.typography.bodyLarge,
-        fontWeight = if (chosen) FontWeight.Bold else null,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        modifier = Modifier.fillMaxWidth().semantics { role = Role.RadioButton; selected = chosen }.clickable(onClick = onClick).heightIn(min = 48.dp).wrapContentHeight(Alignment.CenterVertically),
-    )
+    androidx.compose.foundation.layout.Row(
+        modifier = Modifier.fillMaxWidth().semantics { role = Role.RadioButton; selected = chosen }.clickable(onClick = onClick).heightIn(min = 48.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        TextMMD(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = if (chosen) FontWeight.Bold else null,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        if (chosen) Icon(Icons.Check, contentDescription = null, modifier = Modifier.size(24.dp))
+    }
 }
 
 @Composable
