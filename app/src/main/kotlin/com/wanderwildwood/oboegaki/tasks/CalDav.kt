@@ -30,7 +30,7 @@ import javax.xml.parsers.DocumentBuilderFactory
 /**
  * The reader's task lists on their Nextcloud, over CalDAV, with the app password Notes already
  * holds. Nextcloud keeps every calendar of a user, those shared with them included, under one
- * home, `remote.php/dav/calendars/<user>/`; a calendar that can hold VTODOs is a task list.
+ * home, `remote.php/dav/calendars/<uid>/` (the user id, not the login name); a calendar that can hold VTODOs is a task list.
  */
 class CalDavServer(
     account: Account,
@@ -40,7 +40,7 @@ class CalDavServer(
     private val user = account.user
     private val password = account.password
     private val origin = account.server.trimEnd('/').toHttpUrl().let { "${it.scheme}://${it.host}:${it.port}" }
-    val home = account.server.trimEnd('/') + "/remote.php/dav/calendars/" + encodePath(user) + "/"
+    val home = account.server.trimEnd('/') + "/remote.php/dav/calendars/" + encodePath(account.uid) + "/"
 
     private fun url(href: String) = if (href.startsWith("http://") || href.startsWith("https://")) href else origin + href
 

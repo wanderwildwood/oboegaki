@@ -301,7 +301,7 @@ object Notes {
     fun useHomeAccount(held: HomeAccount.Held) {
         leaveTasksOf(held.who)
         synchronized(homeLock) {
-            preferences.account = Account(held.server, held.user, held.password)
+            preferences.account = Account(held.server, held.user, held.password, held.uid)
             preferences.homeWho = held.who
             preferences.homeStamp = held.stamp
         }
@@ -348,7 +348,7 @@ object Notes {
             when (val step = HomeAccount.follow(who, preferences.homeStamp, answer)) {
                 is HomeAccount.Step.Keep -> false
                 is HomeAccount.Step.Take -> {
-                    preferences.account = Account(step.held.server, step.held.user, step.held.password)
+                    preferences.account = Account(step.held.server, step.held.user, step.held.password, step.held.uid)
                     preferences.homeStamp = step.held.stamp
                     true
                 }
@@ -506,9 +506,12 @@ object Notes {
      */
     private fun ownCopy(account: Account) {
         val who = HomeAccount.who(account.server, account.user) + "\n" + preferences.remoteFolder
+        // One kept before the server was written one way ([HomeAccount.sameServer]) is read that way.
+        val was = preferences.copyOf?.split('\n', limit = 3)?.let { if (it.size == 3) HomeAccount.who(it[0], it[1]) + "\n" + it[2] else null }
+            ?: preferences.copyOf
         val dir = syncDir(Keeping.NEXTCLOUD)
         val swapped = synchronized(notesLock) {
-            setCopyAside(dir, File(appContext.filesDir, "nextcloud-aside"), preferences.copyOf, who)
+            setCopyAside(dir, File(appContext.filesDir, "nextcloud-aside"), was, who)
         }
         preferences.copyOf = who
         if (swapped) {

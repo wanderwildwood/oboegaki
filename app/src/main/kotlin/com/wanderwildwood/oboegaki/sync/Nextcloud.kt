@@ -9,11 +9,14 @@ import java.io.IOException
 /**
  * A Nextcloud account as the login page handed it over: the server, the user's login name and
  * an app password made for this phone alone, which can be revoked from the server's security
- * settings without touching the real one.
+ * settings without touching the real one. [user] is the login name, used to sign in; [uid] is
+ * the user id the server's paths are built with (`remote.php/dav/files/<uid>/`). They differ
+ * when the login name is an email address or written in another case; where the user id is not
+ * known it is taken to be the login name.
  */
-data class Account(val server: String, val user: String, val password: String) {
+data class Account(val server: String, val user: String, val password: String, val uid: String = user) {
     /** Never the password, wherever an account is printed. */
-    override fun toString() = "Account(server=$server, user=$user, password=*****)"
+    override fun toString() = "Account(server=$server, user=$user, uid=$uid, password=*****)"
 }
 
 /** Something the reader can act on: the server said no, or could not be reached. */
@@ -40,7 +43,7 @@ internal fun refusePlainHttp(url: String) {
 
 /** The notes folder on a Nextcloud: WebDAV, under the user's own files. */
 fun nextcloudRemote(account: Account, folder: String) = WebDavRemote(
-    base = account.server.trimEnd('/') + "/remote.php/dav/files/" + encodePath(account.user) + "/",
+    base = account.server.trimEnd('/') + "/remote.php/dav/files/" + encodePath(account.uid) + "/",
     user = account.user,
     password = account.password,
     folder = folder,

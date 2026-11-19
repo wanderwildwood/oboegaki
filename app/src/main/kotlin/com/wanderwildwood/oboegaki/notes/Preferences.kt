@@ -63,7 +63,7 @@ class Preferences(context: Context) {
             val server = store.getString(SERVER, null) ?: return unsealed
             val user = store.getString(USER, null) ?: return unsealed
             val password = secret(PASSWORD) ?: return unsealed
-            return Account(server, user, password)
+            return Account(server, user, password, store.getString(UID, null)?.takeIf { it.isNotEmpty() } ?: user)
         }
         set(value) {
             unsealed = value
@@ -71,6 +71,7 @@ class Preferences(context: Context) {
             store.edit()
                 .putString(SERVER, value?.server.takeIf { sealed != null })
                 .putString(USER, value?.user.takeIf { sealed != null })
+                .putString(UID, value?.uid.takeIf { sealed != null })
                 .putString(PASSWORD, sealed)
                 .apply()
         }
@@ -234,6 +235,7 @@ class Preferences(context: Context) {
         const val FOLDER = "folder"
         const val SERVER = "server"
         const val USER = "user"
+        const val UID = "uid"
         const val PASSWORD = "password"
         const val HOME_WHO = "home_who"
         const val HOME_STAMP = "home_stamp"

@@ -51,9 +51,12 @@ class NextcloudCheckTest {
         assertTrue(a.server.startsWith("http://localhost"))
     }
 
-    @Test fun `the user name the server knows replaces a typed email`() {
+    @Test fun `a typed email signs in as typed and the user id the server knows builds the paths`() {
         val r = NextcloudCheck.run(serve(true, goodUser = "ada@example.org"), "ada@example.org", "app-pass", local)
-        assertEquals("ada", (r as CheckResult.Good).account.user)
+        val a = (r as CheckResult.Good).account
+        assertEquals("ada@example.org", a.user)
+        assertEquals("ada", a.uid)
+        assertTrue(com.wanderwildwood.oboegaki.tasks.CalDavServer(a).home.endsWith("/remote.php/dav/calendars/ada/"))
     }
 
     @Test fun `a wrong password says so`() {

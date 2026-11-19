@@ -42,7 +42,7 @@ class Sharing(private val account: Account) {
             for (i in 0 until users.length()) {
                 val user = users.getJSONObject(i)
                 val id = user.getJSONObject("value").getString("shareWith")
-                if (id != account.user && out.none { it.id == id }) out += Person(id, user.optString("label", id))
+                if (id != account.uid && out.none { it.id == id }) out += Person(id, user.optString("label", id))
             }
         }
         return out
@@ -92,7 +92,7 @@ class Sharing(private val account: Account) {
      * only where it appears here; the owner's copy, and the sharing, are untouched.
      */
     fun move(from: String, to: String) {
-        val root = account.server.trimEnd('/') + "/remote.php/dav/files/" + encodePath(account.user)
+        val root = account.server.trimEnd('/') + "/remote.php/dav/files/" + encodePath(account.uid)
         val request = request(root + encodePath(from))
             .method("MOVE", null)
             .header("Destination", root + encodePath(to))

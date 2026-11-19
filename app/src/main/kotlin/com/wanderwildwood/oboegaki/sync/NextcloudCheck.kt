@@ -13,7 +13,7 @@ import javax.net.ssl.SSLException
 enum class Problem { BAD_ADDRESS, PLAIN_HTTP, NOT_FOUND, UNREACHABLE, CERTIFICATE, NOT_NEXTCLOUD, WRONG_PASSWORD, OTHER }
 
 sealed class CheckResult {
-    /** The account to keep: the address as it was checked and the user name the server knows. */
+    /** The account to keep: the address as it was checked, the login name and the user id the server knows. */
     data class Good(val account: Account) : CheckResult()
     data class Bad(val problem: Problem, val detail: String = "") : CheckResult()
 }
@@ -22,7 +22,8 @@ sealed class CheckResult {
  * The typed sign-in: a server address, a user name and an app password, asked of the server once
  * before anything is kept. Nothing depends on a browser or on what the server believes its own
  * address to be; the account is built from exactly what was typed (the address gets https://
- * added if missing), with the user name the server reports for it.
+ * added if missing), signing in with the login name as typed and building paths with the user
+ * id the server reports for it.
  */
 object NextcloudCheck {
 
@@ -49,7 +50,7 @@ object NextcloudCheck {
             return CheckResult.Bad(problemFor(e), e.message.orEmpty())
         }
         val id = userId(first.code, first.body)
-        if (id != null) return CheckResult.Good(Account(base, id, secret))
+        if (id != null) return CheckResult.Good(Account(base, login, secret, uid = id))
         // Not let in. Any web server can say no, so ask whether this is a Nextcloud at all.
         val status = try {
             ask(client, "$base/status.php", null, null)

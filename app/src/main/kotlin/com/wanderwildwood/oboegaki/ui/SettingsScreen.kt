@@ -242,7 +242,7 @@ fun SettingsScreen(
                             when {
                                 fromHome && account != null -> stringResource(R.string.home_account_in_use, account.user, shownServer(account.server))
                                 fromHome -> stringResource(R.string.home_account_signed_out, stringResource(R.string.home_account_kept))
-                                account != null -> stringResource(R.string.settings_account_value, account.user, Uri.parse(account.server).host ?: account.server)
+                                account != null -> stringResource(R.string.settings_account_value, account.user, shownServer(account.server))
                                 else -> stringResource(R.string.settings_signed_out)
                             },
                             onClick = onSignIn,
@@ -532,8 +532,11 @@ private fun syncValue(sync: SyncState, last: Long): String = when (sync) {
     }
 }
 
-/** A server as it is shown: without its https:// (or http://), and without a slash at the end. */
-fun shownServer(server: String): String = server.substringAfter("://").trimEnd('/')
+/**
+ * A server as it is shown, the same for Home's account and one signed in to here: without its
+ * https:// (or http://), with a port only when it is not the usual one, without a slash at the end.
+ */
+fun shownServer(server: String): String = HomeAccount.sameServer(server).substringAfter("://")
 
 /** "app.koofr.net" for a server's address, or the address itself if it has no host. */
 fun hostOf(address: String?): String {
