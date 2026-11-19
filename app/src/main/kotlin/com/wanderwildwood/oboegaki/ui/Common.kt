@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -14,6 +15,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.mudita.mmd.components.buttons.FloatingActionButtonMMD
+
+/**
+ * A floating button in the corner: the same filled rounded square as Torrents' add button and
+ * Mailbox's pencil (56 dp, 16 dp corners, the mark in the page's color), dark in light mode
+ * and light in dark mode. Every floating button in the app is this one.
+ */
+@Composable
+fun CornerButton(icon: ImageVector, description: String, onClick: () -> Unit) {
+    FloatingActionButtonMMD(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        containerColor = MaterialTheme.colorScheme.onSurface,
+        contentColor = MaterialTheme.colorScheme.surface,
+        border = null,
+    ) {
+        Icon(icon, contentDescription = description, modifier = Modifier.size(24.dp))
+    }
+}
 
 /** An icon in a top bar, with a target a thumb can find. */
 @Composable
