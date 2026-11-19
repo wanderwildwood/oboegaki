@@ -64,10 +64,18 @@ object Tasks {
 
     val onNextcloud: Boolean get() = account() != null
 
+    /**
+     * The server's lists are shown while there is an account, and while Home is signed out of
+     * the one it gave this app: they are still that account's, and what is changed in them
+     * waits on the phone until Home has it again ([Notes.followHome]).
+     */
+    private val serverListsShown: Boolean
+        get() = onNextcloud || (Notes.preferences.keeping == Keeping.NEXTCLOUD && Notes.preferences.homeWho != null)
+
     /** The lists to show: the server's, then the phone's when it has anything or there is no server. */
     private fun visible(): List<TaskList> {
         val all = store.lists()
-        val server = if (onNextcloud) all.filter { !it.onPhone }.sortedBy { it.name.lowercase() } else emptyList()
+        val server = if (serverListsShown) all.filter { !it.onPhone }.sortedBy { it.name.lowercase() } else emptyList()
         val phone = all.firstOrNull { it.onPhone }
         val keepPhone = server.isEmpty() || (phone != null && store.items(phone.id).isNotEmpty())
         val phoneList = if (keepPhone) phone ?: store.phoneList(appContext.getString(R.string.tasks_on_phone)) else null

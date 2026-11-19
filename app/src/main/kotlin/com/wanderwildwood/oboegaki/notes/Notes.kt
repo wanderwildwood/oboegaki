@@ -24,6 +24,7 @@ import com.wanderwildwood.oboegaki.sync.Sync
 import com.wanderwildwood.oboegaki.sync.Unreachable
 import com.wanderwildwood.oboegaki.sync.merge
 import com.wanderwildwood.oboegaki.sync.recordMoves
+import com.wanderwildwood.oboegaki.sync.setCopyAside
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -269,8 +270,24 @@ object Notes {
     /** Goes up each time the Nextcloud account changes by Home's doing, so screens show it. */
     val homeTurn: StateFlow<Int> = _homeTurn
 
+    /**
+     * Before another account is put in place: the task lists of the one before are its own, so
+     * they are let go, and any task the last sync could not send moves into the phone's list.
+     * The notes' copy is dealt with at the next sync ([runSync]), where no sync can be running.
+     */
+    private fun leaveTasksOf(next: String) {
+        val before = preferences.account?.let { HomeAccount.who(it.server, it.user) } ?: preferences.homeWho
+        if (before != null && before != next) forgetTasks()
+    }
+
+    private fun forgetTasks() {
+        Tasks.init(appContext)
+        Tasks.forgetServer()
+    }
+
     /** An account signed in to here, in this app: kept, and Home's is no longer used. */
     fun useOwnAccount(account: Account) {
+        leaveTasksOf(HomeAccount.who(account.server, account.user))
         preferences.account = account
         preferences.homeWho = null
         preferences.homeStamp = ""
@@ -282,6 +299,7 @@ object Notes {
      * on in place of any sign-in here, and followed through each change there.
      */
     fun useHomeAccount(held: HomeAccount.Held) {
+        leaveTasksOf(held.who)
         synchronized(homeLock) {
             preferences.account = Account(held.server, held.user, held.password)
             preferences.homeWho = held.who
@@ -293,7 +311,10 @@ object Notes {
         Tasks.syncNow()
     }
 
-    /** "Stop using it": Home's account is let go, and the sign-in here is empty. */
+    /**
+     * "Stop using it": Home's account is let go, and the sign-in here is empty. The notes stay
+     * on the phone; so do the tasks, any the last sync could not send moved into the phone's list.
+     */
     fun stopUsingHome() {
         synchronized(homeLock) {
             preferences.account = null
@@ -303,7 +324,7 @@ object Notes {
         _shared.value = emptySet()
         _sharedWithMe.value = emptySet()
         _homeTurn.value++
-        Tasks.refresh()
+        scope.launch { forgetTasks() }
     }
 
     private val homeLock = Any()
@@ -312,12 +333,15 @@ object Notes {
      * When the account is Home's: asks Home, and does as [HomeAccount.follow] says. A new
      * password for the same account is taken. When Home signed out or is gone, the copy of
      * the password is let go and this app reads as signed out, until Home has the same account
-     * again; when Home holds another account, it is let go for good. What is on the phone stays.
+     * again; meanwhile its task lists stay in view, and what is changed in them waits for it.
+     * When Home holds another account, the old one is let go for good: its task lists go, any
+     * task the last sync could not send moved into the phone's list. What is on the phone stays.
      * Asks another app, so never on the main thread. True when the account changed.
      */
     fun followHome(): Boolean {
         if (preferences.homeWho == null) return false
         val answer = HomeAccount.ask(appContext)
+        var leftForGood = false
         val changed = synchronized(homeLock) {
             // Pressed away ("Stop using it") while Home was being asked.
             val who = preferences.homeWho ?: return false
@@ -331,7 +355,10 @@ object Notes {
                 is HomeAccount.Step.Drop -> {
                     preferences.account = null
                     preferences.homeStamp = ""
-                    if (!step.following) preferences.homeWho = null
+                    if (!step.following) {
+                        preferences.homeWho = null
+                        leftForGood = true
+                    }
                     _shared.value = emptySet()
                     _sharedWithMe.value = emptySet()
                     _sync.value = SyncState.Idle
@@ -341,7 +368,7 @@ object Notes {
         }
         if (changed) {
             _homeTurn.value++
-            Tasks.refresh()
+            if (leftForGood) forgetTasks() else Tasks.refresh()
         }
         return changed
     }
@@ -389,6 +416,7 @@ object Notes {
         val dav = if (place == Keeping.WEBDAV) preferences.dav ?: return else null
         try {
             _sync.value = SyncState.Running
+            if (account != null) ownCopy(account)
             // Sharing is Nextcloud's own; a plain WebDAV server has none.
             val sharing = account?.let(::Sharing)
             // A note someone shared lands at the top of this account's files. Moved into the
@@ -469,6 +497,27 @@ object Notes {
 
     /** A note's path as the server knows it, from the top of the account's files. */
     fun serverPath(path: String): String = folderPrefix + path
+
+    /**
+     * The phone's Nextcloud copy made [account]'s before it syncs: a copy of another account's
+     * notes (Home moved to another account, or another one was signed in to) is set aside, never
+     * sent to this one, and this one's own copy comes back if it has one ([setCopyAside]).
+     * Inside the sync lock, so no sync is using the copy meanwhile.
+     */
+    private fun ownCopy(account: Account) {
+        val who = HomeAccount.who(account.server, account.user) + "\n" + preferences.remoteFolder
+        val dir = syncDir(Keeping.NEXTCLOUD)
+        val swapped = synchronized(notesLock) {
+            setCopyAside(dir, File(appContext.filesDir, "nextcloud-aside"), preferences.copyOf, who)
+        }
+        preferences.copyOf = who
+        if (swapped) {
+            preferences.lastSync = 0
+            _held.value = false
+            reload()
+            _changed.value++
+        }
+    }
 
     /** Wait for any sync in progress to finish, then run [block]. */
     private suspend fun afterSync(block: () -> Unit) = syncing.withLock { block() }
@@ -562,6 +611,7 @@ object Notes {
                 preferences.account = null
                 preferences.homeWho = null
                 preferences.homeStamp = ""
+                preferences.copyOf = null
                 // Its task lists are its own; the ones kept on this phone stay, and so does any
                 // task the last sync could not send, moved into the phone's list.
                 Tasks.init(appContext)
@@ -594,6 +644,7 @@ object Notes {
                 // Named inside the lock, so no sync can come between and fetch the old folder
                 // into the copy just let go.
                 if (place == Keeping.WEBDAV) preferences.davFolder = folder else preferences.remoteFolder = folder
+                if (place == Keeping.NEXTCLOUD) preferences.copyOf = null
                 _list.value = emptyList()
             }
             if (!went) return@launch

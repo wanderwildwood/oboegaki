@@ -59,7 +59,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import com.wanderwildwood.oboegaki.sync.CheckResult
 import com.wanderwildwood.oboegaki.sync.HomeAccount
-import androidx.compose.runtime.DisposableEffect
+import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.compose.ui.text.style.TextAlign
 import com.wanderwildwood.oboegaki.sync.LoginFlow
 import com.wanderwildwood.oboegaki.sync.NextcloudCheck
@@ -532,10 +532,10 @@ private fun syncValue(sync: SyncState, last: Long): String = when (sync) {
     }
 }
 
-/** "app.koofr.net" for a server's address, or the address itself if it has no host. */
 /** A server as it is shown: without its https:// (or http://), and without a slash at the end. */
 fun shownServer(server: String): String = server.substringAfter("://").trimEnd('/')
 
+/** "app.koofr.net" for a server's address, or the address itself if it has no host. */
 fun hostOf(address: String?): String {
     if (address == null) return ""
     return Uri.parse(address).host ?: address
@@ -843,11 +843,15 @@ fun SignInScreen(onSignedIn: () -> Unit, onBack: () -> Unit) {
     val homeHeld = remember(homeTurn) { if (homeWho != null) Notes.preferences.account else null }
     var homeAvailable by remember { mutableStateOf(false) }
     LaunchedEffect(homeTurn) { homeAvailable = withContext(Dispatchers.IO) { HomeAccount.available(context) } }
-    DisposableEffect(Unit) {
-        val stop = HomeAccount.observe(context) {
+    // Home's change notices are heard only while the app is in view, and asked again on coming
+    // back, for any missed meanwhile.
+    LifecycleStartEffect(Unit) {
+        fun ask() {
             scope.launch { homeAvailable = withContext(Dispatchers.IO) { HomeAccount.available(context) } }
         }
-        onDispose { stop() }
+        val stop = HomeAccount.observe(context) { ask() }
+        ask()
+        onStopOrDispose { stop() }
     }
     val known = Notes.preferences.account.takeIf { homeWho == null }
     var address by remember { mutableStateOf(known?.server.orEmpty()) }

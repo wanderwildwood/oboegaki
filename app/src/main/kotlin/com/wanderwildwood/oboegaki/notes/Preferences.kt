@@ -93,6 +93,14 @@ class Preferences(context: Context) {
         get() = store.getString(HOME_STAMP, null).orEmpty()
         set(value) = store.edit().putString(HOME_STAMP, value).apply()
 
+    /**
+     * Whose notes the phone's Nextcloud copy holds: server, user and folder. Null before the
+     * first sync, and once the copy is let go. Another account's notes are never synced into it.
+     */
+    var copyOf: String?
+        get() = store.getString(COPY_OF, null)
+        set(value) = store.edit().putString(COPY_OF, value).apply()
+
     /** A WebDAV server, as it was typed in and checked. The password is sealed as above. */
     var dav: DavAccount?
         get() {
@@ -229,6 +237,7 @@ class Preferences(context: Context) {
         const val PASSWORD = "password"
         const val HOME_WHO = "home_who"
         const val HOME_STAMP = "home_stamp"
+        const val COPY_OF = "copy_of"
         const val REMOTE_FOLDER = "remote_folder"
         const val DAV_ADDRESS = "dav_address"
         const val DAV_USER = "dav_user"
