@@ -58,6 +58,9 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import com.wanderwildwood.oboegaki.sync.CheckResult
+import com.wanderwildwood.oboegaki.sync.HomeAccount
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.text.style.TextAlign
 import com.wanderwildwood.oboegaki.sync.LoginFlow
 import com.wanderwildwood.oboegaki.sync.NextcloudCheck
 import com.wanderwildwood.oboegaki.sync.Problem
@@ -113,6 +116,8 @@ fun SettingsScreen(
     val taskLists = remember { Tasks.writableLists() }
     var tasksIn by remember { mutableStateOf(Tasks.defaultList().id) }
     val speech by Speech.state.collectAsState()
+    // The account changes by Home's doing too (sync/HomeAccount.kt): read again each time it does.
+    val homeTurn by Notes.homeTurn.collectAsState()
     val spoken by Speech.chosen.collectAsState()
     var newFolder by remember { mutableStateOf(preferences.newFolder) }
     var duraSpeedDone by remember { mutableStateOf(preferences.duraSpeedDone) }
@@ -228,12 +233,18 @@ fun SettingsScreen(
             }
             when (preferences.keeping) {
                 Keeping.NEXTCLOUD -> {
-                    val account = preferences.account
                     item {
+                        val turn = homeTurn
+                        val account = remember(turn) { preferences.account }
+                        val fromHome = remember(turn) { preferences.homeWho != null }
                         SettingRow(
                             stringResource(R.string.settings_account),
-                            account?.let { stringResource(R.string.settings_account_value, it.user, Uri.parse(it.server).host ?: it.server) }
-                                ?: stringResource(R.string.settings_signed_out),
+                            when {
+                                fromHome && account != null -> stringResource(R.string.home_account_in_use, account.user, shownServer(account.server))
+                                fromHome -> stringResource(R.string.home_account_signed_out, stringResource(R.string.home_account_kept))
+                                account != null -> stringResource(R.string.settings_account_value, account.user, Uri.parse(account.server).host ?: account.server)
+                                else -> stringResource(R.string.settings_signed_out)
+                            },
                             onClick = onSignIn,
                         )
                     }
@@ -522,6 +533,9 @@ private fun syncValue(sync: SyncState, last: Long): String = when (sync) {
 }
 
 /** "app.koofr.net" for a server's address, or the address itself if it has no host. */
+/** A server as it is shown: without its https:// (or http://), and without a slash at the end. */
+fun shownServer(server: String): String = server.substringAfter("://").trimEnd('/')
+
 fun hostOf(address: String?): String {
     if (address == null) return ""
     return Uri.parse(address).host ?: address
@@ -822,7 +836,20 @@ private fun SetupChoice(label: String, note: String, filled: Boolean, onClick: (
 fun SignInScreen(onSignedIn: () -> Unit, onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val known = Notes.preferences.account
+    // The account Home holds for the whole phone (sync/HomeAccount.kt): in use when homeWho is
+    // set, then the sign-in here is not shown; offered when Home has one to give this app.
+    val homeTurn by Notes.homeTurn.collectAsState()
+    val homeWho = remember(homeTurn) { Notes.preferences.homeWho }
+    val homeHeld = remember(homeTurn) { if (homeWho != null) Notes.preferences.account else null }
+    var homeAvailable by remember { mutableStateOf(false) }
+    LaunchedEffect(homeTurn) { homeAvailable = withContext(Dispatchers.IO) { HomeAccount.available(context) } }
+    DisposableEffect(Unit) {
+        val stop = HomeAccount.observe(context) {
+            scope.launch { homeAvailable = withContext(Dispatchers.IO) { HomeAccount.available(context) } }
+        }
+        onDispose { stop() }
+    }
+    val known = Notes.preferences.account.takeIf { homeWho == null }
     var address by remember { mutableStateOf(known?.server.orEmpty()) }
     var user by remember { mutableStateOf(known?.user.orEmpty()) }
     var password by remember { mutableStateOf("") }
@@ -831,6 +858,35 @@ fun SignInScreen(onSignedIn: () -> Unit, onBack: () -> Unit) {
     var busy by remember { mutableStateOf(false) }
     var waiting by remember { mutableStateOf(false) }
     var loginAddress by remember { mutableStateOf<String?>(null) }
+
+    var asking by remember { mutableStateOf(false) }
+
+    // Asked again at the press, so the password is Home's of this moment.
+    fun phones() {
+        asking = true
+        status = null
+        scope.launch {
+            val held = withContext(Dispatchers.IO) { HomeAccount.read(context) }
+            asking = false
+            when {
+                held == null -> homeAvailable = false
+                !LoginFlow.plainHttpAllowed(held.server) -> status = R.string.signin_plain_http
+                else -> {
+                    Notes.useHomeAccount(held)
+                    onSignedIn()
+                }
+            }
+        }
+    }
+
+    fun stopUsingHome() {
+        Notes.stopUsingHome()
+        address = ""
+        user = ""
+        password = ""
+        status = null
+        loginAddress = null
+    }
 
     fun typed(keep: Boolean) {
         busy = true
@@ -843,7 +899,7 @@ fun SignInScreen(onSignedIn: () -> Unit, onBack: () -> Unit) {
             busy = false
             when (result) {
                 is CheckResult.Good -> if (keep) {
-                    Notes.preferences.account = result.account
+                    Notes.useOwnAccount(result.account)
                     Notes.preferences.keeping = Keeping.NEXTCLOUD
                     Notes.syncNow()
                     onSignedIn()
@@ -898,7 +954,7 @@ fun SignInScreen(onSignedIn: () -> Unit, onBack: () -> Unit) {
                 }
                 val account = polled.getOrNull()
                 if (account != null) {
-                    Notes.preferences.account = account
+                    Notes.useOwnAccount(account)
                     Notes.preferences.keeping = Keeping.NEXTCLOUD
                     Notes.syncNow()
                     onSignedIn()
@@ -910,7 +966,7 @@ fun SignInScreen(onSignedIn: () -> Unit, onBack: () -> Unit) {
         }
     }
 
-    val working = busy || waiting
+    val working = busy || waiting || asking
     val ready = address.isNotBlank() && user.isNotBlank() && password.isNotEmpty() && !working
 
     Scaffold(
@@ -926,6 +982,47 @@ fun SignInScreen(onSignedIn: () -> Unit, onBack: () -> Unit) {
             modifier = Modifier.fillMaxSize().padding(contentPadding),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 20.dp, end = 12.dp),
         ) {
+            if (homeWho != null) {
+                // Home's account in use: who on which server, or that Home signed out.
+                item {
+                    Column {
+                        Spacer(Modifier.height(16.dp))
+                        TextMMD(
+                            text = if (homeHeld != null) {
+                                stringResource(R.string.home_account_in_use, homeHeld.user, shownServer(homeHeld.server))
+                            } else {
+                                stringResource(R.string.home_account_signed_out, stringResource(R.string.home_account_kept))
+                            },
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                        Spacer(Modifier.height(20.dp))
+                        OutlinedButtonMMD(
+                            onClick = { stopUsingHome() },
+                            modifier = Modifier.fillMaxWidth().height(56.dp),
+                        ) {
+                            TextMMD(text = stringResource(R.string.home_account_stop))
+                        }
+                        Spacer(Modifier.height(20.dp))
+                    }
+                }
+                return@PagedColumn
+            }
+            if (homeAvailable) {
+                item {
+                    Column {
+                        Spacer(Modifier.height(16.dp))
+                        ButtonMMD(
+                            onClick = { phones() },
+                            enabled = !working,
+                            // As tall as its words: beside the scrollbar they may take two lines.
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+                        ) {
+                            TextMMD(text = stringResource(R.string.home_account_use), textAlign = TextAlign.Center)
+                        }
+                        Spacer(Modifier.height(8.dp))
+                    }
+                }
+            }
             item {
                 Column {
                     Spacer(Modifier.height(16.dp))

@@ -5,7 +5,9 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.core.content.FileProvider
+import com.wanderwildwood.oboegaki.sync.Account
 import com.wanderwildwood.oboegaki.sync.DavAccount
+import com.wanderwildwood.oboegaki.sync.HomeAccount
 import com.wanderwildwood.oboegaki.sync.WebDavRemote
 import com.wanderwildwood.oboegaki.sync.nextcloudRemote
 import com.wanderwildwood.oboegaki.sync.PlainHttpRefused
@@ -263,6 +265,98 @@ object Notes {
     /** Of those, the ones someone else shared with this account. */
     val sharedWithMe: StateFlow<Set<String>> = _sharedWithMe
 
+    private val _homeTurn = MutableStateFlow(0)
+    /** Goes up each time the Nextcloud account changes by Home's doing, so screens show it. */
+    val homeTurn: StateFlow<Int> = _homeTurn
+
+    /** An account signed in to here, in this app: kept, and Home's is no longer used. */
+    fun useOwnAccount(account: Account) {
+        preferences.account = account
+        preferences.homeWho = null
+        preferences.homeStamp = ""
+        _homeTurn.value++
+    }
+
+    /**
+     * The phone's Nextcloud account, the one Home holds, at the reader's press: used from now
+     * on in place of any sign-in here, and followed through each change there.
+     */
+    fun useHomeAccount(held: HomeAccount.Held) {
+        synchronized(homeLock) {
+            preferences.account = Account(held.server, held.user, held.password)
+            preferences.homeWho = held.who
+            preferences.homeStamp = held.stamp
+        }
+        preferences.keeping = Keeping.NEXTCLOUD
+        _homeTurn.value++
+        syncNow()
+        Tasks.syncNow()
+    }
+
+    /** "Stop using it": Home's account is let go, and the sign-in here is empty. */
+    fun stopUsingHome() {
+        synchronized(homeLock) {
+            preferences.account = null
+            preferences.homeWho = null
+            preferences.homeStamp = ""
+        }
+        _shared.value = emptySet()
+        _sharedWithMe.value = emptySet()
+        _homeTurn.value++
+        Tasks.refresh()
+    }
+
+    private val homeLock = Any()
+
+    /**
+     * When the account is Home's: asks Home, and does as [HomeAccount.follow] says. A new
+     * password for the same account is taken. When Home signed out or is gone, the copy of
+     * the password is let go and this app reads as signed out, until Home has the same account
+     * again; when Home holds another account, it is let go for good. What is on the phone stays.
+     * Asks another app, so never on the main thread. True when the account changed.
+     */
+    fun followHome(): Boolean {
+        if (preferences.homeWho == null) return false
+        val answer = HomeAccount.ask(appContext)
+        val changed = synchronized(homeLock) {
+            // Pressed away ("Stop using it") while Home was being asked.
+            val who = preferences.homeWho ?: return false
+            when (val step = HomeAccount.follow(who, preferences.homeStamp, answer)) {
+                is HomeAccount.Step.Keep -> false
+                is HomeAccount.Step.Take -> {
+                    preferences.account = Account(step.held.server, step.held.user, step.held.password)
+                    preferences.homeStamp = step.held.stamp
+                    true
+                }
+                is HomeAccount.Step.Drop -> {
+                    preferences.account = null
+                    preferences.homeStamp = ""
+                    if (!step.following) preferences.homeWho = null
+                    _shared.value = emptySet()
+                    _sharedWithMe.value = emptySet()
+                    _sync.value = SyncState.Idle
+                    true
+                }
+            }
+        }
+        if (changed) {
+            _homeTurn.value++
+            Tasks.refresh()
+        }
+        return changed
+    }
+
+    /** On opening and on each change notice from Home: follow it, and sync when it changed. */
+    fun checkHome() {
+        if (preferences.homeWho == null) return
+        scope.launch {
+            if (followHome()) {
+                syncNow()
+                Tasks.syncNow()
+            }
+        }
+    }
+
     /**
      * Bring the copy here and the server's folder together, if that is where the notes are
      * kept. One at a time: a second ask while one is running is the same ask.
@@ -289,6 +383,8 @@ object Notes {
      */
     private fun runSync(place: Keeping = preferences.keeping) {
         if (!place.isServer) return
+        // An account taken from Home is never used past a change there.
+        if (place == Keeping.NEXTCLOUD) followHome()
         val account = if (place == Keeping.NEXTCLOUD) preferences.account ?: return else null
         val dav = if (place == Keeping.WEBDAV) preferences.dav ?: return else null
         try {
@@ -464,6 +560,8 @@ object Notes {
         when (place) {
             Keeping.NEXTCLOUD -> {
                 preferences.account = null
+                preferences.homeWho = null
+                preferences.homeStamp = ""
                 // Its task lists are its own; the ones kept on this phone stay, and so does any
                 // task the last sync could not send, moved into the phone's list.
                 Tasks.init(appContext)

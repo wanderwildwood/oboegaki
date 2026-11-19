@@ -100,6 +100,8 @@ object Tasks {
         scope.launch {
             if (!syncing.tryLock()) return@launch
             try {
+                // An account taken from Home is never used past a change there.
+                Notes.followHome()
                 runSync()
             } finally {
                 syncing.unlock()
@@ -107,7 +109,7 @@ object Tasks {
         }
     }
 
-    suspend fun syncAndWait() = withContext(Dispatchers.IO) { syncing.withLock { runSync() } }
+    suspend fun syncAndWait() = withContext(Dispatchers.IO) { syncing.withLock { Notes.followHome(); runSync() } }
 
     /**
      * One last sync with the Nextcloud account Notes holds, whatever the notes are kept in now,

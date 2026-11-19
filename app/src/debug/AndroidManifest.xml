@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug builds only: Home's debug build is a package of its own, and has to be visible for
+     its Nextcloud account to be asked for (sync/HomeAccount.kt). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <queries>
+        <package android:name="com.wanderwildwood.iori.debug" />
+    </queries>
+</manifest>

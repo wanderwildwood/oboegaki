@@ -18,6 +18,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import com.wanderwildwood.oboegaki.desktop.DesktopSync
 import com.wanderwildwood.oboegaki.today.Entry
+import com.wanderwildwood.oboegaki.sync.HomeAccount
 import com.wanderwildwood.oboegaki.ui.TextSize
 import androidx.compose.ui.platform.LocalCursorBlinkEnabled
 import androidx.compose.runtime.LaunchedEffect
@@ -180,10 +181,26 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /** Stops listening for Home's change notices. */
+    private var stopObservingHome: () -> Unit = {}
+
+    override fun onStart() {
+        super.onStart()
+        // The phone's Nextcloud account, when it is Home's: followed on each change there.
+        stopObservingHome = HomeAccount.observe(this) { Notes.checkHome() }
+    }
+
+    override fun onStop() {
+        stopObservingHome()
+        stopObservingHome = {}
+        super.onStop()
+    }
+
     override fun onResume() {
         super.onResume()
         turner.resume()
         Notes.refresh()
+        Notes.checkHome()
         Notes.syncNow()
         Tasks.refresh()
         Tasks.syncNow()

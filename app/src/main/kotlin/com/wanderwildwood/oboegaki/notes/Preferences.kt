@@ -78,6 +78,21 @@ class Preferences(context: Context) {
     /** An account that could not be sealed, held for this run only. */
     private var unsealed: Account? = null
 
+    /**
+     * Set while the Nextcloud account is the phone's, the one Home holds (sync/HomeAccount.kt):
+     * whose it is, server and user, no password. [account] is then only a copy of Home's, taken
+     * again on each change there and let go when Home signs out. Null for an account signed in
+     * to here.
+     */
+    var homeWho: String?
+        get() = store.getString(HOME_WHO, null)
+        set(value) = store.edit().putString(HOME_WHO, value).apply()
+
+    /** Home's stamp on the account as it is held here; empty while none is held (Home signed out). */
+    var homeStamp: String
+        get() = store.getString(HOME_STAMP, null).orEmpty()
+        set(value) = store.edit().putString(HOME_STAMP, value).apply()
+
     /** A WebDAV server, as it was typed in and checked. The password is sealed as above. */
     var dav: DavAccount?
         get() {
@@ -212,6 +227,8 @@ class Preferences(context: Context) {
         const val SERVER = "server"
         const val USER = "user"
         const val PASSWORD = "password"
+        const val HOME_WHO = "home_who"
+        const val HOME_STAMP = "home_stamp"
         const val REMOTE_FOLDER = "remote_folder"
         const val DAV_ADDRESS = "dav_address"
         const val DAV_USER = "dav_user"

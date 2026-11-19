@@ -130,6 +130,13 @@
     <string name="signin_title">Nextcloud</string>
     <string name="signin_address">Server address</string>
     <string name="signin_go">Sign in</string>
+    <!-- The phone's one Nextcloud account, held by Home (sync/HomeAccount.kt). -->
+    <string name="home_account_use">Use the phone\'s Nextcloud account</string>
+    <string name="home_account_in_use">%1$s on %2$s, from Home.</string>
+    <string name="home_account_stop">Stop using it</string>
+    <string name="home_account_signed_out">Home is signed out of Nextcloud, so this app is too. Your %1$s stay on the phone.</string>
+    <!-- What stays on the phone, in home_account_signed_out. -->
+    <string name="home_account_kept">notes and tasks</string>
     <string name="signin_opening">Asking the server…</string>
     <string name="signin_no_browser">This phone has no browser. On a computer or another phone, open the address below and sign in there. This phone picks it up on its own.</string>
     <string name="signin_waiting">Sign in on the page that opened, then come back here.</string>

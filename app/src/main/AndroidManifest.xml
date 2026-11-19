@@ -32,7 +32,8 @@
     <!-- Lets the text-selection menu see other apps' text actions, such as Define from the
          Dictionary, beside Copy. Without it Android 11+ hides them from this app. -->
     <queries>
-        <!-- Home, whose dark mode switch this app follows when Home is installed. -->
+        <!-- Home, whose dark mode switch this app follows when Home is installed, and whose
+             Nextcloud account it can use (sync/HomeAccount.kt). -->
         <package android:name="com.wanderwildwood.iori" />
         <!-- Web links open in a real browser; asking for one needs this on Android 11+. -->
         <intent>
