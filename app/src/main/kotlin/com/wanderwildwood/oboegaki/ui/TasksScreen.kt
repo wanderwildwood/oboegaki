@@ -29,7 +29,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.mudita.mmd.components.buttons.FloatingActionButtonMMD
 import com.mudita.mmd.components.checkbox.CheckboxMMD
 import androidx.compose.foundation.lazy.rememberLazyListState
 import com.mudita.mmd.components.text.TextMMD
@@ -107,9 +106,7 @@ fun TasksScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButtonMMD(onClick = { onNew(Tasks.defaultList().id) }) {
-                Icon(Icons.Add, contentDescription = stringResource(R.string.cd_new_task), modifier = Modifier.size(28.dp))
-            }
+            CornerButton(Icons.Add, stringResource(R.string.cd_new_task)) { onNew(Tasks.defaultList().id) }
         },
     ) { contentPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(contentPadding).dismissedByPress(pull)) {

@@ -36,7 +36,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.mudita.mmd.components.buttons.FloatingActionButtonMMD
 import androidx.compose.foundation.lazy.rememberLazyListState
 import com.mudita.mmd.components.text.TextMMD
 import com.mudita.mmd.components.text_field.TextFieldMMD
@@ -165,31 +164,19 @@ fun ListScreen(
                 val newNote = { opened = false; onNew(Showing.folderOf(showing) ?: "") }
                 if (opened) {
                     if (hasCamera) {
-                        FloatingActionButtonMMD(onClick = { opened = false; onScan() }) {
-                            Icon(Icons.Scan, contentDescription = stringResource(R.string.cd_scan), modifier = Modifier.size(28.dp))
-                        }
+                        CornerButton(Icons.Scan, stringResource(R.string.cd_scan)) { opened = false; onScan() }
                         Spacer(Modifier.height(14.dp))
                     }
                     if (hasMicrophone) {
-                        FloatingActionButtonMMD(onClick = { opened = false; onRecord() }) {
-                            Icon(Icons.Mic, contentDescription = stringResource(R.string.cd_record), modifier = Modifier.size(28.dp))
-                        }
+                        CornerButton(Icons.Mic, stringResource(R.string.cd_record)) { opened = false; onRecord() }
                         Spacer(Modifier.height(14.dp))
                     }
-                    FloatingActionButtonMMD(onClick = newNote) {
-                        Icon(Icons.Edit, contentDescription = stringResource(R.string.cd_new_note), modifier = Modifier.size(28.dp))
-                    }
+                    CornerButton(Icons.Edit, stringResource(R.string.cd_new_note), newNote)
                     Spacer(Modifier.height(14.dp))
-                    FloatingActionButtonMMD(onClick = { opened = false }) {
-                        Icon(Icons.Close, contentDescription = stringResource(R.string.cd_add_close), modifier = Modifier.size(28.dp))
-                    }
+                    CornerButton(Icons.Close, stringResource(R.string.cd_add_close)) { opened = false }
                 } else {
-                    FloatingActionButtonMMD(onClick = { if (opens) opened = true else newNote() }) {
-                        Icon(
-                            Icons.Add,
-                            contentDescription = stringResource(if (opens) R.string.cd_add_open else R.string.cd_new_note),
-                            modifier = Modifier.size(28.dp),
-                        )
+                    CornerButton(Icons.Add, stringResource(if (opens) R.string.cd_add_open else R.string.cd_new_note)) {
+                        if (opens) opened = true else newNote()
                     }
                 }
             }
