@@ -87,7 +87,8 @@ object LoginFlow {
 
     /**
      * The account, once the reader has finished in the browser, or null while they have not.
-     * Throws [PlainHttpRefused] when the server hands back a plain http address out on the
+     * Its [Account.uid] is the user id the server reports for the login name, or the login name
+     * when the server could not be asked. Throws [PlainHttpRefused] when the server hands back a plain http address out on the
      * internet for itself: every later sync would carry the app password there in the clear.
      */
     fun poll(started: Started): Account? {
@@ -110,6 +111,8 @@ object LoginFlow {
             if (e is Refused) throw e
             null
         }?.also { if (!plainHttpAllowed(it.server)) throw PlainHttpRefused() }
+            // The login name may be an email address or written in another case; paths need the user id.
+            ?.let { NextcloudCheck.withUserId(it) }
     }
 
     /**

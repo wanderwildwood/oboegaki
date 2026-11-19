@@ -66,4 +66,43 @@ class CopyAsideTest {
         assertEquals(name, asideName(a))
         assertFalse(name == asideName(b))
     }
+
+    // ---- whose copy: by user id, never the login name ----
+
+    private val server = "https://cloud.example.org"
+
+    @Test fun signingInAgainByEmailIsTheSameAccount() {
+        // The typed sign-in keeps the login as typed and the id the server gave for it.
+        val first = Account(server, "ada@example.org", "pw-1", uid = "ada")
+        val again = Account("HTTPS://Cloud.Example.org:443/", "ada@example.org", "pw-2", uid = "ada")
+        assertEquals(accountKey(first), accountKey(again))
+        assertEquals(copyKey(first, "Notes"), keptCopyKey(copyKey(again, "Notes")))
+        note("not sent yet")
+        assertFalse(setCopyAside(dir(), aside(), keptCopyKey(copyKey(first, "Notes")), copyKey(again, "Notes")))
+        assertEquals("not sent yet", noteNow())
+    }
+
+    @Test fun anotherLoginForTheSameUserIsTheSameAccount() {
+        // Home's account signed in by email, and a sign-in here typed "Ada": one Nextcloud user.
+        val home = Account(server, "ada@example.org", "pw", uid = "ada")
+        val typed = Account(server, "Ada", "pw", uid = "ada")
+        assertEquals(accountKey(home), accountKey(typed))
+        assertEquals(copyKey(home, "Notes"), copyKey(typed, "Notes"))
+    }
+
+    @Test fun anAccountKeptBeforeTheUserIdMatchesAsItWas() {
+        // Kept by an older version: no user id, so it reads as the login name, the id stored then.
+        val kept = Account(server, "ada", "pw")
+        assertEquals("ada", kept.uid)
+        assertEquals(a, copyKey(kept, "Notes"))
+        assertEquals(copyKey(kept, "Notes"), copyKey(Account(server, "ada@example.org", "pw", uid = "ada"), "Notes"))
+        // A key kept before the server was written one way still matches.
+        assertEquals(a, keptCopyKey("https://Cloud.Example.org/\nada\nNotes"))
+        assertNull(keptCopyKey(null))
+    }
+
+    @Test fun anotherUserIsAnotherAccount() {
+        assertFalse(accountKey(Account(server, "ada", "pw")) == accountKey(Account(server, "bea", "pw")))
+        assertFalse(copyKey(Account(server, "ada", "pw"), "Notes") == copyKey(Account(server, "ada", "pw"), "Other"))
+    }
 }

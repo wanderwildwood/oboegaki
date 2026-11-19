@@ -32,3 +32,19 @@ fun setCopyAside(dir: File, aside: File, from: String?, to: String): Boolean {
 /** A file name for an account and folder: the same each time, and nothing of either readable. */
 fun asideName(of: String): String =
     MessageDigest.getInstance("SHA-256").digest(of.toByteArray()).joinToString("") { "%02x".format(it) }.take(32)
+
+/**
+ * Whose the phone's Nextcloud data is: the server, written one way ([HomeAccount.who]), and the
+ * user id. Never the login name: one user can sign in as "ada", "Ada" or "ada@example.org", and
+ * signing in again another way is still the same account, whose copy and task lists stay.
+ * Accounts kept by an older version read their user id as the login name, which is the id the
+ * typed sign-in stored then, so they still match.
+ */
+fun accountKey(account: Account): String = HomeAccount.who(account.server, account.uid)
+
+/** The account and notes folder a Nextcloud copy belongs to, as [setCopyAside] takes it. */
+fun copyKey(account: Account, folder: String): String = accountKey(account) + "\n" + folder
+
+/** A [copyKey] kept earlier (perhaps before the server was written one way) written as [copyKey] writes it now. */
+fun keptCopyKey(kept: String?): String? =
+    kept?.split('\n', limit = 3)?.let { if (it.size == 3) HomeAccount.who(it[0], it[1]) + "\n" + it[2] else null } ?: kept

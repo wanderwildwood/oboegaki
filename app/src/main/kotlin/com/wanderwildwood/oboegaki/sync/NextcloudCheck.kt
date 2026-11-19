@@ -65,6 +65,22 @@ object NextcloudCheck {
         }
     }
 
+    /**
+     * [account] (from Nextcloud's login page, which gives only the login name) with the user id
+     * the server reports for it. As it was if the server could not be asked or gave no id.
+     */
+    fun withUserId(account: Account, client: OkHttpClient = http): Account {
+        val answer = try {
+            ask(client, account.server.trimEnd('/') + "/ocs/v2.php/cloud/user?format=json", account.user, account.password)
+        } catch (e: IOException) {
+            return account
+        } catch (e: IllegalArgumentException) {
+            return account
+        }
+        val id = userId(answer.code, answer.body) ?: return account
+        return account.copy(uid = id)
+    }
+
     internal class Answer(val code: Int, val body: String)
 
     private fun ask(client: OkHttpClient, url: String, user: String?, password: String?): Answer {

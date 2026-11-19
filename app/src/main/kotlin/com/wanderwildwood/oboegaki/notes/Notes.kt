@@ -25,6 +25,9 @@ import com.wanderwildwood.oboegaki.sync.Unreachable
 import com.wanderwildwood.oboegaki.sync.merge
 import com.wanderwildwood.oboegaki.sync.recordMoves
 import com.wanderwildwood.oboegaki.sync.setCopyAside
+import com.wanderwildwood.oboegaki.sync.accountKey
+import com.wanderwildwood.oboegaki.sync.copyKey
+import com.wanderwildwood.oboegaki.sync.keptCopyKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -276,7 +279,7 @@ object Notes {
      * The notes' copy is dealt with at the next sync ([runSync]), where no sync can be running.
      */
     private fun leaveTasksOf(next: String) {
-        val before = preferences.account?.let { HomeAccount.who(it.server, it.user) } ?: preferences.homeWho
+        val before = preferences.account?.let { accountKey(it) } ?: preferences.homeWho
         if (before != null && before != next) forgetTasks()
     }
 
@@ -287,7 +290,7 @@ object Notes {
 
     /** An account signed in to here, in this app: kept, and Home's is no longer used. */
     fun useOwnAccount(account: Account) {
-        leaveTasksOf(HomeAccount.who(account.server, account.user))
+        leaveTasksOf(accountKey(account))
         preferences.account = account
         preferences.homeWho = null
         preferences.homeStamp = ""
@@ -299,9 +302,11 @@ object Notes {
      * on in place of any sign-in here, and followed through each change there.
      */
     fun useHomeAccount(held: HomeAccount.Held) {
-        leaveTasksOf(held.who)
+        val account = Account(held.server, held.user, held.password, held.uid)
+        // By user id, as every other "same account" check here; homeWho stays Home's [HomeAccount.Held.who].
+        leaveTasksOf(accountKey(account))
         synchronized(homeLock) {
-            preferences.account = Account(held.server, held.user, held.password, held.uid)
+            preferences.account = account
             preferences.homeWho = held.who
             preferences.homeStamp = held.stamp
         }
@@ -505,10 +510,10 @@ object Notes {
      * Inside the sync lock, so no sync is using the copy meanwhile.
      */
     private fun ownCopy(account: Account) {
-        val who = HomeAccount.who(account.server, account.user) + "\n" + preferences.remoteFolder
+        // By user id, never the login name ([accountKey]): signing in again another way keeps the copy.
+        val who = copyKey(account, preferences.remoteFolder)
         // One kept before the server was written one way ([HomeAccount.sameServer]) is read that way.
-        val was = preferences.copyOf?.split('\n', limit = 3)?.let { if (it.size == 3) HomeAccount.who(it[0], it[1]) + "\n" + it[2] else null }
-            ?: preferences.copyOf
+        val was = keptCopyKey(preferences.copyOf)
         val dir = syncDir(Keeping.NEXTCLOUD)
         val swapped = synchronized(notesLock) {
             setCopyAside(dir, File(appContext.filesDir, "nextcloud-aside"), was, who)

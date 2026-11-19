@@ -59,6 +59,25 @@ class NextcloudCheckTest {
         assertTrue(com.wanderwildwood.oboegaki.tasks.CalDavServer(a).home.endsWith("/remote.php/dav/calendars/ada/"))
     }
 
+    @Test fun `the login page's account gets the user id the server knows`() {
+        val server = serve(true, goodUser = "ada@example.org")
+        val a = NextcloudCheck.withUserId(Account(server, "ada@example.org", "app-pass"))
+        assertEquals("ada@example.org", a.user)
+        assertEquals("ada", a.uid)
+        assertTrue(com.wanderwildwood.oboegaki.tasks.CalDavServer(a).home.endsWith("/remote.php/dav/calendars/ada/"))
+    }
+
+    @Test fun `the login page's account is kept as it is when the server will not say`() {
+        val wrong = Account(serve(true), "ada@example.org", "not-this")
+        assertEquals(wrong, NextcloudCheck.withUserId(wrong))
+        val s = MockWebServer()
+        s.start()
+        val port = s.port
+        s.shutdown()
+        val gone = Account("http://localhost:$port", "ada@example.org", "app-pass")
+        assertEquals(gone, NextcloudCheck.withUserId(gone))
+    }
+
     @Test fun `a wrong password says so`() {
         val r = NextcloudCheck.run(serve(true), "ada", "nope", local)
         assertEquals(Problem.WRONG_PASSWORD, (r as CheckResult.Bad).problem)
