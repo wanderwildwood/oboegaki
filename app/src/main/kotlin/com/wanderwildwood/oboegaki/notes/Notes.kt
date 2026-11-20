@@ -135,6 +135,7 @@ object Notes {
         if (::appContext.isInitialized) return
         appContext = context.applicationContext
         preferences = Preferences(appContext)
+        Locks.init(appContext)
     }
 
     /** Where the notes are, or null before the reader has chosen. */
@@ -1236,6 +1237,41 @@ object Notes {
 
     /** Read the notes again now, on this thread, so what is asked next is up to date. */
     fun reloadNow() = reload()
+
+    /**
+     * Lock the note at [path] with the note key [key] ([lockOnShelf]): off the shelf, so from now
+     * on nothing that reads the notes sees it, and with the notes on a server the next sync deletes
+     * the copy there. Its reminders stop ringing. Off the main thread.
+     */
+    fun lock(path: String, key: ByteArray): LockOutcome {
+        val shelf = shelf() ?: throw java.io.IOException("no folder for the notes")
+        val outcome = lockOnShelf(shelf, Locks.store, key, path)
+        if (outcome is LockOutcome.Locked) {
+            Locks.reload()
+            _pins.value = _pins.value - path
+            Reminders.syncSoon(appContext)
+            externalChange()
+        }
+        return outcome
+    }
+
+    /**
+     * Unlock the locked note [id] ([unlockToShelf]): an ordinary note again, synced from now on.
+     * Its reminders still to come ring on this phone again. Returns where it is, or null when
+     * [key] does not open it. Off the main thread.
+     */
+    fun unlock(id: String, key: ByteArray): String? {
+        val shelf = shelf() ?: throw java.io.IOException("no folder for the notes")
+        val path = unlockToShelf(shelf, Locks.store, key, id) ?: return null
+        Locks.reload()
+        val now = java.time.LocalDateTime.now()
+        val text = runCatching { shelf.read(path) }.getOrNull().orEmpty()
+        for (r in reminders(text)) {
+            if (!r.done && reminderTime(r.at)?.isAfter(now) == true) Reminders.claim(appContext, path, r.key, r.at)
+        }
+        externalChange()
+        return path
+    }
 
     fun afterEdit() {
         // Off the main thread: listing a folder reads every note in it, and a folder that is a
