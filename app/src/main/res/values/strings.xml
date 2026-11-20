@@ -423,7 +423,7 @@
     <string name="about_title">Memo %1$s</string>
     <string name="about_privacy_heading">Privacy</string>
     <string name="about_privacy">Your notes, lists, recordings and scans stay on this phone, or go to the place you chose for them: a folder on the phone, your own Nextcloud, or a WebDAV server you named. The app connects only to the servers you set up and, once, to Hugging Face if you choose a speech model for another language. Your sign-in details are kept on this phone. Nothing is sent to the app\'s maker. \"Feed the llamas\" in About opens a donation page (square.link) in your browser, only when you press it. The app sends nothing there; if you give, the payment is handled on that page by Square, not by this app.</string>
-    <string name="about_privacy_voice">The microphone is used only while you are recording, and recordings are turned into words on this phone. For a language other than English, the speech model is downloaded once from Hugging Face when you choose it; nothing you have recorded is sent. Reminders ring on this phone only. A deleted note is kept for 7 days in a hidden folder beside your notes, then removed.</string>
+    <string name="about_privacy_voice">The microphone is used only while you are recording, and recordings are turned into words on this phone. For a language other than English, the speech model is downloaded once from Hugging Face when you choose it; nothing you have recorded is sent. Reminders ring on this phone only. A deleted note is kept for 7 days in a hidden folder beside your notes, then removed. A locked note stays on this phone only, encrypted with your PIN: it is never synced, served to Desktop Sync or shown on the lock screen, and without the PIN it cannot be opened by anyone.</string>
     <string name="about_privacy_desktop">Desktop Sync is off until you switch it on. While it is on, this phone serves your notes and tasks to a browser on your VPN or home network that has the link or code, directly and not through any server. The page uses plain http, not https: over Tailscale or another VPN the tunnel encrypts it, on an ordinary home network others on it could read it. It never starts by itself, and nothing you wrote is logged.</string>
     <string name="about_privacy_close">There are no ads, no analytics and no tracking. The app makes no backups and has no export: your notes are already files in the place you chose, so to keep a copy, copy them from there.</string>
     <string name="about_terms_heading">Terms</string>
@@ -604,4 +604,51 @@
     <string name="page_arrow_previous">Previous page</string>
     <string name="page_arrow_next">Next page</string>
     <string name="selection_more">More</string>
+    <!-- Locked notes: chosen notes behind a PIN, kept on this phone only (notes/Locked.kt). -->
+    <string name="lock_row_title">Locked note</string>
+    <string name="lock_lock">Lock</string>
+    <string name="lock_lock_what">Behind a PIN, on this phone only. It is never synced, and the copy on the server is deleted at the next sync.</string>
+    <string name="lock_unlock">Unlock</string>
+    <string name="lock_unlock_what">An ordinary note again, where it was, and synced again from now on.</string>
+    <string name="lock_open">Open</string>
+    <string name="lock_open_heading">Enter the PIN to open this locked note</string>
+    <string name="lock_lock_heading">Enter the PIN to lock this note</string>
+    <string name="lock_unlock_heading">Enter the PIN to unlock this note</string>
+    <string name="lock_pin_hint">PIN</string>
+    <string name="lock_pin_again_hint">The same PIN again</string>
+    <string name="lock_pin_shape">A PIN is 4 to 8 digits.</string>
+    <string name="lock_pin_differ">The two PINs are not the same.</string>
+    <string name="lock_checking">Checking…</string>
+    <string name="lock_wrong">That is not the PIN.</string>
+    <plurals name="lock_wait">
+        <item quantity="one">Too many wrong PINs. Try again in %d second.</item>
+        <item quantity="other">Too many wrong PINs. Try again in %d seconds.</item>
+    </plurals>
+    <string name="lock_broken">The phone\'s keystore would not open the locked notes, so nothing was done.</string>
+    <string name="lock_set_heading">Locking a note</string>
+    <string name="lock_set_what">A locked note stays on this phone only. It is never synced to Nextcloud or a WebDAV server, never served to Desktop Sync or shown on the lock screen, and search does not look in it. If it is on a server now, the next sync deletes it there. It opens only with a PIN of 4 to 8 digits, the same for every locked note.</string>
+    <string name="lock_set_forgotten">If you forget the PIN, the locked notes cannot be opened again, by you, by Memo or by anyone. There is no way to get them back.</string>
+    <string name="lock_set_go">Choose a PIN</string>
+    <string name="lock_set_type">A PIN of 4 to 8 digits</string>
+    <string name="lock_set_and_lock">Set the PIN and lock</string>
+    <string name="lock_refused_attachments">This note holds recordings, scans or pictures. Their files would stay readable beside it, so it cannot be locked. Copy its words into a new note and lock that one.</string>
+    <string name="lock_refused_shared">Someone shared this note with you. It is theirs, so it cannot be locked here.</string>
+    <string name="lock_failed">That could not be locked just now: the notes folder did not take it. The note is as it was.</string>
+    <string name="lock_gone">That note is not there any more.</string>
+    <string name="lock_unlock_failed">That could not be unlocked just now. It is still locked.</string>
+    <string name="lock_unreadable">That locked note could not be read.</string>
+    <string name="locked_open_note">Locked: on this phone only. It closes when you leave it.</string>
+    <string name="locked_delete_confirm">Delete for good — press again</string>
+    <string name="lock_change_heading">Change the PIN</string>
+    <string name="lock_change_current">The PIN now</string>
+    <string name="lock_change_new">The new PIN</string>
+    <string name="lock_change_done">Change it</string>
+    <string name="lock_change_changed">The PIN is changed. Locked notes open with the new one.</string>
+    <string name="settings_locked_change">Change the PIN for locked notes</string>
+    <plurals name="settings_locked_count">
+        <item quantity="one">%d locked note, kept on this phone only. Without the PIN it cannot be opened.</item>
+        <item quantity="other">%d locked notes, kept on this phone only. Without the PIN they cannot be opened.</item>
+    </plurals>
+    <string name="settings_locked_delete">Forgot the PIN: delete every locked note</string>
+    <string name="settings_locked_delete_confirm">Delete every locked note and the PIN for good — press again</string>
 </resources>

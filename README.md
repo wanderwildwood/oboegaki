@@ -53,6 +53,8 @@ a voice note heard and written down, a page photographed and handed to the scann
   whole Obsidian vault and still keep what the phone makes in one place of it.
 - **Pinned** notes stay at the top. **Archived** notes move to an `Archive` folder, out of every
   view but their own, and a search still finds them.
+- **Locked** notes stay on the phone behind a PIN: hold a note in the list and press *Lock*.
+  See [Locked notes](#locked-notes).
 - **From anywhere**: text shared from another app, or selected and sent with *Note*, becomes a
   note; an article or page shared with its name becomes a note called that, holding a Markdown
   link to it. New note and Record are shortcuts on the icon; a Markdown or text file opened
@@ -179,6 +181,53 @@ together.
   merges.
 - **A cable.** Notes in a folder on the phone can be copied to the vault over USB whenever you
   like.
+
+## Locked notes
+
+Hold a note in the list and press *Lock*. The first time, Memo says what a lock means and asks
+for a PIN of 4 to 8 digits, twice; every later lock asks for the same PIN. A locked note shows in
+the list of all notes as *Locked note* and the day it last changed, nothing more: not its title, its folder or
+its words. Pressing it asks for the PIN; it then opens to be read and written in as any note, and
+closes again, back to the list, as soon as it is left: Back, Home, or the screen going off. Hold
+it and press *Unlock*, or *Unlock* in its menu, and it is an ordinary note again, where it was
+(beside it as "name 2" if a note of that name has been made since), synced like any other.
+
+**It never leaves the phone.** A locked note is taken out of the notes folder, so nothing that
+reads the folder sees it: not the sync to Nextcloud or a WebDAV server, not Syncthing or whatever
+else carries a folder on the phone, not Desktop Sync, not Glance's lock screen (its pin goes; the
+list of pins is a file that syncs), not search, not Send or Nextcloud sharing, not the reminders.
+Backups and phone-to-phone transfer are off for the whole app. The screen of an open locked note
+is kept out of screenshots and the picture of the app in Recents.
+
+**A locked note that was on a server before** is deleted there by the next sync, as a note
+deleted on the phone is. Two things to know about that:
+
+- If the note was changed on another device after this phone last synced, the sync does not
+  delete a version this phone never saw: that version comes back to the phone as an ordinary
+  note (the locked one stays locked). Lock that one too, or delete it.
+- Deleted there is deleted as the server deletes. Nextcloud keeps deleted files in its own
+  *Deleted files* for a while, and older versions in *Versions*; empty them on the server if the
+  note should not be there at all. A folder carried by Syncthing may keep old versions the same
+  way, if versioning is on. Another phone or computer that had the note keeps its copy until it
+  next syncs.
+
+A note shared with you is someone else's and cannot be locked here. A note you shared stops
+being shared when the server's copy is deleted. A note that holds recordings, scans or pictures
+cannot be locked, because their files beside it would stay readable; copy its words into a new
+note and lock that one. A locked note's reminders do not ring while it is locked; unlocked, the
+ones still to come ring on this phone again.
+
+**How it is kept.** Each locked note is encrypted with AES-256-GCM by a random key that only
+locked notes use. That key is kept encrypted with a key made from the PIN (PBKDF2-HMAC-SHA256,
+210,000 rounds, a random salt), and that once more with a key in Android's keystore that never
+leaves the phone, so the files copied off it cannot be tried against every PIN elsewhere. The
+PIN itself is kept nowhere. After 5 wrong PINs in a row the next waits 30 seconds, and each
+wrong one after that doubles the wait, up to 15 minutes. All of it is in the app's own storage, which no other app can read.
+
+**A forgotten PIN cannot be got around**, by you, by Memo or by anyone: locked notes cannot be
+opened without it. Settings has *Change the PIN for locked notes* (with the PIN now) and, for a
+PIN forgotten, *Forgot the PIN: delete every locked note*, which deletes them and the PIN for good
+so a new one can be set. Clearing the app's data or uninstalling it deletes them too.
 
 ## Sharing
 

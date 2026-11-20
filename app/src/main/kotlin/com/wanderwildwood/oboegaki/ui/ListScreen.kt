@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import android.content.pm.PackageManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -83,6 +84,8 @@ fun ListScreen(
     order: Order,
     onView: (showing: String, order: Order) -> Unit,
     onOpen: (Note) -> Unit,
+    // A row held down: what can be done with that note (lock it, or unlock a locked one).
+    onHold: (Note) -> Unit = {},
     onNew: (folder: String) -> Unit,
     onRecord: () -> Unit,
     onScan: () -> Unit,
@@ -105,7 +108,9 @@ fun ListScreen(
     var searching by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     var choosing by remember { mutableStateOf<Choosing?>(null) }
-    val shown = arrange(notes, shared, showing, order, if (searching) query else "", pinned)
+    // A search never finds a locked note: it has no words here to find, and its row says nothing.
+    val searched = if (searching && query.isNotBlank()) notes.filter { lockedId(it.path) == null } else notes
+    val shown = arrange(searched, shared, showing, order, if (searching) query else "", pinned)
     val listState = rememberLazyListState()
     val allFolders = folders(notes)
     // Supernote's tablets have no camera, and some have no microphone: no button for either then.
@@ -344,7 +349,7 @@ fun ListScreen(
                     }
                     for (note in shown) {
                         item(key = note.path) {
-                            NoteRow(note, note.path in shared, note.path in pinned, showFolder = Showing.folderOf(showing) == null, ruled = lastRow != "note:${note.path}") { onOpen(note) }
+                            NoteRow(note, note.path in shared, note.path in pinned, showFolder = Showing.folderOf(showing) == null, ruled = lastRow != "note:${note.path}", onHold = { onHold(note) }) { onOpen(note) }
                         }
                     }
                 }
@@ -561,12 +566,13 @@ private fun FolderRow(name: String, line: String?, ruled: Boolean, onClick: () -
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-private fun NoteRow(note: Note, isShared: Boolean, isPinned: Boolean, showFolder: Boolean, ruled: Boolean, onClick: () -> Unit) = Ruled(ruled) {
+private fun NoteRow(note: Note, isShared: Boolean, isPinned: Boolean, showFolder: Boolean, ruled: Boolean, onHold: () -> Unit, onClick: () -> Unit) = Ruled(ruled) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .combinedClickable(onClick = onClick, onLongClick = onHold)
             .padding(horizontal = 20.dp, vertical = 12.dp),
     ) {
         TextMMD(

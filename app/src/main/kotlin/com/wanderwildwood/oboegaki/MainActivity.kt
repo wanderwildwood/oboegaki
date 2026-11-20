@@ -75,6 +75,20 @@ import com.wanderwildwood.oboegaki.ui.ObsidianScreen
 import com.wanderwildwood.oboegaki.ui.WebDavScreen
 import com.wanderwildwood.oboegaki.ui.monochrome
 import com.wanderwildwood.oboegaki.ui.ArmedScope
+import com.wanderwildwood.oboegaki.ui.EInkDialog
+import com.wanderwildwood.oboegaki.ui.LockedNoteScreen
+import com.wanderwildwood.oboegaki.ui.PinDialog
+import com.wanderwildwood.oboegaki.ui.SaidDialog
+import com.wanderwildwood.oboegaki.ui.SetPinDialog
+import com.wanderwildwood.oboegaki.ui.lockedId
+import com.wanderwildwood.oboegaki.ui.lockedRow
+import com.wanderwildwood.oboegaki.notes.LockOutcome
+import com.wanderwildwood.oboegaki.notes.Locks
+import com.wanderwildwood.oboegaki.notes.embeds
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 
 /** Something to be written down the moment the app opens: from "New note", or shared in. */
 data class Capture(
@@ -111,6 +125,15 @@ private sealed interface Screen {
     data object Trash : Screen
     /** One task; [name] null for a new one in [list]. */
     data class Task(val list: String, val name: String?, val fromList: Boolean = false) : Screen
+    /** A locked note, opened with the PIN: [key] is held only while it is on the screen. */
+    class Locked(val id: String, val content: com.wanderwildwood.oboegaki.notes.LockedContent, val key: ByteArray) : Screen
+}
+
+/** What the PIN is being asked for. */
+private sealed interface LockAsk {
+    data class Lock(val path: String) : LockAsk
+    data class Open(val id: String) : LockAsk
+    data class Unlock(val id: String) : LockAsk
 }
 
 /** The actions of the New note and Record shortcuts (res/xml/shortcuts.xml). */
@@ -286,6 +309,12 @@ private fun App(capture: MutableState<Capture?>) {
     val folderGone by Notes.folderGone.collectAsStateWithLifecycle()
     val shared by Notes.shared.collectAsStateWithLifecycle()
     val pinned by Notes.pins.collectAsStateWithLifecycle()
+    val locked by Locks.list.collectAsStateWithLifecycle()
+    val sharedWithMe by Notes.sharedWithMe.collectAsStateWithLifecycle()
+    // A note held down in the list, and what the PIN is being asked for.
+    var held by remember { mutableStateOf<com.wanderwildwood.oboegaki.notes.Note?>(null) }
+    var lockAsk by remember { mutableStateOf<LockAsk?>(null) }
+    var lockSaid by remember { mutableStateOf<String?>(null) }
     var screen by remember { mutableStateOf<Screen>(Screen.List) }
     var showing by remember { mutableStateOf(Notes.preferences.showing) }
     var order by remember { mutableStateOf(Notes.preferences.order) }
@@ -404,7 +433,8 @@ private fun App(capture: MutableState<Capture?>) {
     } else {
         when (val now = screen) {
             Screen.List -> ListScreen(
-                notes = notes,
+                // The locked notes as rows of their own, "Locked note" and a date, nothing more.
+                notes = notes + locked.map { lockedRow(it, stringResource(R.string.lock_row_title)) },
                 shared = shared,
                 pinned = pinned,
                 canShare = keeping == Keeping.NEXTCLOUD,
@@ -420,8 +450,10 @@ private fun App(capture: MutableState<Capture?>) {
                     Notes.preferences.order = o
                 },
                 onOpen = { note ->
-                    opened(note.path)?.let { screen = it }
+                    val id = lockedId(note.path)
+                    if (id != null) lockAsk = LockAsk.Open(id) else opened(note.path)?.let { screen = it }
                 },
+                onHold = { held = it },
                 // Made in the folder being shown, or where new notes go.
                 onNew = { folder -> screen = Screen.Note(Notes.newPath(folder.ifEmpty { Notes.newFolder }), "", fresh = true) },
                 onRecord = { recordAsking() },
@@ -471,6 +503,9 @@ private fun App(capture: MutableState<Capture?>) {
                     onClose = { screen = Screen.List },
                     onShare = { path, title -> screen = Screen.Share(path, title) },
                 )
+            }
+            is Screen.Locked -> key(now.id) {
+                LockedNoteScreen(id = now.id, opened = now.content, key = now.key, onClose = { screen = Screen.List })
             }
             is Screen.Outside -> OutsideScreen(
                 uri = now.uri,
@@ -585,6 +620,92 @@ private fun App(capture: MutableState<Capture?>) {
     }
 
     if (aboutOpen) AboutDialog(onDismiss = { aboutOpen = false })
+
+    // Hold a note in the list: Lock; hold a locked one: Unlock.
+    held?.let { note ->
+        val id = lockedId(note.path)
+        EInkDialog(onDismiss = { held = null }) {
+            com.mudita.mmd.components.text.TextMMD(
+                text = note.title,
+                style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                maxLines = 2,
+            )
+            Spacer(androidx.compose.ui.Modifier.height(4.dp))
+            com.mudita.mmd.components.text.TextMMD(
+                text = stringResource(if (id != null) R.string.lock_unlock else R.string.lock_lock),
+                style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
+                modifier = androidx.compose.ui.Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable {
+                    held = null
+                    when {
+                        id != null -> lockAsk = LockAsk.Unlock(id)
+                        embeds(note.text).isNotEmpty() -> lockSaid = context.getString(R.string.lock_refused_attachments)
+                        note.path in sharedWithMe -> lockSaid = context.getString(R.string.lock_refused_shared)
+                        else -> lockAsk = LockAsk.Lock(note.path)
+                    }
+                }.padding(vertical = 12.dp),
+            )
+            com.mudita.mmd.components.text.TextMMD(
+                text = stringResource(if (id != null) R.string.lock_unlock_what else R.string.lock_lock_what),
+                style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
+            )
+        }
+    }
+
+    // Lock the note at [path] with the note key, and wipe the key; what to say, or null when done.
+    suspend fun lockWith(path: String, key: ByteArray): String? = try {
+        when (withContext(Dispatchers.IO) { runCatching { Notes.lock(path, key) }.getOrNull() }) {
+            is LockOutcome.Locked -> null
+            LockOutcome.HasAttachments -> context.getString(R.string.lock_refused_attachments)
+            LockOutcome.NotThere -> context.getString(R.string.lock_gone)
+            null -> context.getString(R.string.lock_failed)
+        }
+    } finally {
+        key.fill(0)
+    }
+
+    when (val ask = lockAsk) {
+        is LockAsk.Lock -> if (!Locks.hasPin()) {
+            SetPinDialog(onSet = { key -> lockWith(ask.path, key) }, onDismiss = { lockAsk = null })
+        } else {
+            PinDialog(
+                heading = stringResource(R.string.lock_lock_heading),
+                action = stringResource(R.string.lock_lock),
+                onRight = { key -> lockWith(ask.path, key) },
+                onDismiss = { lockAsk = null },
+            )
+        }
+        is LockAsk.Open -> PinDialog(
+            heading = stringResource(R.string.lock_open_heading),
+            action = stringResource(R.string.lock_open),
+            onRight = { key ->
+                val content = withContext(Dispatchers.IO) { runCatching { Locks.store.read(ask.id, key) }.getOrNull() }
+                if (content == null) {
+                    key.fill(0)
+                    context.getString(R.string.lock_unreadable)
+                } else {
+                    screen = Screen.Locked(ask.id, content, key)
+                    null
+                }
+            },
+            onDismiss = { lockAsk = null },
+        )
+        is LockAsk.Unlock -> PinDialog(
+            heading = stringResource(R.string.lock_unlock_heading),
+            action = stringResource(R.string.lock_unlock),
+            onRight = { key ->
+                try {
+                    val back = withContext(Dispatchers.IO) { runCatching { Notes.unlock(ask.id, key) }.getOrNull() }
+                    if (back == null) context.getString(R.string.lock_unlock_failed) else null
+                } finally {
+                    key.fill(0)
+                }
+            },
+            onDismiss = { lockAsk = null },
+        )
+        null -> Unit
+    }
+    lockSaid?.let { SaidDialog(it) { lockSaid = null } }
 
     pictures?.let { shared ->
         PicturesDialog(

@@ -13,6 +13,10 @@ Memo collects nothing about you and has no analytics, ads or tracking of any kin
 - **Deleted notes** are kept for 7 days in a hidden folder next to your notes, wherever you keep
   them, then removed.
 - **Reminders** are set on the phone's own alarm clock and ring only on the phone.
+- **Locked notes** stay on the phone, encrypted with a key made from your PIN and the phone's
+  keystore. They are never synced to Nextcloud or WebDAV, never served to Desktop Sync, never
+  handed to Glance, and a copy on a server from before the lock is deleted there by the next sync.
+  The PIN is kept nowhere; without it they cannot be opened, by anyone.
 - **Today and pinned notes on the lock screen** (what is due today, and each pinned note's title
   and first open items) are handed to Glance, only when it is on the phone and the setting is on;
   they go no further.

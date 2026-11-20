@@ -47,6 +47,7 @@ import com.wanderwildwood.oboegaki.remind.Reminders
 import com.wanderwildwood.oboegaki.tasks.Tasks
 import com.wanderwildwood.oboegaki.notes.Keeping
 import com.wanderwildwood.oboegaki.notes.Notes
+import com.wanderwildwood.oboegaki.notes.Locks
 import com.wanderwildwood.oboegaki.notes.SyncApps
 import com.wanderwildwood.oboegaki.notes.SyncState
 import com.wanderwildwood.oboegaki.notes.cleanFolder
@@ -135,6 +136,9 @@ fun SettingsScreen(
             context.getSystemService(android.app.NotificationManager::class.java).canUseFullScreenIntent()
     }
     val keptFolder = remember(preferences.folder) { folderName(preferences.folder, context.contentResolver) }
+    val locked by Locks.list.collectAsState()
+    var hasPin by remember { mutableStateOf(Locks.hasPin()) }
+    var changingPin by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface,
@@ -173,6 +177,21 @@ fun SettingsScreen(
             }
             item {
                 SettingRow(stringResource(R.string.obsidian_title), "", onClick = onObsidian)
+            }
+            // Locked notes, once a PIN is set: change it, or, forgotten, let them all go.
+            if (hasPin) {
+                item {
+                    SettingRow(
+                        stringResource(R.string.settings_locked_change),
+                        pluralStringResource(R.plurals.settings_locked_count, locked.size, locked.size),
+                    ) { changingPin = true }
+                }
+                item {
+                    Leave(stringResource(R.string.settings_locked_delete), stringResource(R.string.settings_locked_delete_confirm)) {
+                        Locks.deleteAll()
+                        hasPin = false
+                    }
+                }
             }
             item {
                 var on by remember { mutableStateOf(preferences.lockScreen) }
@@ -431,6 +450,8 @@ fun SettingsScreen(
             onDismiss = { choosing = false },
         )
     }
+
+    if (changingPin) ChangePinDialog(onDone = { changingPin = false })
 
     if (choosingSize) {
         EInkDialog(onDismiss = { choosingSize = false }) {
