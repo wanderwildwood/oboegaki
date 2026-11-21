@@ -244,7 +244,8 @@ ticked in Nextcloud's Tasks app and in Thunderbird, and one added there turns up
 else is needed on the phone, DAVx5 included.
 
 - A task has a title, a due day or day and time, a priority, notes, and its list. A tick is one
-  tap; a task opens to be changed; Delete asks twice. *New list* makes another list on the
+  tap; a task opens to be changed; Delete asks twice. Under a list's opened *Done* tasks,
+  *Delete the done tasks* deletes them all at once, also asking twice. *New list* makes another list on the
   Nextcloud, and *New tasks go in*, in the settings, says which one new tasks go to.
 - Anything else in a task that another app put there (subtasks, categories, alarms, colors)
   is kept exactly as it was when Memo writes the task back.

@@ -239,6 +239,17 @@ object Tasks {
         changed()
     }
 
+    /** Every done task in [items] deleted at once, as [delete] does each: one sync after them all. */
+    fun deleteDone(items: List<Item>) {
+        val done = items.filter { it.task.fields.done }
+        if (done.isEmpty()) return
+        for (item in done) {
+            store.delete(item.list, item.name)
+            Reminders.unclaimTask(appContext, item.task.uid)
+        }
+        changed()
+    }
+
     fun move(item: Item, to: String): Item? {
         val moved = store.move(item.list, item.name, to)
         changed()

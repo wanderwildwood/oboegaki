@@ -488,6 +488,11 @@
     <string name="lock_today">Today</string>
     <string name="tasks_done_show">Done · %1$d</string>
     <string name="tasks_done_hide">Done · %1$d · hide</string>
+    <string name="tasks_clear_done">Delete the done tasks</string>
+    <plurals name="tasks_clear_done_confirm">
+        <item quantity="one">Delete %1$d done task — tap again</item>
+        <item quantity="other">Delete all %1$d done tasks — tap again</item>
+    </plurals>
     <!-- Said when a note could not be written to its folder; the text stays in the editor -->
     <string name="note_not_saved">This note could not be saved just now. What you typed is still here.</string>
     <!-- Back was pressed on a note that could not be saved -->
