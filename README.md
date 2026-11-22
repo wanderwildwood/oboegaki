@@ -334,6 +334,8 @@ For updates without doing this by hand, add this repository to
 **The application id is settled**: updates install over what you have, keeping your notes and
 settings.
 
+Questions, ideas, or just saying hello: the wander the dev Discord, <https://discord.gg/UMW8yJg7dQ>
+
 ## Building
 
 ```
