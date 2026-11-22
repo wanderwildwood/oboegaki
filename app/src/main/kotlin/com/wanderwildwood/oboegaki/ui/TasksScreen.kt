@@ -185,6 +185,10 @@ fun TasksScreen(
                             ) { Tasks.moveToNextcloud(to.id) }
                         }
                     }
+                    // One of the reader's own Nextcloud lists, and its tasks, gone at once, asked first.
+                    if (nextcloud && !list.onPhone && !list.readOnly) item(key = "drop-list:${list.id}") {
+                        DeleteListRow(list, section.items.size)
+                    }
                     item(key = "rule:${list.id}") { DottedRule(start = 20.dp) }
                 }
                 if (nextcloud) {
@@ -204,6 +208,31 @@ fun TasksScreen(
     }
 
     if (making) NewListDialog(onDismiss = { making = false })
+}
+
+/**
+ * Deletes [list] and its [count] tasks, on the Nextcloud and here, after a second tap. A server that
+ * cannot be reached, or will not, is said under the row, and the list stays as it was.
+ */
+@Composable
+private fun DeleteListRow(list: TaskList, count: Int) {
+    val scope = rememberCoroutineScope()
+    var failed by remember { mutableStateOf(false) }
+    Leave(
+        stringResource(R.string.tasks_delete_list),
+        if (count == 0) stringResource(R.string.tasks_delete_list_empty_confirm)
+        else pluralStringResource(R.plurals.tasks_delete_list_confirm, count, count),
+    ) {
+        failed = false
+        scope.launch { failed = runCatching { Tasks.deleteList(list.id) }.isFailure }
+    }
+    if (failed) {
+        TextMMD(
+            text = stringResource(R.string.tasks_delete_list_failed),
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+        )
+    }
 }
 
 /** Open tasks: the ones due first, soonest at the top, then the rest by priority and title. */

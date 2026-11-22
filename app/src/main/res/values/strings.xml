@@ -506,6 +506,13 @@
     <string name="tasks_failed">Some lists didn\'t sync: %1$s</string>
     <string name="tasks_move_to_nextcloud">Move these to %1$s on the Nextcloud</string>
     <string name="tasks_move_to_nextcloud_confirm">Move them to %1$s — tap again</string>
+    <string name="tasks_delete_list">Delete this list</string>
+    <string name="tasks_delete_list_empty_confirm">Delete this list — tap again</string>
+    <plurals name="tasks_delete_list_confirm">
+        <item quantity="one">Delete the list and its %1$d task — tap again</item>
+        <item quantity="other">Delete the list and its %1$d tasks — tap again</item>
+    </plurals>
+    <string name="tasks_delete_list_failed">The Nextcloud didn\'t delete the list. It is still here; try again when the Nextcloud can be reached.</string>
     <string name="tasks_new_list">New list</string>
     <string name="tasks_new_list_hint">Name</string>
     <string name="tasks_new_list_make">Make</string>

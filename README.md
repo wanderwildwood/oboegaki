@@ -246,7 +246,10 @@ else is needed on the phone, DAVx5 included.
 - A task has a title, a due day or day and time, a priority, notes, and its list. A tick is one
   tap; a task opens to be changed; Delete asks twice. Under a list's opened *Done* tasks,
   *Delete the done tasks* deletes them all at once, also asking twice. *New list* makes another list on the
-  Nextcloud, and *New tasks go in*, in the settings, says which one new tasks go to.
+  Nextcloud, and *New tasks go in*, in the settings, says which one new tasks go to. *Delete this
+  list*, at the end of one of your own Nextcloud lists, deletes the list and its tasks, also asking
+  twice; the Nextcloud keeps a deleted list in its trash bin for a while. A list shared with you
+  read only, and the one kept on this phone, have no such row.
 - Anything else in a task that another app put there (subtasks, categories, alarms, colors)
   is kept exactly as it was when Memo writes the task back.
 - Changes made with no signal wait on the phone and go when there is one. Each list says when it

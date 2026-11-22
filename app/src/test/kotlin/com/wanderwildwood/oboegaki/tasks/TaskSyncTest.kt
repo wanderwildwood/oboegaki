@@ -5,6 +5,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -57,6 +58,12 @@ class MemoryServer : TaskServer {
         lists[href] = name
         return RemoteList(href, name, false, null)
     }
+
+    override fun deleteList(href: String) {
+        if (href in readOnly) throw ReadOnly(href)
+        lists.remove(href)
+        files.keys.removeAll { it.startsWith(href) }
+    }
 }
 
 class TaskSyncTest {
@@ -76,6 +83,32 @@ class TaskSyncTest {
         "RELATED-TO:parent-9", "CATEGORIES:Farm", "X-OC-HIDESUBTASKS:0",
         "BEGIN:VALARM", "ACTION:DISPLAY", "TRIGGER:-PT10M", "END:VALARM", "END:VTODO", "END:VCALENDAR", "",
     ).joinToString("\r\n")
+
+    @Test
+    fun aListDeletedOnTheServerGoesFromHereWithItsTasksAndTheOthersStay() {
+        server.makeList("Errands")
+        server.write("/dav/calendars/ada/errands/e-1.ics", withExtras.replace("UID:web-1", "UID:e-1"))
+        server.write("/dav/calendars/ada/personal/web-1.ics", withExtras)
+        sync()
+        assertEquals(2, store.lists().count { !it.onPhone })
+        val errands = store.lists().first { it.name == "Errands" }
+        assertEquals(1, store.items(errands.id).size)
+
+        server.deleteList(errands.href!!)
+        assertTrue(server.files.keys.none { it.startsWith("/dav/calendars/ada/errands/") })
+        sync()
+        assertEquals(listOf("Personal"), store.lists().filter { !it.onPhone }.map { it.name })
+        assertTrue(store.items(errands.id).isEmpty())
+        assertEquals(1, store.items(list).size)
+    }
+
+    @Test
+    fun aListSharedReadOnlyCannotBeDeletedOnTheServer() {
+        server.makeList("Shared")
+        server.readOnly += "/dav/calendars/ada/shared/"
+        assertThrows(ReadOnly::class.java) { server.deleteList("/dav/calendars/ada/shared/") }
+        assertTrue("/dav/calendars/ada/shared/" in server.lists)
+    }
 
     @Test
     fun aTaskMadeOnTheServerComesDownAndAnEditGoesBackWithEverythingElseKept() {

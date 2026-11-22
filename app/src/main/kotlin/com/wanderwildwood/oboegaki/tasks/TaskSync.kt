@@ -41,6 +41,9 @@ interface TaskServer {
 
     /** A new list of tasks, called [name]. */
     fun makeList(name: String): RemoteList
+
+    /** Removes the list at [href] and every task in it. Gone already is fine; throws [ReadOnly] when it may not be. */
+    fun deleteList(href: String)
 }
 
 /** How one sync went: lists it could not finish, and conflicts kept in a task's notes. */

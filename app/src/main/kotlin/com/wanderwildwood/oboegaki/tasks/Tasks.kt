@@ -270,6 +270,22 @@ object Tasks {
         store.lists().firstOrNull { it.href != null && norm(it.href) == norm(made.href) }
     }
 
+    /**
+     * The list [id] and every task in it deleted: on the Nextcloud first, then here. Only one of
+     * the reader's own Nextcloud lists; a list shared with them read only, or the one kept on this
+     * phone, is left alone. Throws when the server would not delete it, and then nothing here changes.
+     */
+    suspend fun deleteList(id: String) = withContext(Dispatchers.IO) {
+        val account = account() ?: return@withContext
+        val list = store.list(id)?.takeIf { it.href != null && !it.readOnly } ?: return@withContext
+        syncing.withLock {
+            CalDavServer(account).deleteList(list.href!!)
+            for (item in store.items(id)) Reminders.unclaimTask(appContext, item.task.uid)
+            store.dropList(id)
+        }
+        withContext(Dispatchers.Main) { changed() }
+    }
+
     fun item(list: String, name: String): Item? = store.item(list, name)
 
     fun listName(id: String): String? = store.list(id)?.name

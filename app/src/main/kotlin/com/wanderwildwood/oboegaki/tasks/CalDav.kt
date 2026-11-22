@@ -120,6 +120,18 @@ class CalDavServer(
         return RemoteList(java.net.URI(href).rawPath, name, false, null)
     }
 
+    // A calendar deleted on a Nextcloud goes to its trash bin first (Calendar > Settings >
+    // Trash bin), so a list deleted by mistake can still be brought back there for a while.
+    override fun deleteList(href: String) {
+        call(request(url(href)).delete().build()) { response ->
+            when {
+                response.code == 404 || response.code == 410 -> Unit
+                response.code == 403 -> throw ReadOnly("$href may not be deleted")
+                !response.isSuccessful -> fail(response, href)
+            }
+        }
+    }
+
     private fun <T> call(request: Request, read: (Response) -> T): T {
         val response = try {
             client.newCall(request).execute()
