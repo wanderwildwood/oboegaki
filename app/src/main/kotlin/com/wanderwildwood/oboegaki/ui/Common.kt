@@ -35,6 +35,12 @@ fun CornerButton(icon: ImageVector, description: String, onClick: () -> Unit) {
     }
 }
 
+/**
+ * How far the corner buttons stand above the Scaffold's own 16 dp: 3 dp, so they sit at the
+ * height of Messaging's pencil, which rests on a 3 dp rule (23 Nov 2026).
+ */
+val CornerLift = 3.dp
+
 /** An icon in a top bar, with a target a thumb can find. */
 @Composable
 fun BarButton(icon: ImageVector, description: String, onClick: () -> Unit) {

@@ -165,7 +165,7 @@ fun ListScreen(
         floatingActionButton = {
             // One + in the corner (11 Nov 2026; there were three buttons, standing over the
             // scrollbar). Not while searching: with the keyboard up it stood over the search field.
-            if (buttonsShown) Column(horizontalAlignment = Alignment.End) {
+            if (buttonsShown) Column(modifier = Modifier.padding(bottom = CornerLift), horizontalAlignment = Alignment.End) {
                 val newNote = { opened = false; onNew(Showing.folderOf(showing) ?: "") }
                 if (opened) {
                     if (hasCamera) {
