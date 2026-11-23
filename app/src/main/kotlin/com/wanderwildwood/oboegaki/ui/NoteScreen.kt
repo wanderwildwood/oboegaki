@@ -577,6 +577,25 @@ private fun Writing(
     }
 }
 
+/** Lines longer than this are cut into rows of whole lines when they are taller than the page. */
+private const val LONG_LINE = 300
+
+/** One text line of a note: a heading folds on a tap. [shownText] is one run of it when the line was cut. */
+@Composable
+private fun TextLine(line: Line.Text, closed: Boolean, onFold: () -> Unit, shownText: String? = null, textModifier: Modifier = Modifier) {
+    val heading = headingLevel(line.text) > 0
+    TextMMD(
+        text = shownText ?: if (heading) (if (closed) "+ " else "\u2212 ") + line.text.trimStart('#', ' ') else line.text,
+        style = MaterialTheme.typography.bodyLarge,
+        fontWeight = if (heading) FontWeight.Bold else null,
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (heading) Modifier.clickable(onClick = onFold) else Modifier)
+            .padding(vertical = if (heading) 8.dp else 4.dp)
+            .then(textModifier),
+    )
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun Reading(
@@ -611,7 +630,10 @@ private fun Reading(
     var folded by remember { mutableStateOf(emptySet<Int>()) }
     val shown = remember(parsed, folded) { withoutFolded(parsed, folded) }
 
-    PagedColumn(modifier = Modifier.fillMaxSize(), showCutRow = true) {
+    val fit = rememberWholeLineFit()
+    val bodyStyle = MaterialTheme.typography.bodyLarge
+    val headStyle = bodyStyle.copy(fontWeight = FontWeight.Bold)
+    PagedColumn(modifier = Modifier.fillMaxSize().wholeLinePage(fit), showCutRow = true) {
         item(key = "title") {
             TextMMD(
                 text = title,
@@ -623,6 +645,17 @@ private fun Reading(
             }
         }
         for (line in shown) {
+            // A long paragraph line is cut into rows of whole lines, so a turn never opens on half a line.
+            // Short lines (the many) stay one plain row: measuring every line of a long note is not free.
+            if (line is Line.Text && line.text.length > LONG_LINE && scanOn(line.text) == null && pictureOn(line.text) == null && recordingOn(line.text) == null) {
+                val heading = headingLevel(line.text) > 0
+                val closed = line.index in folded
+                val shownText = if (heading) (if (closed) "+ " else "\u2212 ") + line.text.trimStart('#', ' ') else line.text
+                wholeLineItems(line.index, shownText, if (heading) headStyle else bodyStyle, fit, gap = if (heading) 16.dp else 8.dp) { run, _, textModifier ->
+                    TextLine(line, closed, { folded = if (closed) folded - line.index else folded + line.index }, run, textModifier)
+                }
+                continue
+            }
             item(key = line.index) {
                 when (line) {
                     is Line.Task -> Row(
@@ -659,19 +692,7 @@ private fun Reading(
                         val path = if (folder.isEmpty()) name else "$folder/$name"
                         Player(uri = Notes.shelf()?.uriOf(path), hearing = hearing)
                     } else {
-                        val heading = headingLevel(line.text) > 0
-                        val closed = line.index in folded
-                        TextMMD(
-                            text = if (heading) (if (closed) "+ " else "\u2212 ") + line.text.trimStart('#', ' ') else line.text,
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = if (heading) FontWeight.Bold else null,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .then(
-                                    if (heading) Modifier.clickable { folded = if (closed) folded - line.index else folded + line.index } else Modifier,
-                                )
-                                .padding(vertical = if (heading) 8.dp else 4.dp),
-                        )
+                        TextLine(line, line.index in folded, { folded = if (line.index in folded) folded - line.index else folded + line.index })
                     }
                 }
             }
