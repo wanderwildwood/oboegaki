@@ -138,6 +138,10 @@ fun SettingsScreen(
     val keptFolder = remember(preferences.folder) { folderName(preferences.folder, context.contentResolver) }
     val locked by Locks.list.collectAsState()
     var hasPin by remember { mutableStateOf(Locks.hasPin()) }
+    // Glance's row is for a reader who has Glance, or whose switch is still on so it can be turned off.
+    val glancePresence = remember { SyncApps.glanceStatus(context) }
+    val glanceHere = glancePresence != SyncApps.Presence.MISSING
+    var glanceOn by remember { mutableStateOf(preferences.lockScreen) }
     var changingPin by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -193,14 +197,13 @@ fun SettingsScreen(
                     }
                 }
             }
-            item {
-                var on by remember { mutableStateOf(preferences.lockScreen) }
+            if (glanceHere || glanceOn) item {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable {
-                            on = !on
-                            preferences.lockScreen = on
+                            glanceOn = !glanceOn
+                            preferences.lockScreen = glanceOn
                             GlanceProvider.changed(context)
                         }
                         .padding(horizontal = 20.dp, vertical = 12.dp),
@@ -209,13 +212,11 @@ fun SettingsScreen(
                     Column(modifier = Modifier.weight(1f)) {
                         TextMMD(text = stringResource(R.string.settings_lock_screen), style = MaterialTheme.typography.bodyLarge)
                         TextMMD(text = stringResource(R.string.settings_lock_screen_what), style = MaterialTheme.typography.labelSmall)
-                        val presence = remember { SyncApps.glanceStatus(context) }
                         val pinned = remember { runCatching { Notes.pinnedNow().size }.getOrDefault(0) }
                         TextMMD(
                             text = when {
-                                presence == SyncApps.Presence.MISSING -> stringResource(R.string.glance_missing)
-                                presence == SyncApps.Presence.DISABLED -> stringResource(R.string.glance_disabled)
-                                !on -> stringResource(R.string.glance_ready_off)
+                                glancePresence == SyncApps.Presence.DISABLED -> stringResource(R.string.glance_disabled)
+                                !glanceOn -> stringResource(R.string.glance_ready_off)
                                 else -> pluralStringResource(R.plurals.glance_ready_pinned, pinned, pinned)
                             },
                             style = MaterialTheme.typography.labelSmall,
@@ -224,7 +225,7 @@ fun SettingsScreen(
                         )
                     }
                     Spacer(Modifier.width(16.dp))
-                    SwitchMMD(checked = on, onCheckedChange = null, modifier = Modifier.semantics { toggleableState = ToggleableState(on) })
+                    SwitchMMD(checked = glanceOn, onCheckedChange = null, modifier = Modifier.semantics { toggleableState = ToggleableState(glanceOn) })
                 }
             }
             item {

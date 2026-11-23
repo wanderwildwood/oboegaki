@@ -351,7 +351,6 @@
     <string name="settings_lock_screen_needs">Needs Glance, which is not on this phone</string>
     <!-- Always under the lock-screen switch: what it does and what it needs -->
     <string name="settings_lock_screen_what">Hands what is due today and your pinned notes, each with its open items, to Glance, a separate app that draws the lock screen. This switch does nothing without it.</string>
-    <string name="glance_missing">Glance is not installed, so nothing shows on the lock screen yet.</string>
     <string name="glance_disabled">Glance is installed but switched off in the phone\'s app settings.</string>
     <string name="glance_ready_off">Glance is installed and on. This switch is off, so nothing is handed over.</string>
     <plurals name="glance_ready_pinned">
