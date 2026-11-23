@@ -141,7 +141,8 @@ fun SettingsScreen(
     // Glance's row is for a reader who has Glance, or whose switch is still on so it can be turned off.
     val glancePresence = remember { SyncApps.glanceStatus(context) }
     val glanceHere = glancePresence != SyncApps.Presence.MISSING
-    var glanceOn by remember { mutableStateOf(preferences.lockScreen) }
+    // The switch starts on; without Glance only one somebody set on is shown (to turn it off).
+    var glanceOn by remember { mutableStateOf(if (glanceHere) preferences.lockScreen else preferences.lockScreenChosenOn) }
     var changingPin by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -213,7 +214,8 @@ fun SettingsScreen(
                         TextMMD(text = stringResource(R.string.settings_lock_screen), style = MaterialTheme.typography.bodyLarge)
                         TextMMD(text = stringResource(R.string.settings_lock_screen_what), style = MaterialTheme.typography.labelSmall)
                         val pinned = remember { runCatching { Notes.pinnedNow().size }.getOrDefault(0) }
-                        TextMMD(
+                        // Without Glance the row is only here to be switched off, and has no state to tell.
+                        if (glanceHere) TextMMD(
                             text = when {
                                 glancePresence == SyncApps.Presence.DISABLED -> stringResource(R.string.glance_disabled)
                                 !glanceOn -> stringResource(R.string.glance_ready_off)

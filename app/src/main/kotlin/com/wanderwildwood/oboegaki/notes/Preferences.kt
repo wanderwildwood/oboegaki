@@ -165,6 +165,13 @@ class Preferences(context: Context) {
         get() = store.getBoolean(LOCK_SCREEN, true)
         set(value) = store.edit().putBoolean(LOCK_SCREEN, value).apply()
 
+    /**
+     * Whether that switch is on because someone set it, not because that is how it starts. Without
+     * Glance on the phone, only a chosen switch is worth a row in Settings.
+     */
+    val lockScreenChosenOn: Boolean
+        get() = store.contains(LOCK_SCREEN) && store.getBoolean(LOCK_SCREEN, true)
+
     /** The language voice notes are heard in; anything but "en" uses the downloaded model. */
     var speechLanguage: String
         get() = store.getString(SPEECH_LANGUAGE, null) ?: "en"
