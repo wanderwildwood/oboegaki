@@ -9,6 +9,11 @@ import android.provider.Settings as AndroidSettings
 import android.view.WindowManager
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -338,15 +343,39 @@ internal fun DateDialog(initial: LocalDate, onPick: (LocalDate) -> Unit, onDismi
                 window.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
             }
         }
+        val ok = {
+            state.selectedDateMillis?.let { onPick(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()) }
+            onDismiss()
+        }
+        val config = LocalConfiguration.current
         Surface(color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxSize()) {
-            Column(Modifier.fillMaxSize().padding(vertical = 16.dp)) {
-                DatePickerMMD(state = state, dateFormatter = formatter, title = null, headline = null, showModeToggle = false)
-                Spacer(Modifier.weight(1f))
-                Box(Modifier.padding(horizontal = 20.dp)) {
-                    PickerButtons(onCancel = onDismiss, onOk = {
-                        state.selectedDateMillis?.let { onPick(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()) }
-                        onDismiss()
-                    })
+            if (config.screenWidthDp > config.screenHeightDp) {
+                // Turned sideways the screen is too low for the calendar and the buttons under
+                // it, so the buttons stand beside it; the calendar scrolls if it is still taller.
+                Row(Modifier.fillMaxSize().padding(vertical = 8.dp)) {
+                    Column(Modifier.width(360.dp).verticalScroll(rememberScrollState())) {
+                        DatePickerMMD(state = state, dateFormatter = formatter, title = null, headline = null, showModeToggle = false)
+                    }
+                    Column(
+                        Modifier.weight(1f).fillMaxHeight().padding(horizontal = 20.dp),
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        ButtonMMD(onClick = ok, modifier = Modifier.fillMaxWidth().height(48.dp)) {
+                            TextMMD(text = stringResource(R.string.dav_ok), style = MaterialTheme.typography.bodySmall)
+                        }
+                        Spacer(Modifier.height(16.dp))
+                        OutlinedButtonMMD(onClick = onDismiss, modifier = Modifier.fillMaxWidth().height(48.dp)) {
+                            TextMMD(text = stringResource(R.string.remind_cancel), style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            } else {
+                Column(Modifier.fillMaxSize().padding(vertical = 16.dp)) {
+                    DatePickerMMD(state = state, dateFormatter = formatter, title = null, headline = null, showModeToggle = false)
+                    Spacer(Modifier.weight(1f))
+                    Box(Modifier.padding(horizontal = 20.dp)) {
+                        PickerButtons(onCancel = onDismiss, onOk = ok)
+                    }
                 }
             }
         }
