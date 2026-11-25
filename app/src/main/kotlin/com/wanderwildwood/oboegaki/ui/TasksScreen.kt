@@ -46,6 +46,7 @@ import com.wanderwildwood.oboegaki.tasks.day
 import com.wanderwildwood.oboegaki.tasks.local
 import kotlinx.coroutines.delay
 import com.wanderwildwood.oboegaki.tasks.nextOccurrence
+import com.wanderwildwood.oboegaki.tasks.onlyPhoneList
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 import com.mudita.mmd.components.buttons.ButtonMMD
@@ -132,9 +133,10 @@ fun TasksScreen(
                 barClearBelow = FAB_CLEAR,
             ) {
                 val nextcloud = Tasks.onNextcloud
+                val headed = !onlyPhoneList(shown)
                 for (section in shown) {
                     val list = section.list
-                    item(key = "list:${list.id}") { ListHeading(list) }
+                    if (headed) item(key = "list:${list.id}") { ListHeading(list) }
                     val open = section.items.filter { !it.task.fields.done }.sortedWith(openOrder)
                     val done = section.items.filter { it.task.fields.done }.sortedWith(doneOrder)
                     if (open.isEmpty()) {

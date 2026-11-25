@@ -29,6 +29,12 @@ import java.time.LocalDateTime
 data class Shown(val list: TaskList, val items: List<Item>)
 
 /**
+ * Whether the phone's own list is the only one shown. Its name then tells nothing, so it is left
+ * out of the Today rows, the Tasks heading, a task's List row and reminders (GitHub #3).
+ */
+fun onlyPhoneList(shown: List<Shown>): Boolean = shown.size == 1 && shown[0].list.onPhone
+
+/**
  * The tasks, and the one place the screens go to change them.
  *
  * With the notes on a Nextcloud, the lists are that Nextcloud's task lists, the same ones its
@@ -81,6 +87,9 @@ object Tasks {
         val phoneList = if (keepPhone) phone ?: store.phoneList(appContext.getString(R.string.tasks_on_phone)) else null
         return server + listOfNotNull(phoneList)
     }
+
+    /** [onlyPhoneList], read from the store, for screens and reminders that may come before [reload]. */
+    fun onlyPhone(): Boolean = runCatching { visible().let { it.size == 1 && it[0].onPhone } }.getOrDefault(false)
 
     fun reload() {
         _shown.value = runCatching { visible().map { Shown(it, store.items(it.id)) } }.getOrDefault(emptyList())

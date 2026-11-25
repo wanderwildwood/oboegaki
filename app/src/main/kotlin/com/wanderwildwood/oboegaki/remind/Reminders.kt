@@ -147,6 +147,7 @@ object Reminders {
     fun where(context: Context, rec: Record): String {
         if (rec.isTask) {
             Tasks.init(context)
+            if (Tasks.onlyPhone()) return ""
             return runCatching { Tasks.store.find(rec.uid)?.let { Tasks.listName(it.list) } }.getOrNull().orEmpty()
         }
         return rec.path.substringAfterLast('/').substringBeforeLast('.')

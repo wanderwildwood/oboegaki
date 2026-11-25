@@ -51,6 +51,16 @@ class TodayTest {
     }
 
     @Test
+    fun theListNameIsLeftOutWhenThePhonesListIsTheOnlyOne() {
+        val due = listOf(item("Bins out", Due.Day(today)))
+        val alone = gather(emptyList(), listOf(Shown(list, due)), today).single() as Entry.OfTask
+        assertEquals("", alone.listName)
+        val server = TaskList("work", "/remote.php/dav/calendars/ada/work/", "Work")
+        val both = gather(emptyList(), listOf(Shown(server, emptyList()), Shown(list, due)), today).single() as Entry.OfTask
+        assertEquals("Personal", both.listName)
+    }
+
+    @Test
     fun movingAnItemKeepsItsTimeUnlessOneIsPicked() {
         val text = "- [ ] oats ⏰ 2026-11-09 09:30\n- [ ] eggs"
         val entry = gather(listOf(note("Shopping.md", text)), emptyList(), today).single() as Entry.OfNote

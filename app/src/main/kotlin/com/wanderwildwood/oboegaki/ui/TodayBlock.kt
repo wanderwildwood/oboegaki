@@ -113,7 +113,7 @@ private fun TodayRow(entry: Entry, onOpen: (Entry) -> Unit, onTick: (Entry) -> U
             val whenText = entry.at?.let { Times.time(context, it) }
             val dateText = if (entry.overdue) stringResource(R.string.today_overdue, Times.relativeDay(context, entry.day)) else null
             val where = when (entry) {
-                is Entry.OfTask -> entry.listName
+                is Entry.OfTask -> entry.listName.ifEmpty { null }
                 is Entry.OfNote -> entry.noteTitle.takeIf { entry.isItem }
             }
             val line = listOfNotNull(dateText, whenText, where).joinToString(" · ")

@@ -14,6 +14,7 @@ import com.wanderwildwood.oboegaki.tasks.Item
 import com.wanderwildwood.oboegaki.tasks.Shown
 import com.wanderwildwood.oboegaki.tasks.day
 import com.wanderwildwood.oboegaki.tasks.local
+import com.wanderwildwood.oboegaki.tasks.onlyPhoneList
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -48,11 +49,12 @@ sealed interface Entry {
 
 fun gather(notes: List<Note>, tasks: List<Shown>, today: LocalDate): List<Entry> {
     val out = mutableListOf<Entry>()
+    val named = !onlyPhoneList(tasks)
     for (s in tasks) {
         for (item in s.items) {
             val f = item.task.fields
             if (f.done || f.due == null || f.due.day().isAfter(today)) continue
-            out += Entry.OfTask(item, s.list.name, s.list.readOnly)
+            out += Entry.OfTask(item, if (named) s.list.name else "", s.list.readOnly)
         }
     }
     for (note in notes) {

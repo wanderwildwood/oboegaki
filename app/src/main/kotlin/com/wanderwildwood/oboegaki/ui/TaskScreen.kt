@@ -86,6 +86,8 @@ fun TaskScreen(list: String, name: String?, onClose: () -> Unit) {
     var priority by remember { mutableStateOf(start.priority) }
     var done by remember { mutableStateOf(start.done) }
     var inList by remember { mutableStateOf(list) }
+    // With only the phone's own list, its name is left out (GitHub #3).
+    val onlyPhone = remember { Tasks.onlyPhone() }
     // A new task set on this phone rings here, as a reminder set here does.
     var ring by remember { mutableStateOf(item?.let { Reminders.isTaskHere(context, it.task.uid) } ?: true) }
     var ringLoaded by remember { mutableStateOf(ring) }
@@ -261,7 +263,7 @@ fun TaskScreen(list: String, name: String?, onClose: () -> Unit) {
                     if (!readOnly) { focusManager.clearFocus(); pickingPriority = true }
                 }
             }
-            item(key = "list") {
+            if (!onlyPhone) item(key = "list") {
                 SettingRow(stringResource(R.string.task_field_list), Tasks.listName(inList).orEmpty()) {
                     if (!readOnly && Tasks.writableLists().size > 1) { focusManager.clearFocus(); pickingList = true }
                 }
