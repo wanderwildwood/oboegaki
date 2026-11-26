@@ -14,7 +14,7 @@ Not a fork. Written from scratch in Kotlin and Jetpack Compose, using Mudita's o
 | | |
 |---|---|
 | ![Every note, newest first](screenshots/1-list.png) | ![A list, ticked in one tap](screenshots/2-checklist.png) |
-| ![The Trash: deleted notes wait seven days](screenshots/3-trash.png) | ![Desktop Sync in Settings, off until you turn it on](screenshots/4-desktop-sync.png) |
+| ![Tasks: what is still to do, from every note](screenshots/3-tasks.png) | ![Where notes are kept: Nextcloud, a WebDAV server, or a folder on the phone](screenshots/4-storage.png) |
 
 ## Where this is up to
 
