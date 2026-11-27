@@ -10,6 +10,10 @@ Memo collects nothing about you and has no analytics, ads or tracking of any kin
   model is downloaded once from Hugging Face when you choose it; nothing you record is sent.
 - **The Nextcloud app password** and a WebDAV password are kept in the app's private storage,
   and backups are turned off, so they leave the phone only for the server they belong to.
+- **Home** (`com.wanderwildwood.iori`): when it is installed, Memo asks it whether its dark mode
+  switch is on, a yes or no. If Home is signed in to a Nextcloud and you choose "Use the phone's
+  Nextcloud account", Memo also asks it for that account, after checking that the app answering
+  really is Home, by its signing certificate. It keeps only that choice; the password stays Home's, is asked for when it is needed, and is let go when Home signs out.
 - **Deleted notes** are kept for 7 days in a hidden folder next to your notes, wherever you keep
   them, then removed.
 - **Reminders** are set on the phone's own alarm clock and ring only on the phone.

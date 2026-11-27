@@ -119,7 +119,9 @@ they follow one on the phone. The server is NanoHTTPD.
 ## Where the notes are kept
 
 **On a Nextcloud.** You sign in on the server's own page, which gives this phone a password of
-its own that you can take back from the server's security settings. The notes are kept on the
+its own that you can take back from the server's security settings. Where Home is signed in to
+a Nextcloud, **Use the phone's Nextcloud account** takes that account instead, with no password
+to type. The notes are kept on the
 phone as well, so they open with no signal, and are synced when the server can be reached:
 when the app opens, after an edit, every half minute while a note is open, and when the list
 is pulled down from its top (Tasks too), which says "Syncing…" and then "Up to date".
